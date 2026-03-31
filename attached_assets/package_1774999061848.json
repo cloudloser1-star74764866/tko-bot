@@ -1,0 +1,17 @@
+{
+  "name": "tko-bot",
+  "version": "1.0.0",
+  "description": "TKO Discord card-pulling bot",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "dev": "nodemon bot.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
