@@ -6,7 +6,7 @@
 module.exports = {
 
   // ── Bot Settings ──────────────────────────────────────────
-  PREFIX: '!tko',
+  PREFIX: 'ZP',
   PULL_COOLDOWN_SECONDS: 30,    // Cooldown between pulls (seconds)
 
   // ── Shard Values (duplicates) ─────────────────────────────

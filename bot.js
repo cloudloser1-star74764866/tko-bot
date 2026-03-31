@@ -1,16 +1,16 @@
 // ============================================================
 //  test BOT — MAIN
 //  Commands:
-//    !tko pull              – pull a random card
-//    !tko inventory         – view your cards
-//    !tko inventory @user   – view someone else's cards
-//    !tko card <id>         – inspect a card
-//    !tko shards            – check your shard balance
-//    !tko trade @user <cardId> <shards>  – offer a trade
-//    !tko accept <tradeId>  – accept a trade offer
-//    !tko decline <tradeId> – decline a trade offer
-//    !tko trades            – view pending trades sent to you
-//    !tko help              – show all commands
+//    ZP pull              – pull a random card
+//    ZP inventory         – view your cards
+//    ZP inventory @user   – view someone else's cards
+//    ZP card <id>         – inspect a card
+//    ZP shards            – check your shard balance
+//    ZP trade @user <cardId> <shards>  – offer a trade
+//    ZP accept <tradeId>  – accept a trade offer
+//    ZP decline <tradeId> – decline a trade offer
+//    ZP trades            – view pending trades sent to you
+//    ZP help              – show all commands
 // ============================================================
 
 require('dotenv').config();
@@ -62,7 +62,7 @@ function lookupCard(cardId) {
 
 client.once('ready', () => {
   console.log(`✅ test Bot online as ${client.user.tag}`);
-  client.user.setActivity('!tko help', { type: 0 });
+  client.user.setActivity('ZP help', { type: 0 });
 });
 
 // ── Message Handler ───────────────────────────────────────
@@ -83,15 +83,15 @@ client.on('messageCreate', async (message) => {
       .setTitle('📖 test Bot — Commands')
       .setDescription('Pull anime & game character cards, collect them, and trade with others!')
       .addFields(
-        { name: '`!tko pull`',                              value: 'Pull a random card (30s cooldown)', inline: false },
-        { name: '`!tko inventory`',                         value: 'View your card collection',         inline: false },
-        { name: '`!tko inventory @user`',                   value: 'View another player\'s collection', inline: false },
-        { name: '`!tko card <cardId>`',                     value: 'Inspect a specific card',           inline: false },
-        { name: '`!tko shards`',                            value: 'Check your shard balance',          inline: false },
-        { name: '`!tko trade @user <cardId> <shards>`',     value: 'Offer a card for shards',           inline: false },
-        { name: '`!tko accept <tradeId>`',                  value: 'Accept a trade offer',              inline: false },
-        { name: '`!tko decline <tradeId>`',                 value: 'Decline a trade offer',             inline: false },
-        { name: '`!tko trades`',                            value: 'View trade offers sent to you',     inline: false },
+        { name: '`ZP pull`',                              value: 'Pull a random card (30s cooldown)', inline: false },
+        { name: '`ZP inventory`',                         value: 'View your card collection',         inline: false },
+        { name: '`ZP inventory @user`',                   value: 'View another player\'s collection', inline: false },
+        { name: '`ZP card <cardId>`',                     value: 'Inspect a specific card',           inline: false },
+        { name: '`ZP shards`',                            value: 'Check your shard balance',          inline: false },
+        { name: '`ZP trade @user <cardId> <shards>`',     value: 'Offer a card for shards',           inline: false },
+        { name: '`ZP accept <tradeId>`',                  value: 'Accept a trade offer',              inline: false },
+        { name: '`ZP decline <tradeId>`',                 value: 'Decline a trade offer',             inline: false },
+        { name: '`ZP trades`',                            value: 'View trade offers sent to you',     inline: false },
       )
       .addFields({
         name: '✨ Rarities',
@@ -147,7 +147,7 @@ client.on('messageCreate', async (message) => {
     const shards   = inv.getShards(inventory, target.id);
 
     if (cards.length === 0) {
-      return message.reply(`${target.id === message.author.id ? 'You have' : `**${target.username}** has`} no cards yet. Use \`!tko pull\` to get started!`);
+      return message.reply(`${target.id === message.author.id ? 'You have' : `**${target.username}** has`} no cards yet. Use \`ZP pull\` to get started!`);
     }
 
     // Group by rarity
@@ -172,17 +172,17 @@ client.on('messageCreate', async (message) => {
       });
     }
 
-    embed.setFooter({ text: 'Use !tko card <id> to inspect a card' });
+    embed.setFooter({ text: 'Use ZP card <id> to inspect a card' });
     return message.reply({ embeds: [embed] });
   }
 
   // ── !tko card <id> ────────────────────────────────────────
   if (command === 'card') {
     const cardId = args[0];
-    if (!cardId) return message.reply('Usage: `!tko card <cardId>`');
+    if (!cardId) return message.reply('Usage: `ZP card <cardId>`');
 
     const card = lookupCard(cardId);
-    if (!card) return message.reply(`❌ No card found with id \`${cardId}\`. Check \`!tko inventory\` for your card IDs.`);
+    if (!card) return message.reply(`❌ No card found with id \`${cardId}\`. Check \`ZP inventory\` for your card IDs.`);
 
     const inventory  = inv.loadInventory();
     const owned      = inv.hasCard(inventory, message.author.id, card.id);
@@ -206,7 +206,7 @@ client.on('messageCreate', async (message) => {
     const shardAsk = parseInt(args[2], 10);
 
     if (!toUser || !cardId || isNaN(shardAsk) || shardAsk < 0) {
-      return message.reply('Usage: `!tko trade @user <cardId> <shardsYouWant>`\nExample: `!tko trade @Alice naruto 50`');
+      return message.reply('Usage: `ZP trade @user <cardId> <shardsYouWant>`\nExample: `ZP trade @Alice naruto 50`');
     }
     if (toUser.id === message.author.id) {
       return message.reply('❌ You cannot trade with yourself.');
@@ -219,7 +219,7 @@ client.on('messageCreate', async (message) => {
 
     // Sender must own the card
     if (!inv.hasCard(inventory, message.author.id, cardId)) {
-      return message.reply(`❌ You don't own \`${cardId}\`. Check \`!tko inventory\` for your cards.`);
+      return message.reply(`❌ You don't own \`${cardId}\`. Check \`ZP inventory\` for your cards.`);
     }
 
     // Receiver must have enough shards
@@ -246,7 +246,7 @@ client.on('messageCreate', async (message) => {
         { name: 'Asking (shards)',value: `💎 ${shardAsk}`,                                             inline: true },
         { name: 'Trade ID',       value: `\`${tradeId}\``,                                            inline: true },
       )
-      .setFooter({ text: `${toUser.username}: use !tko accept ${tradeId}  or  !tko decline ${tradeId} • Expires in 5 min` });
+      .setFooter({ text: `${toUser.username}: use ZP accept ${tradeId}  or  ZP decline ${tradeId} • Expires in 5 min` });
 
     return message.reply({ content: `${toUser}`, embeds: [embed] });
   }
@@ -254,7 +254,7 @@ client.on('messageCreate', async (message) => {
   // ── !tko accept <tradeId> ────────────────────────────────
   if (command === 'accept') {
     const tradeId = args[0];
-    if (!tradeId) return message.reply('Usage: `!tko accept <tradeId>`');
+    if (!tradeId) return message.reply('Usage: `ZP accept <tradeId>`');
 
     const trade = trades.getTrade(tradeId);
     if (!trade) return message.reply(`❌ Trade \`${tradeId}\` not found or has expired.`);
@@ -300,7 +300,7 @@ client.on('messageCreate', async (message) => {
   // ── !tko decline <tradeId> ───────────────────────────────
   if (command === 'decline') {
     const tradeId = args[0];
-    if (!tradeId) return message.reply('Usage: `!tko decline <tradeId>`');
+    if (!tradeId) return message.reply('Usage: `ZP decline <tradeId>`');
 
     const trade = trades.getTrade(tradeId);
     if (!trade) return message.reply(`❌ Trade \`${tradeId}\` not found or already expired.`);
@@ -330,7 +330,7 @@ client.on('messageCreate', async (message) => {
       const fromUser = await client.users.fetch(trade.fromUserId).catch(() => ({ username: trade.fromUserId }));
       embed.addFields({
         name:  `Trade ${trade.tradeId} — from ${fromUser.username}`,
-        value: `${meta.emoji} **${card?.name ?? trade.offeredCardId}** for 💎 **${trade.askingShards} shards**\n\`!tko accept ${trade.tradeId}\`  •  \`!tko decline ${trade.tradeId}\``,
+        value: `${meta.emoji} **${card?.name ?? trade.offeredCardId}** for 💎 **${trade.askingShards} shards**\n\`ZP accept ${trade.tradeId}\`  •  \`ZP decline ${trade.tradeId}\``,
       });
     }
 
@@ -338,7 +338,7 @@ client.on('messageCreate', async (message) => {
   }
 
   // ── Unknown command ───────────────────────────────────────
-  return message.reply(`❓ Unknown command. Use \`!tko help\` to see all commands.`);
+  return message.reply(`❓ Unknown command. Use \`ZP help\` to see all commands.`);
 });
 
 // ── Login ─────────────────────────────────────────────────
