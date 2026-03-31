@@ -12,6 +12,10 @@
 //    ZP decline <tradeId>  (dec)        – decline a trade offer
 //    ZP trades                          – view pending trades sent to you
 //    ZP help  (h)                       – show all commands
+//  Admin-only commands (user 833025999897755689):
+//    ZP setrarity <rarity|reset>        – force your next pulls to a rarity
+//    ZP giveshards <amount>             – add trade shards to your account
+//    ZP resetcooldown                   – reset your pull charge to max
 // ============================================================
 
 require('dotenv').config();
@@ -30,7 +34,24 @@ const client = new Client({
   ],
 });
 
-// Per-user pull charges (token bucket)
+// ── Admin ─────────────────────────────────────────────────
+const ADMIN_ID = '833025999897755689';
+
+// When set to a valid rarity key (e.g. 'LT'), the admin's pulls are
+// forced to that rarity. Does NOT affect any other user.
+let adminRarityOverride = null;
+
+function isAdmin(userId) {
+  return userId === ADMIN_ID;
+}
+
+/** Pull a card guaranteed to be of the given rarity. */
+function pullCardForced(rarity) {
+  const pool = CARDS.filter(c => c.rarity === rarity);
+  return pool.length ? pool[Math.floor(Math.random() * pool.length)] : CARDS[0];
+}
+
+// ── Per-user pull charges (token bucket) ─────────────────
 // Map<userId, { charges: number, lastRefill: number }>
 const pullCharges = new Map();
 
@@ -95,6 +116,7 @@ client.on('messageCreate', async (message) => {
 
   const args    = message.content.slice(config.PREFIX.length).trim().split(/\s+/);
   const command = args.shift()?.toLowerCase();
+  const userId  = message.author.id;
 
   // ── help | h ─────────────────────────────────────────────
   if (!command || command === 'help' || command === 'h') {
@@ -103,7 +125,7 @@ client.on('messageCreate', async (message) => {
       .setTitle('📖 test Bot — Commands')
       .setDescription('Pull anime & game character cards, collect them, and trade with others!')
       .addFields(
-        { name: '`ZP pull` / `ZP p`',                                value: 'Pull a random card (20 charges, +1 every 30s)',    inline: false },
+        { name: '`ZP pull` / `ZP p`',                                value: `Pull a random card (${config.MAX_PULL_CHARGES} charges, +1 every ${config.PULL_COOLDOWN_SECONDS}s)`, inline: false },
         { name: '`ZP collection` / `ZP col`',                        value: 'View your card collection',                        inline: false },
         { name: '`ZP collection @user` / `ZP col @user`',            value: "View another player's collection",                 inline: false },
         { name: '`ZP inventory` / `ZP inv`',                         value: 'View your character shards',                       inline: false },
@@ -122,12 +144,27 @@ client.on('messageCreate', async (message) => {
         inline: false,
       })
       .setFooter({ text: 'Dupes become character shards stored in your inventory. Trades expire after 5 minutes.' });
+
+    // Admin-only section — only visible to the admin user
+    if (isAdmin(userId)) {
+      const rarityKeys = Object.keys(config.RARITY_META).join(' | ');
+      embed.addFields({
+        name: '🔧 Admin Commands',
+        value: [
+          `\`ZP setrarity <${rarityKeys}>\` — Force your pulls to a specific rarity`,
+          `\`ZP setrarity reset\` — Clear rarity override (back to normal)`,
+          `\`ZP giveshards <amount>\` — Add trade shards to your account`,
+          `\`ZP resetcooldown\` — Restore your pull charges to max`,
+        ].join('\n'),
+        inline: false,
+      });
+    }
+
     return message.reply({ embeds: [embed] });
   }
 
   // ── pull | p ─────────────────────────────────────────────
   if (command === 'pull' || command === 'p') {
-    const userId = message.author.id;
     const { charges, lastRefill } = getCharges(userId);
 
     if (charges <= 0) {
@@ -136,7 +173,12 @@ client.on('messageCreate', async (message) => {
     }
 
     setCharges(userId, charges - 1, lastRefill);
-    const card      = pullCard();
+
+    // Admin rarity override applies only to the admin user
+    const card = (isAdmin(userId) && adminRarityOverride)
+      ? pullCardForced(adminRarityOverride)
+      : pullCard();
+
     const inventory = inv.loadInventory();
     const { isDupe, cardName } = inv.addCardToInventory(inventory, userId, card, config.SHARD_VALUES);
     inv.saveInventory(inventory);
@@ -146,11 +188,14 @@ client.on('messageCreate', async (message) => {
     const chargeInfo = remaining > 0
       ? `${remaining} pull${remaining === 1 ? '' : 's'} remaining`
       : `No pulls left — next charge in ${config.PULL_COOLDOWN_SECONDS}s`;
+    const overrideNote = (isAdmin(userId) && adminRarityOverride)
+      ? ` • 🔧 Rarity locked to ${meta.label}`
+      : '';
 
     if (isDupe) {
       const embed = cardEmbed(card,
         `♻️ Duplicate — ${card.name}`,
-        `Already in your collection! +1 ${card.name} Shard added to your inventory • ${chargeInfo}`
+        `Already in your collection! +1 ${card.name} Shard added to your inventory • ${chargeInfo}${overrideNote}`
       );
       embed.setColor(0x888888);
       return message.reply({ embeds: [embed] });
@@ -158,7 +203,7 @@ client.on('messageCreate', async (message) => {
 
     const embed = cardEmbed(card,
       `${meta.emoji} You pulled — ${card.name}!`,
-      `Added to your collection! • ${meta.label} • ${chargeInfo}`
+      `Added to your collection! • ${meta.label} • ${chargeInfo}${overrideNote}`
     );
     return message.reply({ embeds: [embed] });
   }
@@ -170,10 +215,9 @@ client.on('messageCreate', async (message) => {
     const cards     = inv.getCards(inventory, target.id);
 
     if (cards.length === 0) {
-      return message.reply(`${target.id === message.author.id ? 'You have' : `**${target.username}** has`} no cards yet. Use \`ZP pull\` to get started!`);
+      return message.reply(`${target.id === userId ? 'You have' : `**${target.username}** has`} no cards yet. Use \`ZP pull\` to get started!`);
     }
 
-    // Group by rarity
     const grouped = {};
     for (const [key] of Object.entries(config.RARITY_META)) grouped[key] = [];
     for (const card of cards) {
@@ -201,20 +245,19 @@ client.on('messageCreate', async (message) => {
 
   // ── inventory | inv ───────────────────────────────────────
   if (command === 'inventory' || command === 'inv') {
-    const target    = message.mentions.users.first() ?? message.author;
-    const inventory = inv.loadInventory();
+    const target     = message.mentions.users.first() ?? message.author;
+    const inventory  = inv.loadInventory();
     const charShards = inv.getCharacterShards(inventory, target.id);
-    const entries   = Object.entries(charShards).filter(([, count]) => count > 0);
+    const entries    = Object.entries(charShards).filter(([, count]) => count > 0);
 
     if (entries.length === 0) {
-      return message.reply(`${target.id === message.author.id ? 'You have' : `**${target.username}** has`} no character shards yet. Pull duplicates to earn them!`);
+      return message.reply(`${target.id === userId ? 'You have' : `**${target.username}** has`} no character shards yet. Pull duplicates to earn them!`);
     }
 
-    // Group shards by rarity using the card lookup
     const grouped = {};
     for (const [key] of Object.entries(config.RARITY_META)) grouped[key] = [];
     for (const [cardId, count] of entries) {
-      const card = lookupCard(cardId);
+      const card   = lookupCard(cardId);
       const rarity = card?.rarity ?? 'R';
       if (!grouped[rarity]) grouped[rarity] = [];
       grouped[rarity].push({ cardId, name: card?.name ?? cardId, count });
@@ -249,8 +292,8 @@ client.on('messageCreate', async (message) => {
     if (!card) return message.reply(`❌ No card found with id \`${cardId}\`. Check \`ZP col\` for your card IDs.`);
 
     const inventory = inv.loadInventory();
-    const owned     = inv.hasCard(inventory, message.author.id, card.id);
-    const shards    = inv.getCharacterShards(inventory, message.author.id)[card.id] ?? 0;
+    const owned     = inv.hasCard(inventory, userId, card.id);
+    const shards    = inv.getCharacterShards(inventory, userId)[card.id] ?? 0;
     const embed     = cardEmbed(card);
     const status    = owned
       ? `✅ In your collection${shards > 0 ? ` • 🔮 ×${shards} shard${shards === 1 ? '' : 's'}` : ''}`
@@ -262,7 +305,7 @@ client.on('messageCreate', async (message) => {
   // ── shards | sh ──────────────────────────────────────────
   if (command === 'shards' || command === 'sh') {
     const inventory = inv.loadInventory();
-    const shards    = inv.getShards(inventory, message.author.id);
+    const shards    = inv.getShards(inventory, userId);
     return message.reply(`💎 You have **${shards} trade shards**.\n*Character shards (from dupes) are viewable with \`ZP inv\`.*`);
   }
 
@@ -275,12 +318,12 @@ client.on('messageCreate', async (message) => {
     if (!toUser || !cardId || isNaN(shardAsk) || shardAsk < 0) {
       return message.reply('Usage: `ZP trade @user <cardId> <shardsYouWant>`\nExample: `ZP trade @Alice naruto_r 50`');
     }
-    if (toUser.id === message.author.id) return message.reply('❌ You cannot trade with yourself.');
-    if (toUser.bot)                       return message.reply('❌ You cannot trade with a bot.');
+    if (toUser.id === userId) return message.reply('❌ You cannot trade with yourself.');
+    if (toUser.bot)           return message.reply('❌ You cannot trade with a bot.');
 
     const inventory = inv.loadInventory();
 
-    if (!inv.hasCard(inventory, message.author.id, cardId)) {
+    if (!inv.hasCard(inventory, userId, cardId)) {
       return message.reply(`❌ You don't own \`${cardId}\`. Check \`ZP col\` for your cards.`);
     }
 
@@ -292,7 +335,7 @@ client.on('messageCreate', async (message) => {
     const card    = lookupCard(cardId);
     const meta    = rarityMeta(card?.rarity ?? 'R');
     const tradeId = trades.createTrade({
-      fromUserId:    message.author.id,
+      fromUserId:    userId,
       toUserId:      toUser.id,
       offeredCardId: cardId,
       askingShards:  shardAsk,
@@ -303,9 +346,9 @@ client.on('messageCreate', async (message) => {
       .setTitle('🤝 Trade Offer Sent')
       .setDescription(`${message.author.username} → ${toUser.username}`)
       .addFields(
-        { name: 'Offering',             value: `${meta.emoji} **${card?.name ?? cardId}** (${meta.label})`, inline: true },
+        { name: 'Offering',              value: `${meta.emoji} **${card?.name ?? cardId}** (${meta.label})`, inline: true },
         { name: 'Asking (trade shards)', value: `💎 ${shardAsk}`,                                            inline: true },
-        { name: 'Trade ID',             value: `\`${tradeId}\``,                                            inline: true },
+        { name: 'Trade ID',              value: `\`${tradeId}\``,                                            inline: true },
       )
       .setFooter({ text: `${toUser.username}: use ZP a ${tradeId}  or  ZP dec ${tradeId} • Expires in 5 min` });
 
@@ -319,7 +362,7 @@ client.on('messageCreate', async (message) => {
 
     const trade = trades.getTrade(tradeId);
     if (!trade) return message.reply(`❌ Trade \`${tradeId}\` not found or has expired.`);
-    if (trade.toUserId !== message.author.id) return message.reply('❌ That trade is not addressed to you.');
+    if (trade.toUserId !== userId) return message.reply('❌ That trade is not addressed to you.');
 
     const inventory = inv.loadInventory();
 
@@ -362,7 +405,7 @@ client.on('messageCreate', async (message) => {
 
     const trade = trades.getTrade(tradeId);
     if (!trade) return message.reply(`❌ Trade \`${tradeId}\` not found or already expired.`);
-    if (trade.toUserId !== message.author.id && trade.fromUserId !== message.author.id) {
+    if (trade.toUserId !== userId && trade.fromUserId !== userId) {
       return message.reply('❌ You are not part of that trade.');
     }
 
@@ -372,7 +415,7 @@ client.on('messageCreate', async (message) => {
 
   // ── trades ────────────────────────────────────────────────
   if (command === 'trades') {
-    const pending = trades.getTradesForUser(message.author.id);
+    const pending = trades.getTradesForUser(userId);
     if (pending.length === 0) {
       return message.reply('📭 You have no pending trade offers.');
     }
@@ -392,6 +435,57 @@ client.on('messageCreate', async (message) => {
     }
 
     return message.reply({ embeds: [embed] });
+  }
+
+  // ── Admin-only commands ───────────────────────────────────
+  if (isAdmin(userId)) {
+
+    // ZP setrarity <rarity | reset>
+    if (command === 'setrarity') {
+      const target = args[0]?.toUpperCase();
+      if (!target) {
+        const current = adminRarityOverride
+          ? `Currently locked to **${rarityMeta(adminRarityOverride).label}**`
+          : 'Currently using normal rates';
+        const rarityKeys = Object.keys(config.RARITY_META).join(' | ');
+        return message.reply(`Usage: \`ZP setrarity <${rarityKeys} | reset>\`\n${current}`);
+      }
+
+      if (target === 'RESET') {
+        adminRarityOverride = null;
+        return message.reply('🔧 Rarity override cleared — back to normal pull rates.');
+      }
+
+      if (!config.RARITY_META[target]) {
+        const rarityKeys = Object.keys(config.RARITY_META).join(', ');
+        return message.reply(`❌ Unknown rarity \`${target}\`. Valid options: ${rarityKeys}`);
+      }
+
+      adminRarityOverride = target;
+      const meta = rarityMeta(target);
+      return message.reply(`🔧 Rarity locked to **${meta.emoji} ${meta.label}** — all your pulls will be this rarity until you \`ZP setrarity reset\`.`);
+    }
+
+    // ZP giveshards <amount>
+    if (command === 'giveshards') {
+      const amount = parseInt(args[0], 10);
+      if (isNaN(amount) || amount <= 0) {
+        return message.reply('Usage: `ZP giveshards <amount>`');
+      }
+
+      const inventory = inv.loadInventory();
+      inv.addShards(inventory, userId, amount);
+      inv.saveInventory(inventory);
+      const total = inv.getShards(inventory, userId);
+      return message.reply(`🔧 Added **${amount} trade shards**. New balance: **${total}**.`);
+    }
+
+    // ZP resetcooldown
+    if (command === 'resetcooldown') {
+      const now = Date.now();
+      setCharges(userId, config.MAX_PULL_CHARGES, now);
+      return message.reply(`🔧 Pull charges restored to **${config.MAX_PULL_CHARGES}**.`);
+    }
   }
 
   // ── Unknown command ───────────────────────────────────────
