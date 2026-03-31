@@ -1,4 +1,4 @@
-# TKO Bot
+# test Bot
 
 A Discord card-collecting bot. Pull anime & game character cards, build your collection, and trade with other server members.
 

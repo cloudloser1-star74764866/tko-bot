@@ -1,5 +1,5 @@
 // ============================================================
-//  TKO BOT — CARD POOL
+//  test BOT — CARD POOL
 //  Add your own cards here! Format:
 //  { id: 'unique_id', name: 'Character Name', series: 'Series',
 //    rarity: 'R/E/L/MY/UR/LT', desc: 'Flavour text', image: 'https://...' }

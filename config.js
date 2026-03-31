@@ -1,5 +1,5 @@
 // ============================================================
-//  TKO BOT — CONFIGURATION
+//  test BOT — CONFIGURATION
 //  Edit this file to customize everything about your bot
 // ============================================================
 

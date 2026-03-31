@@ -1,5 +1,5 @@
 // ============================================================
-//  TKO BOT — TRADE MANAGER
+//  test BOT — TRADE MANAGER
 //  Trades are stored in memory (reset on bot restart).
 //  Each trade: one user offers a card, asks for shards in return.
 // ============================================================

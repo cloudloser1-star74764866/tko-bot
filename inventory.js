@@ -1,5 +1,5 @@
 // ============================================================
-//  TKO BOT — INVENTORY MANAGER
+//  test BOT — INVENTORY MANAGER
 //  Handles loading/saving user inventories and shards to disk
 // ============================================================
 

@@ -1,5 +1,5 @@
 // ============================================================
-//  TKO BOT — MAIN
+//  test BOT — MAIN
 //  Commands:
 //    !tko pull              – pull a random card
 //    !tko inventory         – view your cards
@@ -61,7 +61,7 @@ function lookupCard(cardId) {
 // ── Ready ─────────────────────────────────────────────────
 
 client.once('ready', () => {
-  console.log(`✅ TKO Bot online as ${client.user.tag}`);
+  console.log(`✅ test Bot online as ${client.user.tag}`);
   client.user.setActivity('!tko help', { type: 0 });
 });
 
@@ -80,7 +80,7 @@ client.on('messageCreate', async (message) => {
   if (!command || command === 'help') {
     const embed = new EmbedBuilder()
       .setColor(0x00FFD1)
-      .setTitle('📖 TKO Bot — Commands')
+      .setTitle('📖 test Bot — Commands')
       .setDescription('Pull anime & game character cards, collect them, and trade with others!')
       .addFields(
         { name: '`!tko pull`',                              value: 'Pull a random card (30s cooldown)', inline: false },
