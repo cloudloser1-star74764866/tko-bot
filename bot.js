@@ -51,26 +51,26 @@ function pullCardForced(rarity) {
   return pool.length ? pool[Math.floor(Math.random() * pool.length)] : CARDS[0];
 }
 
-// ── Per-user pull charges (token bucket) ─────────────────
-// Map<userId, { charges: number, lastRefill: number }>
-const pullCharges = new Map();
+// ── Per-user pull charges (token bucket, disk-backed) ────
+// Charges are stored in inventory.json so they survive restarts.
 
 function getCharges(userId) {
   const now      = Date.now();
   const regenMs  = config.PULL_COOLDOWN_SECONDS * 1000;
   const max      = config.MAX_PULL_CHARGES;
-  const bucket   = pullCharges.get(userId) ?? { charges: max, lastRefill: now };
+  const inventory = inv.loadInventory();
+  const stored   = inv.loadPullCharges(inventory, userId) ?? { charges: max, lastRefill: now };
 
-  const elapsed  = now - bucket.lastRefill;
-  const gained   = Math.floor(elapsed / regenMs);
-  const charges  = Math.min(max, bucket.charges + gained);
-  const lastRefill = bucket.lastRefill + gained * regenMs;
+  const elapsed    = now - stored.lastRefill;
+  const gained     = Math.floor(elapsed / regenMs);
+  const charges    = Math.min(max, stored.charges + gained);
+  const lastRefill = stored.lastRefill + gained * regenMs;
 
-  return { charges, lastRefill };
+  return { charges, lastRefill, inventory };
 }
 
-function setCharges(userId, charges, lastRefill) {
-  pullCharges.set(userId, { charges, lastRefill });
+function setCharges(userId, charges, lastRefill, inventory) {
+  inv.savePullCharges(inventory, userId, charges, lastRefill);
 }
 
 // ── Helpers ───────────────────────────────────────────────
@@ -165,23 +165,21 @@ client.on('messageCreate', async (message) => {
 
   // ── pull | p ─────────────────────────────────────────────
   if (command === 'pull' || command === 'p') {
-    const { charges, lastRefill } = getCharges(userId);
+    const { charges, lastRefill, inventory } = getCharges(userId);
 
     if (charges <= 0) {
       const secsUntilNext = Math.ceil(config.PULL_COOLDOWN_SECONDS - (Date.now() - lastRefill) / 1000);
       return message.reply(`⏳ No pulls left! Next charge in **${secsUntilNext}s**. Charges refill 1 every **${config.PULL_COOLDOWN_SECONDS}s** (max **${config.MAX_PULL_CHARGES}**).`);
     }
 
-    setCharges(userId, charges - 1, lastRefill);
-
     // Admin rarity override applies only to the admin user
     const card = (isAdmin(userId) && adminRarityOverride)
       ? pullCardForced(adminRarityOverride)
       : pullCard();
 
-    const inventory = inv.loadInventory();
     const { isDupe, cardName } = inv.addCardToInventory(inventory, userId, card, config.SHARD_VALUES);
-    inv.saveInventory(inventory);
+    // Save charges and card data together in one write
+    setCharges(userId, charges - 1, lastRefill, inventory);
 
     const meta = rarityMeta(card.rarity);
     const remaining = charges - 1;
@@ -483,7 +481,8 @@ client.on('messageCreate', async (message) => {
     // ZP resetcooldown
     if (command === 'resetcooldown') {
       const now = Date.now();
-      setCharges(userId, config.MAX_PULL_CHARGES, now);
+      const inventory = inv.loadInventory();
+      setCharges(userId, config.MAX_PULL_CHARGES, now, inventory);
       return message.reply(`🔧 Pull charges restored to **${config.MAX_PULL_CHARGES}**.`);
     }
   }

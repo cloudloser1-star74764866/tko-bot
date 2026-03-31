@@ -11,9 +11,13 @@ const DATA_FILE = path.join(__dirname, 'data', 'inventory.json');
 // ── Persistence ───────────────────────────────────────────
 
 function loadInventory() {
-  if (!fs.existsSync(DATA_FILE)) return { users: {} };
-  try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); }
-  catch { return { users: {} }; }
+  if (!fs.existsSync(DATA_FILE)) return { users: {}, pullCharges: {} };
+  try {
+    const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    if (!data.pullCharges) data.pullCharges = {};
+    return data;
+  }
+  catch { return { users: {}, pullCharges: {} }; }
 }
 
 function saveInventory(data) {
@@ -25,10 +29,27 @@ function ensureUser(inventory, userId) {
   if (!inventory.users[userId]) {
     inventory.users[userId] = { cards: [], shards: 0, characterShards: {} };
   }
-  // Migrate older users who don't have characterShards yet
   if (!inventory.users[userId].characterShards) {
     inventory.users[userId].characterShards = {};
   }
+}
+
+// ── Pull Charge Persistence ───────────────────────────────
+
+/**
+ * Load a user's stored pull charge bucket from disk.
+ * Returns { charges, lastRefill } or null if no record exists yet.
+ */
+function loadPullCharges(inventory, userId) {
+  return inventory.pullCharges[userId] ?? null;
+}
+
+/**
+ * Save a user's pull charge bucket to inventory and write to disk immediately.
+ */
+function savePullCharges(inventory, userId, charges, lastRefill) {
+  inventory.pullCharges[userId] = { charges, lastRefill };
+  saveInventory(inventory);
 }
 
 // ── Card Operations ───────────────────────────────────────
@@ -78,9 +99,6 @@ function getCards(inventory, userId) {
 
 // ── Character Shard Operations ────────────────────────────
 
-/**
- * Returns a map of { cardId: count } for all character shards a user owns.
- */
 function getCharacterShards(inventory, userId) {
   ensureUser(inventory, userId);
   return inventory.users[userId].characterShards;
@@ -98,9 +116,6 @@ function addShards(inventory, userId, amount) {
   inventory.users[userId].shards += amount;
 }
 
-/**
- * Remove trade shards from a user. Returns false if insufficient.
- */
 function removeShards(inventory, userId, amount) {
   ensureUser(inventory, userId);
   if (inventory.users[userId].shards < amount) return false;
@@ -110,6 +125,7 @@ function removeShards(inventory, userId, amount) {
 
 module.exports = {
   loadInventory, saveInventory,
+  loadPullCharges, savePullCharges,
   addCardToInventory, removeCardFromInventory, hasCard, getCards,
   getCharacterShards,
   getShards, addShards, removeShards,
