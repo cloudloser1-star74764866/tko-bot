@@ -29,8 +29,29 @@ const client = new Client({
   ],
 });
 
-// Per-user pull cooldown
-const cooldowns = new Map();
+// Per-user pull charges (token bucket)
+// Map<userId, { charges: number, lastRefill: number }>
+const pullCharges = new Map();
+
+function getCharges(userId) {
+  const now      = Date.now();
+  const regenMs  = config.PULL_COOLDOWN_SECONDS * 1000;
+  const max      = config.MAX_PULL_CHARGES;
+  const bucket   = pullCharges.get(userId) ?? { charges: max, lastRefill: now };
+
+  // Calculate how many charges have regenerated since last refill
+  const elapsed  = now - bucket.lastRefill;
+  const gained   = Math.floor(elapsed / regenMs);
+  const charges  = Math.min(max, bucket.charges + gained);
+  // Advance lastRefill by the exact time consumed by regenerated charges
+  const lastRefill = bucket.lastRefill + gained * regenMs;
+
+  return { charges, lastRefill };
+}
+
+function setCharges(userId, charges, lastRefill) {
+  pullCharges.set(userId, { charges, lastRefill });
+}
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -83,7 +104,7 @@ client.on('messageCreate', async (message) => {
       .setTitle('📖 test Bot — Commands')
       .setDescription('Pull anime & game character cards, collect them, and trade with others!')
       .addFields(
-        { name: '`ZP pull`',                              value: 'Pull a random card (30s cooldown)', inline: false },
+        { name: '`ZP pull`',                              value: 'Pull a random card (20 charges, +1 every 30s)', inline: false },
         { name: '`ZP inventory`',                         value: 'View your card collection',         inline: false },
         { name: '`ZP inventory @user`',                   value: 'View another player\'s collection', inline: false },
         { name: '`ZP card <cardId>`',                     value: 'Inspect a specific card',           inline: false },
@@ -107,15 +128,14 @@ client.on('messageCreate', async (message) => {
   // ── !tko pull ─────────────────────────────────────────────
   if (command === 'pull') {
     const userId = message.author.id;
-    const now    = Date.now();
-    const last   = cooldowns.get(userId) ?? 0;
-    const wait   = config.PULL_COOLDOWN_SECONDS * 1000 - (now - last);
+    const { charges, lastRefill } = getCharges(userId);
 
-    if (wait > 0) {
-      return message.reply(`⏳ Cooldown! You can pull again in **${Math.ceil(wait / 1000)}s**.`);
+    if (charges <= 0) {
+      const secsUntilNext = Math.ceil(config.PULL_COOLDOWN_SECONDS - (Date.now() - lastRefill) / 1000);
+      return message.reply(`⏳ No pulls left! Next charge in **${secsUntilNext}s**. Charges refill 1 every **${config.PULL_COOLDOWN_SECONDS}s** (max **${config.MAX_PULL_CHARGES}**).`);
     }
 
-    cooldowns.set(userId, now);
+    setCharges(userId, charges - 1, lastRefill);
     const card      = pullCard();
     const inventory = inv.loadInventory();
     const { isDupe, shardsAwarded } = inv.addCardToInventory(inventory, userId, card, config.SHARD_VALUES);
@@ -123,10 +143,15 @@ client.on('messageCreate', async (message) => {
 
     const meta = rarityMeta(card.rarity);
 
+    const remaining = charges - 1;
+    const chargeInfo = remaining > 0
+      ? `${remaining} pull${remaining === 1 ? '' : 's'} remaining`
+      : `No pulls left — next charge in ${config.PULL_COOLDOWN_SECONDS}s`;
+
     if (isDupe) {
       const embed = cardEmbed(card,
         `♻️ Duplicate — ${card.name}`,
-        `Already in your collection! Converted to ${shardsAwarded} shards 💎`
+        `Already in your collection! Converted to ${shardsAwarded} shards 💎 • ${chargeInfo}`
       );
       embed.setColor(0x888888);
       return message.reply({ embeds: [embed] });
@@ -134,7 +159,7 @@ client.on('messageCreate', async (message) => {
 
     const embed = cardEmbed(card,
       `${meta.emoji} You pulled — ${card.name}!`,
-      `Added to your inventory! • ${meta.label}`
+      `Added to your inventory! • ${meta.label} • ${chargeInfo}`
     );
     return message.reply({ embeds: [embed] });
   }

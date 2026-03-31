@@ -7,7 +7,8 @@ module.exports = {
 
   // ── Bot Settings ──────────────────────────────────────────
   PREFIX: 'ZP',
-  PULL_COOLDOWN_SECONDS: 30,    // Cooldown between pulls (seconds)
+  PULL_COOLDOWN_SECONDS: 30,    // Seconds to regenerate 1 pull charge
+  MAX_PULL_CHARGES: 20,         // Maximum stored pull charges
 
   // ── Shard Values (duplicates) ─────────────────────────────
   // When you pull a duplicate card it auto-converts to shards
