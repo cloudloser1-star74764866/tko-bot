@@ -92,9 +92,34 @@
           "series": "Pokémon",
           "rarity": "UR",
           "obtainedAt": "2026-03-31T23:35:31.928Z"
+        },
+        {
+          "id": "goku_r",
+          "name": "Goku",
+          "series": "Dragon Ball Z",
+          "rarity": "R",
+          "obtainedAt": "2026-03-31T23:43:05.560Z"
+        },
+        {
+          "id": "zeno_ur",
+          "name": "Zeno",
+          "series": "Dragon Ball Super",
+          "rarity": "UR",
+          "obtainedAt": "2026-03-31T23:43:11.458Z"
+        },
+        {
+          "id": "eren_r",
+          "name": "Eren Yeager",
+          "series": "Attack on Titan",
+          "rarity": "R",
+          "obtainedAt": "2026-03-31T23:43:14.205Z"
         }
       ],
-      "shards": 10
+      "shards": 10,
+      "characterShards": {
+        "bakugo_e": 1,
+        "link_r": 1
+      }
     }
   }
 }
