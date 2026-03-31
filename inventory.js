@@ -23,7 +23,11 @@ function saveInventory(data) {
 
 function ensureUser(inventory, userId) {
   if (!inventory.users[userId]) {
-    inventory.users[userId] = { cards: [], shards: 0 };
+    inventory.users[userId] = { cards: [], shards: 0, characterShards: {} };
+  }
+  // Migrate older users who don't have characterShards yet
+  if (!inventory.users[userId].characterShards) {
+    inventory.users[userId].characterShards = {};
   }
 }
 
@@ -31,17 +35,16 @@ function ensureUser(inventory, userId) {
 
 /**
  * Add a card to a user's inventory.
- * If duplicate, convert to shards using SHARD_VALUES from config.
- * Returns { isDupe, shardsAwarded }
+ * If duplicate, award 1 character shard for that specific card.
+ * Returns { isDupe, cardName }
  */
 function addCardToInventory(inventory, userId, card, shardValues) {
   ensureUser(inventory, userId);
   const user = inventory.users[userId];
 
   if (user.cards.find(c => c.id === card.id)) {
-    const awarded = (shardValues || {})[card.rarity] || 10;
-    user.shards += awarded;
-    return { isDupe: true, shardsAwarded: awarded };
+    user.characterShards[card.id] = (user.characterShards[card.id] || 0) + 1;
+    return { isDupe: true, cardName: card.name };
   }
 
   user.cards.push({
@@ -51,7 +54,7 @@ function addCardToInventory(inventory, userId, card, shardValues) {
     rarity:     card.rarity,
     obtainedAt: new Date().toISOString(),
   });
-  return { isDupe: false, shardsAwarded: 0 };
+  return { isDupe: false, cardName: card.name };
 }
 
 function removeCardFromInventory(inventory, userId, cardId) {
@@ -73,7 +76,17 @@ function getCards(inventory, userId) {
   return inventory.users[userId].cards;
 }
 
-// ── Shard Operations ──────────────────────────────────────
+// ── Character Shard Operations ────────────────────────────
+
+/**
+ * Returns a map of { cardId: count } for all character shards a user owns.
+ */
+function getCharacterShards(inventory, userId) {
+  ensureUser(inventory, userId);
+  return inventory.users[userId].characterShards;
+}
+
+// ── Trade Shard Operations ────────────────────────────────
 
 function getShards(inventory, userId) {
   ensureUser(inventory, userId);
@@ -86,7 +99,7 @@ function addShards(inventory, userId, amount) {
 }
 
 /**
- * Remove shards from a user. Returns false if insufficient.
+ * Remove trade shards from a user. Returns false if insufficient.
  */
 function removeShards(inventory, userId, amount) {
   ensureUser(inventory, userId);
@@ -98,5 +111,6 @@ function removeShards(inventory, userId, amount) {
 module.exports = {
   loadInventory, saveInventory,
   addCardToInventory, removeCardFromInventory, hasCard, getCards,
+  getCharacterShards,
   getShards, addShards, removeShards,
 };

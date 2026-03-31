@@ -1,16 +1,17 @@
 // ============================================================
 //  test BOT — MAIN
 //  Commands:
-//    ZP pull              – pull a random card
-//    ZP inventory         – view your cards
-//    ZP inventory @user   – view someone else's cards
-//    ZP card <id>         – inspect a card
-//    ZP shards            – check your shard balance
-//    ZP trade @user <cardId> <shards>  – offer a trade
-//    ZP accept <tradeId>  – accept a trade offer
-//    ZP decline <tradeId> – decline a trade offer
-//    ZP trades            – view pending trades sent to you
-//    ZP help              – show all commands
+//    ZP pull  (p)                       – pull a random card
+//    ZP collection  (col)               – view your card collection
+//    ZP collection @user  (col @user)   – view someone else's cards
+//    ZP inventory  (inv)                – view your character shards
+//    ZP card <id>  (c <id>)             – inspect a card
+//    ZP shards  (sh)                    – check your trade shard balance
+//    ZP trade @user <cardId> <shards>   – offer a trade
+//    ZP accept <tradeId>  (a)           – accept a trade offer
+//    ZP decline <tradeId>  (dec)        – decline a trade offer
+//    ZP trades                          – view pending trades sent to you
+//    ZP help  (h)                       – show all commands
 // ============================================================
 
 require('dotenv').config();
@@ -39,11 +40,9 @@ function getCharges(userId) {
   const max      = config.MAX_PULL_CHARGES;
   const bucket   = pullCharges.get(userId) ?? { charges: max, lastRefill: now };
 
-  // Calculate how many charges have regenerated since last refill
   const elapsed  = now - bucket.lastRefill;
   const gained   = Math.floor(elapsed / regenMs);
   const charges  = Math.min(max, bucket.charges + gained);
-  // Advance lastRefill by the exact time consumed by regenerated charges
   const lastRefill = bucket.lastRefill + gained * regenMs;
 
   return { charges, lastRefill };
@@ -97,22 +96,23 @@ client.on('messageCreate', async (message) => {
   const args    = message.content.slice(config.PREFIX.length).trim().split(/\s+/);
   const command = args.shift()?.toLowerCase();
 
-  // ── !tko help ────────────────────────────────────────────
-  if (!command || command === 'help') {
+  // ── help | h ─────────────────────────────────────────────
+  if (!command || command === 'help' || command === 'h') {
     const embed = new EmbedBuilder()
       .setColor(0x00FFD1)
       .setTitle('📖 test Bot — Commands')
       .setDescription('Pull anime & game character cards, collect them, and trade with others!')
       .addFields(
-        { name: '`ZP pull`',                              value: 'Pull a random card (20 charges, +1 every 30s)', inline: false },
-        { name: '`ZP inventory`',                         value: 'View your card collection',         inline: false },
-        { name: '`ZP inventory @user`',                   value: 'View another player\'s collection', inline: false },
-        { name: '`ZP card <cardId>`',                     value: 'Inspect a specific card',           inline: false },
-        { name: '`ZP shards`',                            value: 'Check your shard balance',          inline: false },
-        { name: '`ZP trade @user <cardId> <shards>`',     value: 'Offer a card for shards',           inline: false },
-        { name: '`ZP accept <tradeId>`',                  value: 'Accept a trade offer',              inline: false },
-        { name: '`ZP decline <tradeId>`',                 value: 'Decline a trade offer',             inline: false },
-        { name: '`ZP trades`',                            value: 'View trade offers sent to you',     inline: false },
+        { name: '`ZP pull` / `ZP p`',                                value: 'Pull a random card (20 charges, +1 every 30s)',    inline: false },
+        { name: '`ZP collection` / `ZP col`',                        value: 'View your card collection',                        inline: false },
+        { name: '`ZP collection @user` / `ZP col @user`',            value: "View another player's collection",                 inline: false },
+        { name: '`ZP inventory` / `ZP inv`',                         value: 'View your character shards',                       inline: false },
+        { name: '`ZP card <cardId>` / `ZP c <cardId>`',              value: 'Inspect a specific card',                          inline: false },
+        { name: '`ZP shards` / `ZP sh`',                             value: 'Check your trade shard balance',                   inline: false },
+        { name: '`ZP trade @user <cardId> <shards>`',                value: 'Offer a card in exchange for shards',              inline: false },
+        { name: '`ZP accept <tradeId>` / `ZP a <tradeId>`',          value: 'Accept a trade offer',                             inline: false },
+        { name: '`ZP decline <tradeId>` / `ZP dec <tradeId>`',       value: 'Decline a trade offer',                            inline: false },
+        { name: '`ZP trades`',                                        value: 'View trade offers sent to you',                    inline: false },
       )
       .addFields({
         name: '✨ Rarities',
@@ -121,12 +121,12 @@ client.on('messageCreate', async (message) => {
           .join('  •  '),
         inline: false,
       })
-      .setFooter({ text: 'Dupes are auto-converted to shards. Trades expire after 5 minutes.' });
+      .setFooter({ text: 'Dupes become character shards stored in your inventory. Trades expire after 5 minutes.' });
     return message.reply({ embeds: [embed] });
   }
 
-  // ── !tko pull ─────────────────────────────────────────────
-  if (command === 'pull') {
+  // ── pull | p ─────────────────────────────────────────────
+  if (command === 'pull' || command === 'p') {
     const userId = message.author.id;
     const { charges, lastRefill } = getCharges(userId);
 
@@ -138,11 +138,10 @@ client.on('messageCreate', async (message) => {
     setCharges(userId, charges - 1, lastRefill);
     const card      = pullCard();
     const inventory = inv.loadInventory();
-    const { isDupe, shardsAwarded } = inv.addCardToInventory(inventory, userId, card, config.SHARD_VALUES);
+    const { isDupe, cardName } = inv.addCardToInventory(inventory, userId, card, config.SHARD_VALUES);
     inv.saveInventory(inventory);
 
     const meta = rarityMeta(card.rarity);
-
     const remaining = charges - 1;
     const chargeInfo = remaining > 0
       ? `${remaining} pull${remaining === 1 ? '' : 's'} remaining`
@@ -151,7 +150,7 @@ client.on('messageCreate', async (message) => {
     if (isDupe) {
       const embed = cardEmbed(card,
         `♻️ Duplicate — ${card.name}`,
-        `Already in your collection! Converted to ${shardsAwarded} shards 💎 • ${chargeInfo}`
+        `Already in your collection! +1 ${card.name} Shard added to your inventory • ${chargeInfo}`
       );
       embed.setColor(0x888888);
       return message.reply({ embeds: [embed] });
@@ -159,17 +158,16 @@ client.on('messageCreate', async (message) => {
 
     const embed = cardEmbed(card,
       `${meta.emoji} You pulled — ${card.name}!`,
-      `Added to your inventory! • ${meta.label} • ${chargeInfo}`
+      `Added to your collection! • ${meta.label} • ${chargeInfo}`
     );
     return message.reply({ embeds: [embed] });
   }
 
-  // ── !tko inventory [@user] ────────────────────────────────
-  if (command === 'inventory' || command === 'inv') {
-    const target   = message.mentions.users.first() ?? message.author;
+  // ── collection | col ─────────────────────────────────────
+  if (command === 'collection' || command === 'col') {
+    const target    = message.mentions.users.first() ?? message.author;
     const inventory = inv.loadInventory();
-    const cards    = inv.getCards(inventory, target.id);
-    const shards   = inv.getShards(inventory, target.id);
+    const cards     = inv.getCards(inventory, target.id);
 
     if (cards.length === 0) {
       return message.reply(`${target.id === message.author.id ? 'You have' : `**${target.username}** has`} no cards yet. Use \`ZP pull\` to get started!`);
@@ -185,7 +183,7 @@ client.on('messageCreate', async (message) => {
     const embed = new EmbedBuilder()
       .setColor(0x4A90D9)
       .setTitle(`🗂️ ${target.username}'s Collection`)
-      .setDescription(`**${cards.length}** card(s) collected • 💎 **${shards}** shards`);
+      .setDescription(`**${cards.length}** card(s) collected`);
 
     for (const [rarity, group] of Object.entries(grouped)) {
       if (group.length === 0) continue;
@@ -197,60 +195,98 @@ client.on('messageCreate', async (message) => {
       });
     }
 
-    embed.setFooter({ text: 'Use ZP card <id> to inspect a card' });
+    embed.setFooter({ text: 'Use ZP c <id> to inspect a card • Use ZP inv to see your character shards' });
     return message.reply({ embeds: [embed] });
   }
 
-  // ── !tko card <id> ────────────────────────────────────────
-  if (command === 'card') {
+  // ── inventory | inv ───────────────────────────────────────
+  if (command === 'inventory' || command === 'inv') {
+    const target    = message.mentions.users.first() ?? message.author;
+    const inventory = inv.loadInventory();
+    const charShards = inv.getCharacterShards(inventory, target.id);
+    const entries   = Object.entries(charShards).filter(([, count]) => count > 0);
+
+    if (entries.length === 0) {
+      return message.reply(`${target.id === message.author.id ? 'You have' : `**${target.username}** has`} no character shards yet. Pull duplicates to earn them!`);
+    }
+
+    // Group shards by rarity using the card lookup
+    const grouped = {};
+    for (const [key] of Object.entries(config.RARITY_META)) grouped[key] = [];
+    for (const [cardId, count] of entries) {
+      const card = lookupCard(cardId);
+      const rarity = card?.rarity ?? 'R';
+      if (!grouped[rarity]) grouped[rarity] = [];
+      grouped[rarity].push({ cardId, name: card?.name ?? cardId, count });
+    }
+
+    const totalShards = entries.reduce((sum, [, c]) => sum + c, 0);
+    const embed = new EmbedBuilder()
+      .setColor(0x9B59B6)
+      .setTitle(`🔮 ${target.username}'s Character Shards`)
+      .setDescription(`**${totalShards}** shard(s) total`);
+
+    for (const [rarity, group] of Object.entries(grouped)) {
+      if (group.length === 0) continue;
+      const meta = rarityMeta(rarity);
+      embed.addFields({
+        name:  `${meta.emoji} ${meta.label}`,
+        value: group.map(s => `${s.name} — **×${s.count}**`).join('\n'),
+        inline: false,
+      });
+    }
+
+    embed.setFooter({ text: 'Character shards are earned by pulling duplicate cards' });
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── card | c ─────────────────────────────────────────────
+  if (command === 'card' || command === 'c') {
     const cardId = args[0];
-    if (!cardId) return message.reply('Usage: `ZP card <cardId>`');
+    if (!cardId) return message.reply('Usage: `ZP card <cardId>` or `ZP c <cardId>`');
 
     const card = lookupCard(cardId);
-    if (!card) return message.reply(`❌ No card found with id \`${cardId}\`. Check \`ZP inventory\` for your card IDs.`);
+    if (!card) return message.reply(`❌ No card found with id \`${cardId}\`. Check \`ZP col\` for your card IDs.`);
 
-    const inventory  = inv.loadInventory();
-    const owned      = inv.hasCard(inventory, message.author.id, card.id);
-    const embed      = cardEmbed(card);
-    embed.setFooter({ text: owned ? '✅ In your collection' : '❌ Not in your collection' });
+    const inventory = inv.loadInventory();
+    const owned     = inv.hasCard(inventory, message.author.id, card.id);
+    const shards    = inv.getCharacterShards(inventory, message.author.id)[card.id] ?? 0;
+    const embed     = cardEmbed(card);
+    const status    = owned
+      ? `✅ In your collection${shards > 0 ? ` • 🔮 ×${shards} shard${shards === 1 ? '' : 's'}` : ''}`
+      : '❌ Not in your collection';
+    embed.setFooter({ text: status });
     return message.reply({ embeds: [embed] });
   }
 
-  // ── !tko shards ───────────────────────────────────────────
-  if (command === 'shards') {
+  // ── shards | sh ──────────────────────────────────────────
+  if (command === 'shards' || command === 'sh') {
     const inventory = inv.loadInventory();
     const shards    = inv.getShards(inventory, message.author.id);
-    return message.reply(`💎 You have **${shards} shards**.`);
+    return message.reply(`💎 You have **${shards} trade shards**.\n*Character shards (from dupes) are viewable with \`ZP inv\`.*`);
   }
 
-  // ── !tko trade @user <cardId> <shards> ───────────────────
+  // ── trade ─────────────────────────────────────────────────
   if (command === 'trade') {
-    // Args: @user cardId shardsAmount
-    const toUser  = message.mentions.users.first();
-    const cardId  = args[1]; // args[0] is the mention
+    const toUser   = message.mentions.users.first();
+    const cardId   = args[1];
     const shardAsk = parseInt(args[2], 10);
 
     if (!toUser || !cardId || isNaN(shardAsk) || shardAsk < 0) {
-      return message.reply('Usage: `ZP trade @user <cardId> <shardsYouWant>`\nExample: `ZP trade @Alice naruto 50`');
+      return message.reply('Usage: `ZP trade @user <cardId> <shardsYouWant>`\nExample: `ZP trade @Alice naruto_r 50`');
     }
-    if (toUser.id === message.author.id) {
-      return message.reply('❌ You cannot trade with yourself.');
-    }
-    if (toUser.bot) {
-      return message.reply('❌ You cannot trade with a bot.');
-    }
+    if (toUser.id === message.author.id) return message.reply('❌ You cannot trade with yourself.');
+    if (toUser.bot)                       return message.reply('❌ You cannot trade with a bot.');
 
     const inventory = inv.loadInventory();
 
-    // Sender must own the card
     if (!inv.hasCard(inventory, message.author.id, cardId)) {
-      return message.reply(`❌ You don't own \`${cardId}\`. Check \`ZP inventory\` for your cards.`);
+      return message.reply(`❌ You don't own \`${cardId}\`. Check \`ZP col\` for your cards.`);
     }
 
-    // Receiver must have enough shards
     const receiverShards = inv.getShards(inventory, toUser.id);
     if (receiverShards < shardAsk) {
-      return message.reply(`❌ **${toUser.username}** only has **${receiverShards} shards** — not enough for your asking price.`);
+      return message.reply(`❌ **${toUser.username}** only has **${receiverShards} trade shards** — not enough for your asking price.`);
     }
 
     const card    = lookupCard(cardId);
@@ -267,19 +303,19 @@ client.on('messageCreate', async (message) => {
       .setTitle('🤝 Trade Offer Sent')
       .setDescription(`${message.author.username} → ${toUser.username}`)
       .addFields(
-        { name: 'Offering',       value: `${meta.emoji} **${card?.name ?? cardId}** (${meta.label})`, inline: true },
-        { name: 'Asking (shards)',value: `💎 ${shardAsk}`,                                             inline: true },
-        { name: 'Trade ID',       value: `\`${tradeId}\``,                                            inline: true },
+        { name: 'Offering',             value: `${meta.emoji} **${card?.name ?? cardId}** (${meta.label})`, inline: true },
+        { name: 'Asking (trade shards)', value: `💎 ${shardAsk}`,                                            inline: true },
+        { name: 'Trade ID',             value: `\`${tradeId}\``,                                            inline: true },
       )
-      .setFooter({ text: `${toUser.username}: use ZP accept ${tradeId}  or  ZP decline ${tradeId} • Expires in 5 min` });
+      .setFooter({ text: `${toUser.username}: use ZP a ${tradeId}  or  ZP dec ${tradeId} • Expires in 5 min` });
 
     return message.reply({ content: `${toUser}`, embeds: [embed] });
   }
 
-  // ── !tko accept <tradeId> ────────────────────────────────
-  if (command === 'accept') {
+  // ── accept | a ────────────────────────────────────────────
+  if (command === 'accept' || command === 'a') {
     const tradeId = args[0];
-    if (!tradeId) return message.reply('Usage: `ZP accept <tradeId>`');
+    if (!tradeId) return message.reply('Usage: `ZP accept <tradeId>` or `ZP a <tradeId>`');
 
     const trade = trades.getTrade(tradeId);
     if (!trade) return message.reply(`❌ Trade \`${tradeId}\` not found or has expired.`);
@@ -287,21 +323,18 @@ client.on('messageCreate', async (message) => {
 
     const inventory = inv.loadInventory();
 
-    // Check sender still owns the card
     if (!inv.hasCard(inventory, trade.fromUserId, trade.offeredCardId)) {
       trades.cancelTrade(tradeId);
       return message.reply('❌ The sender no longer owns that card. Trade cancelled.');
     }
 
-    // Check receiver still has enough shards
     if (!inv.removeShards(inventory, trade.toUserId, trade.askingShards)) {
-      return message.reply(`❌ You don't have enough shards (need **${trade.askingShards}**).`);
+      return message.reply(`❌ You don't have enough trade shards (need **${trade.askingShards}**).`);
     }
 
-    // Execute: move card, move shards
     inv.removeCardFromInventory(inventory, trade.fromUserId, trade.offeredCardId);
     const card = lookupCard(trade.offeredCardId);
-    const { isDupe, shardsAwarded } = inv.addCardToInventory(inventory, trade.toUserId, card, config.SHARD_VALUES);
+    const { isDupe } = inv.addCardToInventory(inventory, trade.toUserId, card, config.SHARD_VALUES);
     inv.addShards(inventory, trade.fromUserId, trade.askingShards);
     inv.saveInventory(inventory);
     trades.cancelTrade(tradeId);
@@ -311,21 +344,21 @@ client.on('messageCreate', async (message) => {
       .setColor(0x2ecc71)
       .setTitle('✅ Trade Complete!')
       .addFields(
-        { name: 'Card transferred', value: `${meta.emoji} **${card?.name ?? trade.offeredCardId}**`, inline: true },
-        { name: 'Shards paid',      value: `💎 ${trade.askingShards}`,                               inline: true },
+        { name: 'Card transferred',  value: `${meta.emoji} **${card?.name ?? trade.offeredCardId}**`, inline: true },
+        { name: 'Trade shards paid', value: `💎 ${trade.askingShards}`,                               inline: true },
       );
 
     if (isDupe) {
-      embed.setFooter({ text: `You already had that card — converted to ${shardsAwarded} shards instead!` });
+      embed.setFooter({ text: `You already had that card — +1 ${card?.name} Shard added to your inventory!` });
     }
 
     return message.reply({ embeds: [embed] });
   }
 
-  // ── !tko decline <tradeId> ───────────────────────────────
-  if (command === 'decline') {
+  // ── decline | dec ─────────────────────────────────────────
+  if (command === 'decline' || command === 'dec') {
     const tradeId = args[0];
-    if (!tradeId) return message.reply('Usage: `ZP decline <tradeId>`');
+    if (!tradeId) return message.reply('Usage: `ZP decline <tradeId>` or `ZP dec <tradeId>`');
 
     const trade = trades.getTrade(tradeId);
     if (!trade) return message.reply(`❌ Trade \`${tradeId}\` not found or already expired.`);
@@ -337,14 +370,13 @@ client.on('messageCreate', async (message) => {
     return message.reply(`🚫 Trade \`${tradeId}\` has been cancelled.`);
   }
 
-  // ── !tko trades ───────────────────────────────────────────
+  // ── trades ────────────────────────────────────────────────
   if (command === 'trades') {
     const pending = trades.getTradesForUser(message.author.id);
     if (pending.length === 0) {
       return message.reply('📭 You have no pending trade offers.');
     }
 
-    const inventory = inv.loadInventory();
     const embed = new EmbedBuilder()
       .setColor(0xF1C40F)
       .setTitle('📬 Pending Trade Offers');
@@ -355,7 +387,7 @@ client.on('messageCreate', async (message) => {
       const fromUser = await client.users.fetch(trade.fromUserId).catch(() => ({ username: trade.fromUserId }));
       embed.addFields({
         name:  `Trade ${trade.tradeId} — from ${fromUser.username}`,
-        value: `${meta.emoji} **${card?.name ?? trade.offeredCardId}** for 💎 **${trade.askingShards} shards**\n\`ZP accept ${trade.tradeId}\`  •  \`ZP decline ${trade.tradeId}\``,
+        value: `${meta.emoji} **${card?.name ?? trade.offeredCardId}** for 💎 **${trade.askingShards} trade shards**\n\`ZP a ${trade.tradeId}\`  •  \`ZP dec ${trade.tradeId}\``,
       });
     }
 
@@ -363,7 +395,7 @@ client.on('messageCreate', async (message) => {
   }
 
   // ── Unknown command ───────────────────────────────────────
-  return message.reply(`❓ Unknown command. Use \`ZP help\` to see all commands.`);
+  return message.reply(`❓ Unknown command. Use \`ZP help\` or \`ZP h\` to see all commands.`);
 });
 
 // ── Login ─────────────────────────────────────────────────

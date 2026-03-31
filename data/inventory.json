@@ -1,0 +1,100 @@
+{
+  "users": {
+    "833025999897755689": {
+      "cards": [
+        {
+          "id": "ichigo_r",
+          "name": "Ichigo Kurosaki",
+          "series": "Bleach",
+          "rarity": "R",
+          "obtainedAt": "2026-03-31T23:34:09.613Z"
+        },
+        {
+          "id": "pikachu_r",
+          "name": "Pikachu",
+          "series": "Pokémon",
+          "rarity": "R",
+          "obtainedAt": "2026-03-31T23:35:00.521Z"
+        },
+        {
+          "id": "killua_e",
+          "name": "Killua Zoldyck",
+          "series": "Hunter x Hunter",
+          "rarity": "E",
+          "obtainedAt": "2026-03-31T23:35:02.461Z"
+        },
+        {
+          "id": "cloud_r",
+          "name": "Cloud Strife",
+          "series": "Final Fantasy VII",
+          "rarity": "R",
+          "obtainedAt": "2026-03-31T23:35:04.420Z"
+        },
+        {
+          "id": "bakugo_e",
+          "name": "Katsuki Bakugo",
+          "series": "My Hero Academia",
+          "rarity": "E",
+          "obtainedAt": "2026-03-31T23:35:07.856Z"
+        },
+        {
+          "id": "genos_l",
+          "name": "Genos",
+          "series": "One Punch Man",
+          "rarity": "L",
+          "obtainedAt": "2026-03-31T23:35:09.559Z"
+        },
+        {
+          "id": "luffy_r",
+          "name": "Monkey D. Luffy",
+          "series": "One Piece",
+          "rarity": "R",
+          "obtainedAt": "2026-03-31T23:35:11.468Z"
+        },
+        {
+          "id": "levi_e",
+          "name": "Levi Ackerman",
+          "series": "Attack on Titan",
+          "rarity": "E",
+          "obtainedAt": "2026-03-31T23:35:13.890Z"
+        },
+        {
+          "id": "link_r",
+          "name": "Link",
+          "series": "The Legend of Zelda",
+          "rarity": "R",
+          "obtainedAt": "2026-03-31T23:35:15.683Z"
+        },
+        {
+          "id": "whitebeard_my",
+          "name": "Whitebeard",
+          "series": "One Piece",
+          "rarity": "MY",
+          "obtainedAt": "2026-03-31T23:35:21.453Z"
+        },
+        {
+          "id": "goku_ssj4_l",
+          "name": "Goku SSJ4",
+          "series": "Dragon Ball GT",
+          "rarity": "L",
+          "obtainedAt": "2026-03-31T23:35:23.471Z"
+        },
+        {
+          "id": "deku_r",
+          "name": "Izuku Midoriya",
+          "series": "My Hero Academia",
+          "rarity": "R",
+          "obtainedAt": "2026-03-31T23:35:28.022Z"
+        },
+        {
+          "id": "arceus_ur",
+          "name": "Arceus",
+          "series": "Pokémon",
+          "rarity": "UR",
+          "obtainedAt": "2026-03-31T23:35:31.928Z"
+        }
+      ],
+      "shards": 10
+    }
+  }
+}
