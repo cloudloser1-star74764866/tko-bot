@@ -113,6 +113,20 @@
           "series": "Attack on Titan",
           "rarity": "R",
           "obtainedAt": "2026-03-31T23:43:14.205Z"
+        },
+        {
+          "id": "ultra_goku_lt",
+          "name": "Goku (Ultra Instinct)",
+          "series": "Dragon Ball Super",
+          "rarity": "LT",
+          "obtainedAt": "2026-03-31T23:53:52.755Z"
+        },
+        {
+          "id": "gear5_luffy_lt",
+          "name": "Luffy (Gear 5)",
+          "series": "One Piece",
+          "rarity": "LT",
+          "obtainedAt": "2026-03-31T23:53:58.355Z"
         }
       ],
       "shards": 10,
