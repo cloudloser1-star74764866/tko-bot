@@ -540,6 +540,54 @@ function getSortedAllCards() {
   });
 }
 
+const SHARDS_PER_PAGE = 20;
+
+function buildShardsPage(authorId, target, entries, filterArg, page, expiry) {
+  const totalShards = entries.reduce((s, [, n]) => s + n, 0);
+  const totalPages  = Math.max(1, Math.ceil(entries.length / SHARDS_PER_PAGE));
+  const p           = Math.max(0, Math.min(page, totalPages - 1));
+  const slice       = entries.slice(p * SHARDS_PER_PAGE, (p + 1) * SHARDS_PER_PAGE);
+
+  const titleSuffix = filterArg ? ` — "${filterArg}"` : '';
+  const lines = slice.map(([cardId, count]) => {
+    const card   = lookupCard(cardId);
+    const rarity = card?.rarity ?? 'R';
+    const meta   = rarityMeta(rarity);
+    const emoji  = emojiCache.getEmoji(cardId) ?? '';
+    const name   = card?.name ?? cardId;
+    return `${meta.emoji}${emoji ? ' ' + emoji : ''} **${name}** — x${count}`;
+  });
+
+  const embed = new EmbedBuilder()
+    .setColor(0x9B59B6)
+    .setTitle(`${target.username}'s Shards${titleSuffix}`)
+    .setDescription(lines.join('\n') || 'No shards on this page.')
+    .setFooter({
+      text: `${entries.length} card${entries.length === 1 ? '' : 's'} • ${totalShards} shard${totalShards === 1 ? '' : 's'} total • Page ${p + 1}/${totalPages}` +
+            (filterArg ? '' : '  •  Filter: ZP shards R / ZP shards <name>'),
+    });
+
+  const base = `shards|${authorId}|${target.id}|${expiry}|%p%|${filterArg || '_'}`;
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(base.replace('%p%', String(p - 1)))
+      .setLabel('◀ Prev')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(p === 0),
+    new ButtonBuilder()
+      .setCustomId(base.replace('%p%', String(p + 1)))
+      .setLabel('Next ▶')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(p >= totalPages - 1),
+    new ButtonBuilder()
+      .setCustomId(base.replace('%p%', 'close'))
+      .setLabel('Close')
+      .setStyle(ButtonStyle.Danger),
+  );
+
+  return { embed, components: totalPages > 1 ? [row] : [] };
+}
+
 function buildAllCardsPage(authorId, allCards, page, filter, expiry) {
   const filtered = applyFilter(allCards, filter);
 
@@ -1018,6 +1066,54 @@ client.on('interactionCreate', async (interaction) => {
     return interaction.update({ embeds: [embed], components });
   }
 
+  // ── Shards button handler ─────────────────────────────────
+  if (parts[0] === 'shards') {
+    const [, authorId, targetId, expiryStr, pageStr, ...filterParts] = parts;
+    const filterArg = filterParts.join('|').replace(/^_$/, '');
+    const expiry    = parseInt(expiryStr, 10);
+
+    if (interaction.user.id !== authorId) {
+      return interaction.reply({ content: 'These buttons are not for you.', ephemeral: true });
+    }
+    if (Date.now() > expiry) {
+      return interaction.update({ components: [], embeds: interaction.message.embeds });
+    }
+    if (pageStr === 'close') {
+      return interaction.update({ components: [] });
+    }
+
+    const page     = parseInt(pageStr, 10);
+    const target   = await client.users.fetch(targetId).catch(() => null);
+    if (!target) return interaction.reply({ content: 'Could not find that user.', ephemeral: true });
+
+    const inventory  = inv.loadInventory();
+    const charShards = inv.getCharacterShards(inventory, targetId);
+    let allEntries   = Object.entries(charShards).filter(([, n]) => n > 0);
+
+    if (filterArg) {
+      const rarityKeys   = Object.keys(config.RARITY_META);
+      const upperFilter  = filterArg.toUpperCase();
+      if (rarityKeys.includes(upperFilter)) {
+        allEntries = allEntries.filter(([cardId]) => (lookupCard(cardId)?.rarity ?? 'R') === upperFilter);
+      } else {
+        allEntries = allEntries.filter(([cardId]) => {
+          const card = lookupCard(cardId);
+          return (card?.name ?? cardId).toLowerCase().includes(filterArg.toLowerCase());
+        });
+      }
+    }
+
+    const rarityOrder = Object.keys(config.RARITY_META);
+    allEntries.sort(([a], [b]) => {
+      const ra = lookupCard(a)?.rarity ?? 'R';
+      const rb = lookupCard(b)?.rarity ?? 'R';
+      return rarityOrder.indexOf(rb) - rarityOrder.indexOf(ra);
+    });
+
+    const { embed, components } = buildShardsPage(authorId, target, allEntries, filterArg, page, expiry);
+    return interaction.update({ embeds: [embed], components });
+  }
+
   if (parts[0] !== 'col') return;
 
   const [, authorId, targetId, expiryStr, pageStr, ...filterParts] = parts;
@@ -1266,11 +1362,11 @@ client.on('messageCreate', async (message) => {
       return message.reply(`No card found with id \`${cardId}\`. Use \`ZP all\` to browse available cards.`);
     }
 
-    const inventory = inv.loadInventory();
-    if (inv.hasCard(inventory, userId, card.id)) {
-      return message.reply(`You already own **${card.name}**! Wish for a card you don't have yet.`);
+    if (card.rarity === 'UR' || card.rarity === 'LT') {
+      return message.reply(`You cannot wish for **${rarityMeta(card.rarity).label}** cards. Wishes are limited to Mythical rarity and below.`);
     }
 
+    const inventory = inv.loadInventory();
     inv.setWish(inventory, userId, card.id);
     inv.saveInventory(inventory);
 
@@ -1413,33 +1509,16 @@ client.on('messageCreate', async (message) => {
       return message.reply(`No shards found matching **"${filterArg}"**.`);
     }
 
-    const grouped = {};
-    for (const [key] of Object.entries(config.RARITY_META)) grouped[key] = [];
-    for (const [cardId, count] of filtered) {
-      const card   = lookupCard(cardId);
-      const rarity = card?.rarity ?? 'R';
-      const emoji  = emojiCache.getEmoji(cardId) ?? '';
-      if (!grouped[rarity]) grouped[rarity] = [];
-      grouped[rarity].push({ name: card?.name ?? cardId, count, emoji });
-    }
+    const rarityOrder = Object.keys(config.RARITY_META);
+    filtered.sort(([a], [b]) => {
+      const ra = lookupCard(a)?.rarity ?? 'R';
+      const rb = lookupCard(b)?.rarity ?? 'R';
+      return rarityOrder.indexOf(rb) - rarityOrder.indexOf(ra);
+    });
 
-    const totalShards = filtered.reduce((s, [, n]) => s + n, 0);
-    const titleSuffix = filterArg ? ` — "${filterArg}"` : '';
-    const embed = new EmbedBuilder()
-      .setColor(0x9B59B6)
-      .setTitle(`✨ ${target.username}'s Shards${titleSuffix}`)
-      .setDescription(`**${totalShards}** shard${totalShards === 1 ? '' : 's'} total`);
-
-    for (const [rarity, group] of Object.entries(grouped)) {
-      if (group.length === 0) continue;
-      const meta = rarityMeta(rarity);
-      let value  = group.map(s => `${s.emoji ? s.emoji + ' ' : ''}${s.name} — x${s.count}`).join('\n');
-      if (value.length > 1024) value = value.slice(0, 1020) + '\n…';
-      embed.addFields({ name: `${meta.emoji} ${meta.label}`, value, inline: true });
-    }
-
-    embed.setFooter({ text: 'Filter by rarity: ZP shards R  •  By name: ZP shards naruto' });
-    return message.reply({ embeds: [embed] });
+    const expiry = Date.now() + 5 * 60 * 1000;
+    const { embed, components } = buildShardsPage(userId, target, filtered, filterArg, 0, expiry);
+    return message.reply({ embeds: [embed], components });
   }
 
   // ── items ─────────────────────────────────────────────────
