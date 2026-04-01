@@ -38,6 +38,7 @@ const config    = require('./config');
 const { CARDS, pullCard } = require('./cards');
 const inv       = require('./inventory');
 const trades    = require('./trades');
+const imgCache  = require('./imageCache');
 
 const client = new Client({
   intents: [
@@ -285,8 +286,9 @@ function cardEmbed(card, title, footer) {
       { name: '❤️ Health', value: `${stats.hp}`,              inline: true },
       { name: '⚔️ Damage', value: `${stats.dmg}`,             inline: true },
     );
-  if (card.image) embed.setThumbnail(card.image);
-  if (footer)     embed.setFooter({ text: footer });
+  const img = imgCache.getImage(card.id) ?? card.image ?? null;
+  if (img)    embed.setThumbnail(img);
+  if (footer) embed.setFooter({ text: footer });
   return embed;
 }
 
@@ -359,7 +361,8 @@ function buildAllCardsPage(authorId, allCards, page, filter, expiry) {
     )
     .setFooter({ text: `Card ${page + 1} of ${filtered.length}${filterTag}` });
 
-  if (card.image) embed.setThumbnail(card.image);
+  const allImg = imgCache.getImage(card.id) ?? card.image ?? null;
+  if (allImg) embed.setThumbnail(allImg);
 
   const base = `zpa|${authorId}|${expiry}|%page%|${filter}`;
   const row = new ActionRowBuilder().addComponents(
@@ -417,7 +420,8 @@ function buildCollectionPage(authorId, targetUser, cards, page, filter, inventor
     )
     .setFooter({ text: `Card ${page + 1} of ${filtered.length}${filterTag}${shardTag}` });
 
-  if (card.image) embed.setThumbnail(card.image);
+  const colImg = imgCache.getImage(card.id) ?? card.image ?? null;
+  if (colImg) embed.setThumbnail(colImg);
 
   // Carry the same expiry forward so the 60s window doesn't reset on each click
   const base = `col|${authorId}|${targetUser.id}|${expiry}|%page%|${filter}`;
@@ -447,6 +451,8 @@ client.once('ready', () => {
   initPullCharges();
   console.log(`✅ test Bot online as ${client.user.tag}`);
   client.user.setActivity('ZP help', { type: 0 });
+  // Fetch missing character images in the background (no await — non-blocking)
+  imgCache.refreshMissing().catch(err => console.error('Image cache refresh error:', err));
 });
 
 // ── Button Interactions ───────────────────────────────────
