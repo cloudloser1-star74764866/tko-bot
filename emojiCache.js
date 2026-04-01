@@ -84,7 +84,8 @@ async function syncEmojis(client, cards, imgCache) {
       const serverId = EMOJI_SERVERS[si];
       try {
         const guild = await client.guilds.fetch(serverId);
-        const emoji = await guild.emojis.create({ attachment: imageUrl, name: card.id });
+        const emojiName = card.id.length >= 2 ? card.id : card.id + '_';
+        const emoji = await guild.emojis.create({ attachment: imageUrl, name: emojiName });
         cache[card.id] = { name: emoji.name, id: emoji.id };
         save(cache);
         uploaded++;
