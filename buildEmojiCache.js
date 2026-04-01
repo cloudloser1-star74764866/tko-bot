@@ -112,8 +112,14 @@ async function run(client) {
     const card = todo[i];
     const num  = skip + i + 1;
 
-    // Get image URL
-    const imageUrl = imgCache.getImage(card.id) ?? card.image ?? null;
+    // Get image URL (try cache first, then fallback fetch from AniList/Jikan)
+    let imageUrl = imgCache.getImage(card.id) ?? card.image ?? null;
+    if (!imageUrl) {
+      process.stdout.write(`[${num}/${total}] 🔍 ${card.id} — fetching image...`);
+      imageUrl = await imgCache.fetchFallbackImage(card.id, card.name);
+      if (imageUrl) process.stdout.write(' found\n');
+      else           process.stdout.write(' not found\n');
+    }
     if (!imageUrl) {
       console.log(`[${num}/${total}] ❌ ${card.id} — no image URL, skipping`);
       failed++;

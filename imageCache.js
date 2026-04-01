@@ -165,6 +165,19 @@ const SEARCH_TERMS = {
   sephiroth_e: 'Sephiroth',            kratos_e:    'Kratos',
   pikachu_r:   'Pikachu',              mewtwo_my:   'Mewtwo',
   arceus_ur:   'Arceus',
+  // Lookism
+  daniel:      'Daniel Park',          jay:         'Jay Hong',
+  zack:        'Zack Lee',             vasco:       'Vasco',
+  crystal:     'Crystal Choi',         gun:         'Gun Park',
+  jake_kim:    'Jake Kim',             samuel:      'Samuel Seo',
+  johan:       'Johan Seong',          tom_lee:     'Tom Lee',
+  eli:         'Eli Jang',
+  // Baki
+  baki:        'Baki Hanma',           yujiro:      'Yujiro Hanma',
+  hanayama:    'Kaoru Hanayama',       doppo:       'Doppo Orochi',
+  retsu:       'Retsu Kaioh',          jack:        'Jack Hanma',
+  oliva:       'Biscuit Oliva',        shibukawa:   'Goki Shibukawa',
+  pickle:      'Pickle',               musashi:     'Miyamoto Musashi',
 };
 
 // ── In-memory cache (card_id -> imageUrl) ────────────────────

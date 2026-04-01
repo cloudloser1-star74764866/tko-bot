@@ -213,6 +213,31 @@ const CARDS = [
   { id: 'gear5_luffy',    name: 'Luffy (Gear 5)',          series: 'One Piece',                         rarity: 'LT', desc: 'The most ridiculous power in the world. Joy Boy awakened.' },
   { id: 'sukuna_fp',      name: 'Sukuna (Full Power)',     series: 'Jujutsu Kaisen',                    rarity: 'LT', desc: 'Heian-era pinnacle. Cleave and Dismantle erasing existence.' },
 
+  // ── Lookism ───────────────────────────────────────────────
+  { id: 'daniel',      name: 'Daniel Park',      series: 'Lookism', rarity: 'R',  desc: 'A boy born ugly who woke up in a different body — and learned what strength really means.' },
+  { id: 'jay',         name: 'Jay Hong',         series: 'Lookism', rarity: 'R',  desc: 'Rich, handsome, and fiercely loyal — the brain behind every plan.' },
+  { id: 'zack',        name: 'Zack Lee',         series: 'Lookism', rarity: 'R',  desc: 'Taekwondo prodigy who fights with pride and a little too much heart.' },
+  { id: 'vasco',       name: 'Vasco',            series: 'Lookism', rarity: 'R',  desc: 'Big Deal\'s muscle and moral compass — a gentle giant with iron fists.' },
+  { id: 'crystal',     name: 'Crystal Choi',     series: 'Lookism', rarity: 'R',  desc: 'The most beautiful girl in school — and sharper than anyone gives her credit for.' },
+  { id: 'gun',         name: 'Gun Park',         series: 'Lookism', rarity: 'E',  desc: 'Head of Big Deal — one of the most feared fighters in the underground.' },
+  { id: 'jake_kim',    name: 'Jake Kim',         series: 'Lookism', rarity: 'E',  desc: 'A powerhouse affiliate whose raw strength puts him above almost everyone.' },
+  { id: 'samuel',      name: 'Samuel Seo',       series: 'Lookism', rarity: 'E',  desc: 'Hostel\'s cold, calculating CEO — his fists back up every business deal.' },
+  { id: 'johan',       name: 'Johan Seong',      series: 'Lookism', rarity: 'L',  desc: 'Effortlessly magnetic — his presence alone bends the world around him.' },
+  { id: 'tom_lee',     name: 'Tom Lee',          series: 'Lookism', rarity: 'L',  desc: 'Hostel\'s strongest enforcer — a fighter whose composure never breaks.' },
+  { id: 'eli',         name: 'Eli Jang',         series: 'Lookism', rarity: 'MY', desc: 'One of the most dangerous men alive, feared even by the underground\'s elite.' },
+
+  // ── Baki ──────────────────────────────────────────────────
+  { id: 'baki',        name: 'Baki Hanma',       series: 'Baki',    rarity: 'R',  desc: 'Training since childhood to surpass the strongest creature on Earth — his own father.' },
+  { id: 'hanayama',    name: 'Kaoru Hanayama',   series: 'Baki',    rarity: 'E',  desc: 'Yakuza boss with a grip that crushes bedrock — brute strength incarnate.' },
+  { id: 'doppo',       name: 'Doppo Orochi',     series: 'Baki',    rarity: 'E',  desc: 'Karate grandmaster whose shuto can split a bull\'s horn.' },
+  { id: 'retsu',       name: 'Retsu Kaioh',      series: 'Baki',    rarity: 'E',  desc: 'Chinese kenpo master — two thousand years of technique in his strikes.' },
+  { id: 'jack',        name: 'Jack Hanma',       series: 'Baki',    rarity: 'E',  desc: 'Yujiro\'s other son — willing to ruin his own body just to win.' },
+  { id: 'oliva',       name: 'Biscuit Oliva',    series: 'Baki',    rarity: 'L',  desc: 'The strongest man in the United States — his muscles are armour and weapon in one.' },
+  { id: 'shibukawa',   name: 'Goki Shibukawa',   series: 'Baki',    rarity: 'L',  desc: 'Aikido master who redirects any force — age is just a number.' },
+  { id: 'pickle',      name: 'Pickle',           series: 'Baki',    rarity: 'MY', desc: 'A prehistoric man preserved in rock — raw instinct and power untouched by civilisation.' },
+  { id: 'musashi',     name: 'Miyamoto Musashi', series: 'Baki',    rarity: 'UR', desc: 'The greatest swordsman in history, resurrected — a blade that cuts the untouchable.' },
+  { id: 'yujiro',      name: 'Yujiro Hanma',     series: 'Baki',    rarity: 'UR', desc: 'The Ogre. The strongest creature on the face of the Earth. No argument.' },
+
 ];
 
 /**
