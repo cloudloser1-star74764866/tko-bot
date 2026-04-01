@@ -7,455 +7,568 @@
           "name": "Ichigo Kurosaki",
           "series": "Bleach",
           "rarity": "R",
-          "obtainedAt": "2026-03-31T23:34:09.613Z"
+          "obtainedAt": "2026-03-31T23:34:09.613Z",
+          "level": 1
         },
         {
           "id": "pikachu_r",
           "name": "Pikachu",
           "series": "Pokémon",
           "rarity": "R",
-          "obtainedAt": "2026-03-31T23:35:00.521Z"
+          "obtainedAt": "2026-03-31T23:35:00.521Z",
+          "level": 1
         },
         {
           "id": "killua_e",
           "name": "Killua Zoldyck",
           "series": "Hunter x Hunter",
           "rarity": "E",
-          "obtainedAt": "2026-03-31T23:35:02.461Z"
+          "obtainedAt": "2026-03-31T23:35:02.461Z",
+          "level": 1
         },
         {
           "id": "cloud_r",
           "name": "Cloud Strife",
           "series": "Final Fantasy VII",
           "rarity": "R",
-          "obtainedAt": "2026-03-31T23:35:04.420Z"
+          "obtainedAt": "2026-03-31T23:35:04.420Z",
+          "level": 1
         },
         {
           "id": "bakugo_e",
           "name": "Katsuki Bakugo",
           "series": "My Hero Academia",
           "rarity": "E",
-          "obtainedAt": "2026-03-31T23:35:07.856Z"
+          "obtainedAt": "2026-03-31T23:35:07.856Z",
+          "level": 1
         },
         {
           "id": "genos_l",
           "name": "Genos",
           "series": "One Punch Man",
           "rarity": "L",
-          "obtainedAt": "2026-03-31T23:35:09.559Z"
+          "obtainedAt": "2026-03-31T23:35:09.559Z",
+          "level": 1
         },
         {
           "id": "luffy_r",
           "name": "Monkey D. Luffy",
           "series": "One Piece",
           "rarity": "R",
-          "obtainedAt": "2026-03-31T23:35:11.468Z"
+          "obtainedAt": "2026-03-31T23:35:11.468Z",
+          "level": 1
         },
         {
           "id": "levi_e",
           "name": "Levi Ackerman",
           "series": "Attack on Titan",
           "rarity": "E",
-          "obtainedAt": "2026-03-31T23:35:13.890Z"
+          "obtainedAt": "2026-03-31T23:35:13.890Z",
+          "level": 1
         },
         {
           "id": "link_r",
           "name": "Link",
           "series": "The Legend of Zelda",
           "rarity": "R",
-          "obtainedAt": "2026-03-31T23:35:15.683Z"
+          "obtainedAt": "2026-03-31T23:35:15.683Z",
+          "level": 1
         },
         {
           "id": "whitebeard_my",
           "name": "Whitebeard",
           "series": "One Piece",
           "rarity": "MY",
-          "obtainedAt": "2026-03-31T23:35:21.453Z"
+          "obtainedAt": "2026-03-31T23:35:21.453Z",
+          "level": 1
         },
         {
           "id": "goku_ssj4_l",
           "name": "Goku SSJ4",
           "series": "Dragon Ball GT",
           "rarity": "L",
-          "obtainedAt": "2026-03-31T23:35:23.471Z"
+          "obtainedAt": "2026-03-31T23:35:23.471Z",
+          "level": 1
         },
         {
           "id": "deku_r",
           "name": "Izuku Midoriya",
           "series": "My Hero Academia",
           "rarity": "R",
-          "obtainedAt": "2026-03-31T23:35:28.022Z"
+          "obtainedAt": "2026-03-31T23:35:28.022Z",
+          "level": 1
         },
         {
           "id": "arceus_ur",
           "name": "Arceus",
           "series": "Pokémon",
           "rarity": "UR",
-          "obtainedAt": "2026-03-31T23:35:31.928Z"
+          "obtainedAt": "2026-03-31T23:35:31.928Z",
+          "level": 1
         },
         {
           "id": "goku_r",
           "name": "Goku",
           "series": "Dragon Ball Z",
           "rarity": "R",
-          "obtainedAt": "2026-03-31T23:43:05.560Z"
+          "obtainedAt": "2026-03-31T23:43:05.560Z",
+          "level": 1
         },
         {
           "id": "zeno_ur",
           "name": "Zeno",
           "series": "Dragon Ball Super",
           "rarity": "UR",
-          "obtainedAt": "2026-03-31T23:43:11.458Z"
+          "obtainedAt": "2026-03-31T23:43:11.458Z",
+          "level": 1
         },
         {
           "id": "eren_r",
           "name": "Eren Yeager",
           "series": "Attack on Titan",
           "rarity": "R",
-          "obtainedAt": "2026-03-31T23:43:14.205Z"
+          "obtainedAt": "2026-03-31T23:43:14.205Z",
+          "level": 1
         },
         {
           "id": "ultra_goku_lt",
           "name": "Goku (Ultra Instinct)",
           "series": "Dragon Ball Super",
           "rarity": "LT",
-          "obtainedAt": "2026-03-31T23:53:52.755Z"
+          "obtainedAt": "2026-03-31T23:53:52.755Z",
+          "level": 100
         },
         {
           "id": "gear5_luffy_lt",
           "name": "Luffy (Gear 5)",
           "series": "One Piece",
           "rarity": "LT",
-          "obtainedAt": "2026-03-31T23:53:58.355Z"
+          "obtainedAt": "2026-03-31T23:53:58.355Z",
+          "level": 100
         },
         {
           "id": "vegeta_e",
           "name": "Vegeta",
           "series": "Dragon Ball Z",
           "rarity": "E",
-          "obtainedAt": "2026-03-31T23:57:32.598Z"
+          "obtainedAt": "2026-03-31T23:57:32.598Z",
+          "level": 1
         },
         {
           "id": "sage_naruto_lt",
           "name": "Naruto (Six Paths Sage)",
           "series": "Naruto",
           "rarity": "LT",
-          "obtainedAt": "2026-04-01T00:18:01.659Z"
+          "obtainedAt": "2026-04-01T00:18:01.659Z",
+          "level": 100
         },
         {
           "id": "naruto_r",
           "name": "Naruto Uzumaki",
           "series": "Naruto",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T00:18:42.919Z"
+          "obtainedAt": "2026-04-01T00:18:42.919Z",
+          "level": 1
         },
         {
           "id": "spike_r",
           "name": "Spike Spiegel",
           "series": "Cowboy Bebop",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T00:18:42.919Z"
+          "obtainedAt": "2026-04-01T00:18:42.919Z",
+          "level": 1
         },
         {
           "id": "kaguya_ur",
           "name": "Kaguya Ōtsutsuki",
           "series": "Naruto",
           "rarity": "UR",
-          "obtainedAt": "2026-04-01T00:19:16.382Z"
+          "obtainedAt": "2026-04-01T00:19:16.382Z",
+          "level": 1
         },
         {
           "id": "shanks_l",
           "name": "Red-Hair Shanks",
           "series": "One Piece",
           "rarity": "L",
-          "obtainedAt": "2026-04-01T00:19:16.382Z"
+          "obtainedAt": "2026-04-01T00:19:16.382Z",
+          "level": 1
         },
         {
           "id": "sasuke_e",
           "name": "Sasuke Uchiha",
           "series": "Naruto",
           "rarity": "E",
-          "obtainedAt": "2026-04-01T00:19:16.383Z"
+          "obtainedAt": "2026-04-01T00:19:16.383Z",
+          "level": 1
         },
         {
           "id": "zoro_e",
           "name": "Roronoa Zoro",
           "series": "One Piece",
           "rarity": "E",
-          "obtainedAt": "2026-04-01T00:19:16.383Z"
+          "obtainedAt": "2026-04-01T00:19:16.383Z",
+          "level": 1
         },
         {
           "id": "hisoka_l",
           "name": "Hisoka Morow",
           "series": "Hunter x Hunter",
           "rarity": "L",
-          "obtainedAt": "2026-04-01T00:19:16.383Z"
+          "obtainedAt": "2026-04-01T00:19:16.383Z",
+          "level": 1
         },
         {
           "id": "mewtwo_my",
           "name": "Mewtwo",
           "series": "Pokémon",
           "rarity": "MY",
-          "obtainedAt": "2026-04-01T00:19:16.383Z"
+          "obtainedAt": "2026-04-01T00:19:16.383Z",
+          "level": 1
         },
         {
           "id": "saitama_my",
           "name": "Saitama",
           "series": "One Punch Man",
           "rarity": "MY",
-          "obtainedAt": "2026-04-01T01:17:17.962Z"
+          "obtainedAt": "2026-04-01T01:17:17.962Z",
+          "level": 1
         },
         {
           "id": "allmight_l",
           "name": "All Might",
           "series": "My Hero Academia",
           "rarity": "L",
-          "obtainedAt": "2026-04-01T01:17:17.962Z"
+          "obtainedAt": "2026-04-01T01:17:17.962Z",
+          "level": 1
         },
         {
           "id": "sephiroth_e",
           "name": "Sephiroth",
           "series": "Final Fantasy VII",
           "rarity": "E",
-          "obtainedAt": "2026-04-01T01:24:31.834Z"
+          "obtainedAt": "2026-04-01T01:24:31.834Z",
+          "level": 1
         },
         {
           "id": "kratos_e",
           "name": "Kratos",
           "series": "God of War",
           "rarity": "E",
-          "obtainedAt": "2026-04-01T01:24:31.835Z"
+          "obtainedAt": "2026-04-01T01:24:31.835Z",
+          "level": 1
         },
         {
           "id": "itachi_l",
           "name": "Itachi Uchiha",
           "series": "Naruto",
           "rarity": "L",
-          "obtainedAt": "2026-04-01T01:25:02.549Z"
+          "obtainedAt": "2026-04-01T01:25:02.549Z",
+          "level": 1
         },
         {
           "id": "kirito_r",
           "name": "Kirito",
           "series": "Sword Art Online",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:14.929Z"
+          "obtainedAt": "2026-04-01T01:35:14.929Z",
+          "level": 1
         },
         {
           "id": "okabe_r",
           "name": "Rintaro Okabe",
           "series": "Steins;Gate",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:14.929Z"
+          "obtainedAt": "2026-04-01T01:35:14.929Z",
+          "level": 1
         },
         {
           "id": "usopp_r",
           "name": "Usopp",
           "series": "One Piece",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:14.929Z"
+          "obtainedAt": "2026-04-01T01:35:14.929Z",
+          "level": 1
         },
         {
           "id": "sanji_r",
           "name": "Sanji",
           "series": "One Piece",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:14.929Z"
+          "obtainedAt": "2026-04-01T01:35:14.929Z",
+          "level": 1
         },
         {
           "id": "inosuke_r",
           "name": "Inosuke Hashibira",
           "series": "Demon Slayer",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:14.929Z"
+          "obtainedAt": "2026-04-01T01:35:14.929Z",
+          "level": 1
         },
         {
           "id": "inuyasha_r",
           "name": "Inuyasha",
           "series": "Inuyasha",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:14.929Z"
+          "obtainedAt": "2026-04-01T01:35:14.929Z",
+          "level": 1
         },
         {
           "id": "asuna_r",
           "name": "Asuna",
           "series": "Sword Art Online",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:14.929Z"
+          "obtainedAt": "2026-04-01T01:35:14.929Z",
+          "level": 1
         },
         {
           "id": "nezuko_r",
           "name": "Nezuko Kamado",
           "series": "Demon Slayer",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:14.929Z"
+          "obtainedAt": "2026-04-01T01:35:14.929Z",
+          "level": 1
         },
         {
           "id": "anya_r",
           "name": "Anya Forger",
           "series": "Spy x Family",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:14.929Z"
+          "obtainedAt": "2026-04-01T01:35:14.929Z",
+          "level": 1
         },
         {
           "id": "uryu_r",
           "name": "Uryu Ishida",
           "series": "Bleach",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:14.929Z"
+          "obtainedAt": "2026-04-01T01:35:14.929Z",
+          "level": 1
         },
         {
           "id": "tanjiro_r",
           "name": "Tanjiro Kamado",
           "series": "Demon Slayer",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:14.929Z"
+          "obtainedAt": "2026-04-01T01:35:14.929Z",
+          "level": 1
         },
         {
           "id": "hiei_e",
           "name": "Hiei",
           "series": "Yu Yu Hakusho",
           "rarity": "E",
-          "obtainedAt": "2026-04-01T01:35:14.929Z"
+          "obtainedAt": "2026-04-01T01:35:14.929Z",
+          "level": 1
         },
         {
           "id": "chopper_r",
           "name": "Tony Tony Chopper",
           "series": "One Piece",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:14.929Z"
+          "obtainedAt": "2026-04-01T01:35:14.929Z",
+          "level": 1
         },
         {
           "id": "itadori_r",
           "name": "Yuji Itadori",
           "series": "Jujutsu Kaisen",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:14.929Z"
+          "obtainedAt": "2026-04-01T01:35:14.929Z",
+          "level": 1
         },
         {
           "id": "rukia_r",
           "name": "Rukia Kuchiki",
           "series": "Bleach",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:14.929Z"
+          "obtainedAt": "2026-04-01T01:35:14.929Z",
+          "level": 1
         },
         {
           "id": "caesar_r",
           "name": "Caesar Zeppeli",
           "series": "JoJo's Bizarre Adventure",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:14.929Z"
+          "obtainedAt": "2026-04-01T01:35:14.929Z",
+          "level": 1
         },
         {
           "id": "law_e",
           "name": "Trafalgar D. Water Law",
           "series": "One Piece",
           "rarity": "E",
-          "obtainedAt": "2026-04-01T01:35:14.929Z"
+          "obtainedAt": "2026-04-01T01:35:14.929Z",
+          "level": 1
         },
         {
           "id": "kid_e",
           "name": "Eustass Kid",
           "series": "One Piece",
           "rarity": "E",
-          "obtainedAt": "2026-04-01T01:35:16.436Z"
+          "obtainedAt": "2026-04-01T01:35:16.436Z",
+          "level": 1
         },
         {
           "id": "light_r",
           "name": "Light Yagami",
           "series": "Death Note",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:16.436Z"
+          "obtainedAt": "2026-04-01T01:35:16.436Z",
+          "level": 1
         },
         {
           "id": "natsu_r",
           "name": "Natsu Dragneel",
           "series": "Fairy Tail",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:16.436Z"
+          "obtainedAt": "2026-04-01T01:35:16.436Z",
+          "level": 1
         },
         {
           "id": "asta_r",
           "name": "Asta",
           "series": "Black Clover",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:16.436Z"
+          "obtainedAt": "2026-04-01T01:35:16.436Z",
+          "level": 1
         },
         {
           "id": "ulquiorra_e",
           "name": "Ulquiorra Cifer",
           "series": "Bleach",
           "rarity": "E",
-          "obtainedAt": "2026-04-01T01:35:16.436Z"
+          "obtainedAt": "2026-04-01T01:35:16.436Z",
+          "level": 1
         },
         {
           "id": "nami_r",
           "name": "Nami",
           "series": "One Piece",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:16.436Z"
+          "obtainedAt": "2026-04-01T01:35:16.436Z",
+          "level": 1
         },
         {
           "id": "winry_r",
           "name": "Winry Rockbell",
           "series": "Fullmetal Alchemist: Brotherhood",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:16.436Z"
+          "obtainedAt": "2026-04-01T01:35:16.436Z",
+          "level": 1
         },
         {
           "id": "denji_r",
           "name": "Denji",
           "series": "Chainsaw Man",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:16.436Z"
+          "obtainedAt": "2026-04-01T01:35:16.436Z",
+          "level": 1
         },
         {
           "id": "chad_r",
           "name": "Yasutora Sado",
           "series": "Bleach",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:16.436Z"
+          "obtainedAt": "2026-04-01T01:35:16.436Z",
+          "level": 1
         },
         {
           "id": "noriaki_r",
           "name": "Noriaki Kakyoin",
           "series": "JoJo's Bizarre Adventure",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:16.436Z"
+          "obtainedAt": "2026-04-01T01:35:16.436Z",
+          "level": 1
         },
         {
           "id": "kurama_e",
           "name": "Kurama",
           "series": "Yu Yu Hakusho",
           "rarity": "E",
-          "obtainedAt": "2026-04-01T01:35:18.512Z"
+          "obtainedAt": "2026-04-01T01:35:18.512Z",
+          "level": 1
         },
         {
           "id": "orihime_r",
           "name": "Orihime Inoue",
           "series": "Bleach",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:18.512Z"
+          "obtainedAt": "2026-04-01T01:35:18.512Z",
+          "level": 1
         },
         {
           "id": "noelle_r",
           "name": "Noelle Silva",
           "series": "Black Clover",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:18.512Z"
+          "obtainedAt": "2026-04-01T01:35:18.512Z",
+          "level": 1
         },
         {
           "id": "edward_r",
           "name": "Edward Elric",
           "series": "Fullmetal Alchemist: Brotherhood",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:18.512Z"
+          "obtainedAt": "2026-04-01T01:35:18.512Z",
+          "level": 1
         },
         {
           "id": "yuno_r",
           "name": "Yuno",
           "series": "Black Clover",
           "rarity": "R",
-          "obtainedAt": "2026-04-01T01:35:18.512Z"
+          "obtainedAt": "2026-04-01T01:35:18.512Z",
+          "level": 1
+        },
+        {
+          "id": "joseph_r",
+          "name": "Joseph Joestar",
+          "series": "JoJo's Bizarre Adventure",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T02:51:20.298Z"
+        },
+        {
+          "id": "subaru_r",
+          "name": "Subaru Natsuki",
+          "series": "Re:Zero",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T02:51:21.946Z"
+        },
+        {
+          "id": "nobara_r",
+          "name": "Nobara Kugisaki",
+          "series": "Jujutsu Kaisen",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T02:51:23.935Z"
+        },
+        {
+          "id": "zenitsu_r",
+          "name": "Zenitsu Agatsuma",
+          "series": "Demon Slayer",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T02:51:25.318Z"
+        },
+        {
+          "id": "gon_r",
+          "name": "Gon Freecss",
+          "series": "Hunter x Hunter",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T02:51:26.779Z"
+        },
+        {
+          "id": "sukuna_fp_lt",
+          "name": "Sukuna (Full Power)",
+          "series": "Jujutsu Kaisen",
+          "rarity": "LT",
+          "level": 100,
+          "obtainedAt": "2026-04-01T02:52:01.405Z"
         }
       ],
       "characterShards": {
@@ -463,19 +576,19 @@
         "link_r": 35,
         "zeno_ur": 2,
         "goku_r": 25,
-        "gear5_luffy_lt": 5,
-        "ultra_goku_lt": 7,
-        "sage_naruto_lt": 7,
+        "gear5_luffy_lt": 13,
+        "ultra_goku_lt": 19,
+        "sage_naruto_lt": 23,
         "eren_r": 39,
         "luffy_r": 40,
         "deku_r": 44,
         "pikachu_r": 34,
         "ichigo_r": 36,
-        "naruto_r": 28,
+        "naruto_r": 29,
         "vegeta_e": 12,
         "levi_e": 12,
         "kaguya_ur": 3,
-        "spike_r": 38,
+        "spike_r": 39,
         "killua_e": 7,
         "genos_l": 1,
         "saitama_my": 1,
@@ -501,15 +614,34 @@
         "chopper_r": 2,
         "winry_r": 1,
         "sanji_r": 1,
-        "light_r": 2
+        "light_r": 2,
+        "sukuna_fp_lt": 2
       },
       "platings": {
-        "diamond": 1,
+        "diamond": 4,
         "bronze": 2
       },
       "yen": 0,
       "stars": 0,
-      "candyTokens": 87
+      "candyTokens": 65,
+      "team": [
+        {
+          "cardId": "sage_naruto_lt",
+          "plating": "diamond"
+        },
+        {
+          "cardId": "ultra_goku_lt",
+          "plating": "diamond"
+        },
+        {
+          "cardId": "gear5_luffy_lt",
+          "plating": "diamond"
+        },
+        {
+          "cardId": "sukuna_fp_lt",
+          "plating": "diamond"
+        }
+      ]
     },
     "1488543846257262712": {
       "cards": [],
@@ -641,7 +773,7 @@
   "pullCharges": {
     "833025999897755689": {
       "charges": 20,
-      "lastRefill": 1775007318513
+      "lastRefill": 1775012277449
     },
     "921838182927040602": {
       "charges": 0,

@@ -1080,6 +1080,24 @@ client.on('messageCreate', async (message) => {
     const shards    = inv.getCharacterShards(inventory, userId)[card.id] ?? 0;
     const level     = owned ? (inv.getCardLevel(inventory, userId, card.id) ?? 1) : 1;
     const embed     = cardEmbed(card, undefined, undefined, level);
+
+    // Check if the card is on the user's team with a plating equipped
+    if (owned) {
+      const team     = inv.getTeam(inventory, userId);
+      const slot     = team.find(s => s.cardId === card.id);
+      const tierData = slot?.plating ? config.PLATING_TIERS.find(t => t.id === slot.plating) : null;
+      if (tierData) {
+        const base       = getCardStats(card, level);
+        const platedHp   = Math.round(base.hp  * tierData.statMult);
+        const platedDmg  = Math.round(base.dmg * tierData.statMult);
+        embed.addFields({
+          name: `${tierData.emoji} ${tierData.label} Plating (in battle)`,
+          value: `❤️ **${platedHp}** HP  ⚔️ **${platedDmg}** DMG  *(×${tierData.statMult} boost)*`,
+          inline: false,
+        });
+      }
+    }
+
     const shardInfo = shards > 0 ? ` • 🔮 ×${shards} shard${shards === 1 ? '' : 's'}` : '';
     const lvlInfo   = owned ? ` • 📊 Lv. ${level}` : '';
     const absorbHint = owned && shards > 0 && level < inv.MAX_CARD_LEVEL
