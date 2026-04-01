@@ -48,7 +48,7 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
  */
 async function syncEmojis(client, cards, imgCache) {
   const cache = load();
-  console.log(`😀 Emoji sync: checking ${cards.length} cards across ${EMOJI_SERVERS.length} servers...`);
+  console.log(`Emoji sync: checking ${cards.length} cards across ${EMOJI_SERVERS.length} servers...`);
 
   let uploaded = 0;
   let skipped  = 0;

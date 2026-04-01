@@ -904,7 +904,7 @@
         "link_r": 46,
         "zeno_ur": 2,
         "goku_r": 30,
-        "gear5_luffy_lt": 13,
+        "gear5_luffy_lt": 14,
         "ultra_goku_lt": 19,
         "sage_naruto_lt": 23,
         "eren_r": 44,
@@ -925,7 +925,7 @@
         "shanks_l": 4,
         "goku_ssj4_l": 2,
         "arceus_ur": 3,
-        "hisoka_l": 3,
+        "hisoka_l": 4,
         "allmight_l": 2,
         "cloud_r": 36,
         "kratos_e": 11,
@@ -1016,7 +1016,8 @@
           "cardId": "sukuna_fp_lt",
           "plating": "diamond"
         }
-      ]
+      ],
+      "items": {}
     },
     "1488543846257262712": {
       "cards": [],
@@ -1826,8 +1827,8 @@
   },
   "pullCharges": {
     "833025999897755689": {
-      "charges": 20,
-      "lastRefill": 1775035829973
+      "charges": 19,
+      "lastRefill": 1775037299973
     },
     "921838182927040602": {
       "charges": 0,

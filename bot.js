@@ -211,10 +211,10 @@ function describeItem(item) {
   }
   if (item.type === 'plating') {
     const tier = platingById(item.id);
-    return `${tier?.emoji ?? '🪙'} **×${item.amount}** ${tier?.label ?? item.id} plating${item.amount === 1 ? '' : 's'}`;
+    return `**×${item.amount}** ${tier?.label ?? item.id} plating${item.amount === 1 ? '' : 's'}`;
   }
-  if (item.type === 'yen')   return `💴 **¥${item.amount.toLocaleString()}** Yen`;
-  if (item.type === 'stars') return `⭐ **${item.amount.toLocaleString()}** Star${item.amount === 1 ? '' : 's'}`;
+  if (item.type === 'yen')   return `**¥${item.amount.toLocaleString()}** Yen`;
+  if (item.type === 'stars') return `**${item.amount.toLocaleString()}** Star${item.amount === 1 ? '' : 's'}`;
   return '?';
 }
 
@@ -328,19 +328,18 @@ function buildBattleCard(slot) {
 function hpBar(current, max) {
   const pct    = max <= 0 ? 0 : Math.max(0, Math.min(1, current / max));
   const filled = Math.round(pct * 10);
-  const block  = pct > 0.5 ? '🟩' : pct > 0.25 ? '🟨' : '🟥';
-  return block.repeat(filled) + '⬛'.repeat(10 - filled);
+  return '[' + '#'.repeat(filled) + '-'.repeat(10 - filled) + ']';
 }
 
 /** Render a single card's battle display lines. */
 function cardBattleLine(bc) {
   if (!bc.alive) {
-    return `~~⇒ ${bc.rarEmoji} **${bc.name}** | Lv. ${bc.level}~~\n💀 Defeated`;
+    return `~~=> **${bc.name}** | Lv. ${bc.level}~~\nDefeated`;
   }
   return [
     hpBar(bc.hp, bc.maxHp),
-    `⇒ ${bc.rarEmoji}${bc.platEmoji} **${bc.name}** | Lv. ${bc.level}`,
-    `❤️ ${bc.hp.toLocaleString()}/${bc.maxHp.toLocaleString()} | ⚔️ ${bc.dmgMin}–${bc.dmgMax}`,
+    `=> **${bc.name}** | Lv. ${bc.level}`,
+    `HP ${bc.hp.toLocaleString()}/${bc.maxHp.toLocaleString()} | DMG ${bc.dmgMin}–${bc.dmgMax}`,
   ].join('\n');
 }
 

@@ -26,10 +26,10 @@ module.exports = {
   // (they must add up to 100).
   PLATING_CHANCE: 0.001,
   PLATING_TIERS: [
-    { id: 'bronze',  label: 'Bronze',  emoji: '🥉', weight: 55, color: 0xCD7F32, statMult: 2.0 },
-    { id: 'silver',  label: 'Silver',  emoji: '🥈', weight: 28, color: 0xC0C0C0, statMult: 3.0 },
-    { id: 'gold',    label: 'Gold',    emoji: '🥇', weight: 13, color: 0xFFD700, statMult: 4.0 },
-    { id: 'diamond', label: 'Diamond', emoji: '💎', weight:  4, color: 0xB9F2FF, statMult: 6.0 },
+    { id: 'bronze',  label: 'Bronze',  emoji: '', weight: 55, color: 0xCD7F32, statMult: 2.0 },
+    { id: 'silver',  label: 'Silver',  emoji: '', weight: 28, color: 0xC0C0C0, statMult: 3.0 },
+    { id: 'gold',    label: 'Gold',    emoji: '', weight: 13, color: 0xFFD700, statMult: 4.0 },
+    { id: 'diamond', label: 'Diamond', emoji: '', weight:  4, color: 0xB9F2FF, statMult: 6.0 },
   ],
 
   // ── Fight Rewards ─────────────────────────────────────────
@@ -55,20 +55,20 @@ module.exports = {
   // ── Limited Items ─────────────────────────────────────────
   // Items granted by admins that give a specific LT card when used.
   ITEMS: [
-    { id: 'liberation',     name: 'Liberation',       emoji: '🗡️',  cardId: 'gear5_luffy_lt', desc: 'Awakens the power of the Sun God within Luffy.' },
-    { id: 'tattoos',        name: "Sukuna's Tattoos", emoji: '🔱',  cardId: 'sukuna_fp_lt',   desc: 'Cursed marks of the King of Curses in their full glory.' },
-    { id: 'instincts',      name: "Goku's Instincts", emoji: '⚡',  cardId: 'ultra_goku_lt',  desc: 'The divine technique of pure autonomous movement.' },
-    { id: 'ramen',          name: 'Ramen',            emoji: '🍜',  cardId: 'sage_naruto_lt', desc: 'A bowl of ramen carrying the chakra of the Sage of Six Paths.' },
+    { id: 'liberation', name: 'Liberation',       emoji: '', cardId: 'gear5_luffy_lt', desc: 'Awakens the power of the Sun God within Luffy.' },
+    { id: 'tattoos',    name: "Sukuna's Tattoos",  emoji: '', cardId: 'sukuna_fp_lt',   desc: 'Cursed marks of the King of Curses in their full glory.' },
+    { id: 'instincts',  name: "Goku's Instincts",  emoji: '', cardId: 'ultra_goku_lt',  desc: 'The divine technique of pure autonomous movement.' },
+    { id: 'ramen',      name: 'Ramen',             emoji: '', cardId: 'sage_naruto_lt', desc: 'A bowl of ramen carrying the chakra of the Sage of Six Paths.' },
   ],
 
   // ── Rarity Metadata (display) ────────────────────────────
   RARITY_META: {
-    R:  { label: 'Rare',       emoji: '🔵', color: 0x4A90D9, stars: '⭐'            },
-    E:  { label: 'Epic',       emoji: '🟣', color: 0x9B59B6, stars: '⭐⭐'           },
-    L:  { label: 'Legendary',  emoji: '🟡', color: 0xF1C40F, stars: '⭐⭐⭐'          },
-    MY: { label: 'Mythical',   emoji: '🔴', color: 0xFF4757, stars: '⭐⭐⭐⭐'         },
-    UR: { label: 'Ultra-Rare', emoji: '🩵', color: 0x00FFF0, stars: '⭐⭐⭐⭐⭐'        },
-    LT: { label: 'Limited',    emoji: '💖', color: 0xFF69B4, stars: '✨ LIMITED ✨'  },
+    R:  { label: 'Rare',       emoji: '', color: 0x4A90D9, stars: '*'        },
+    E:  { label: 'Epic',       emoji: '', color: 0x9B59B6, stars: '**'       },
+    L:  { label: 'Legendary',  emoji: '', color: 0xF1C40F, stars: '***'      },
+    MY: { label: 'Mythical',   emoji: '', color: 0xFF4757, stars: '****'     },
+    UR: { label: 'Ultra-Rare', emoji: '', color: 0x00FFF0, stars: '*****'    },
+    LT: { label: 'Limited',    emoji: '', color: 0xFF69B4, stars: 'LIMITED'  },
   },
 
 };
