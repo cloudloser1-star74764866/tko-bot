@@ -195,14 +195,20 @@ function platingById(id) {
 // ── Card stats ────────────────────────────────────────────
 
 function getCardStats(card, level = 1) {
+  const lvl  = Math.max(1, level ?? 1);
+  const mult = 1 + 0.02 * (lvl - 1);
+  if (card.fixedHp != null && card.fixedDmg != null) {
+    return {
+      hp:  Math.round(card.fixedHp  * mult),
+      dmg: Math.round(card.fixedDmg * mult),
+    };
+  }
   let hash = 0;
   for (const ch of card.id) hash = (hash * 31 + ch.charCodeAt(0)) & 0xffffffff;
   const t = (hash >>> 0) % 1000 / 1000;
   const range = config.STAT_RANGES[card.rarity] ?? config.STAT_RANGES['R'];
   const baseHp  = Math.round(range.hpMin  + t * (range.hpMax  - range.hpMin));
   const baseDmg = Math.round(range.dmgMin + t * (range.dmgMax - range.dmgMin));
-  const lvl  = Math.max(1, level ?? 1);
-  const mult = 1 + 0.02 * (lvl - 1);
   return {
     hp:  Math.round(baseHp  * mult),
     dmg: Math.round(baseDmg * mult),
@@ -333,18 +339,19 @@ function buildBattleCard(slot) {
   const dmg     = Math.round(stats.dmg * mult);
   const meta    = rarityMeta(card.rarity);
   return {
-    cardId:   card.id,
-    name:     card.name,
+    cardId:    card.id,
+    name:      card.name,
     level,
-    plating:  slot.plating ?? null,
+    plating:   slot.plating ?? null,
     platEmoji: plating?.emoji ?? '',
-    rarEmoji: meta.emoji,
+    rarEmoji:  meta.emoji,
     hp,
-    maxHp:    hp,
-    dmgMin:   Math.round(dmg * 0.8),
-    dmgMax:   Math.round(dmg * 1.2),
+    maxHp:     hp,
+    dmgMin:    Math.round(dmg * 0.8),
+    dmgMax:    Math.round(dmg * 1.2),
     dmg,
-    alive:    true,
+    technique: card.technique ?? false,
+    alive:     true,
   };
 }
 
@@ -361,7 +368,9 @@ function cardBattleLine(bc) {
   return [
     hpBar(bc.hp, bc.maxHp),
     `=> **${bc.name}** | Lv. ${bc.level}`,
-    `HP ${bc.hp.toLocaleString()}/${bc.maxHp.toLocaleString()} | DMG ${bc.dmgMin}–${bc.dmgMax}`,
+    bc.technique
+      ? `HP ${bc.hp.toLocaleString()}/${bc.maxHp.toLocaleString()} | TEC ${bc.dmgMin}–${bc.dmgMax}`
+      : `HP ${bc.hp.toLocaleString()}/${bc.maxHp.toLocaleString()} | DMG ${bc.dmgMin}–${bc.dmgMax}`,
   ].join('\n');
 }
 
@@ -493,7 +502,7 @@ function cardEmbed(card, title, footer, level = 1, personalCap = null) {
       { name: 'Stars',       value: meta.stars || '—',              inline: true },
       { name: '📊 Level',    value: levelLabel,                     inline: true },
       { name: '❤️ Health',   value: `${stats.hp}`,                 inline: true },
-      { name: '⚔️ Damage',   value: `${stats.dmg}`,                inline: true },
+      { name: card.technique ? '🔵 Technique' : '⚔️ Damage', value: `${stats.dmg}`, inline: true },
     );
   const img = imgCache.getImage(card.id) ?? card.image ?? null;
   if (img)    embed.setThumbnail(img);
@@ -526,7 +535,7 @@ function singlePullEmbed(card, isDupe, plating, chargeInfo, authorUsername) {
     .setDescription(descLines.join('\n'))
     .addFields(
       { name: '❤️ Health', value: `${stats.hp}`,  inline: true },
-      { name: '⚔️ Damage', value: `${stats.dmg}`, inline: true },
+      { name: card.technique ? '🔵 Technique' : '⚔️ Damage', value: `${stats.dmg}`, inline: true },
     )
     .setFooter({ text: `Pulled by ${authorUsername} • ${chargeInfo}` });
 
@@ -680,7 +689,7 @@ function buildAllCardsPage(authorId, allCards, page, filter, expiry) {
       { name: 'Rarity',      value: `${meta.emoji} ${meta.label}`, inline: true },
       { name: 'Stars',       value: meta.stars || '—',              inline: true },
       { name: '❤️ Health',   value: `${stats.hp}`,                 inline: true },
-      { name: '⚔️ Damage',   value: `${stats.dmg}`,                inline: true },
+      { name: card.technique ? '🔵 Technique' : '⚔️ Damage', value: `${stats.dmg}`, inline: true },
       { name: '🪪 Card ID',  value: `\`${card.id}\``,              inline: true },
     )
     .setFooter({ text: `Card ${page + 1} of ${filtered.length}${filterTag}` });
@@ -751,7 +760,7 @@ function buildCollectionPage(authorId, targetUser, cards, page, filter, inventor
       { name: 'Stars',       value: meta.stars || '—',              inline: true },
       { name: '📊 Level',    value: levelLabel,                     inline: true },
       { name: '❤️ Health',   value: `${stats.hp}`,                 inline: true },
-      { name: '⚔️ Damage',   value: `${stats.dmg}`,                inline: true },
+      { name: card.technique ? '🔵 Technique' : '⚔️ Damage', value: `${stats.dmg}`, inline: true },
       { name: '🪪 Card ID',  value: `\`${card.id}\``,              inline: true },
     )
     .setFooter({ text: `Card ${page + 1} of ${filtered.length}${filterTag}${shardTag}` });
@@ -1065,7 +1074,9 @@ client.on('interactionCreate', async (interaction) => {
       return interaction.update({ components: [], embeds: interaction.message.embeds });
     }
 
-    const dmgDealt  = Math.round(attacker.dmg * (0.8 + Math.random() * 0.4));
+    const dmgDealt  = attacker.technique
+      ? Math.round(target.maxHp * (attacker.dmg / 10000) * (0.9 + Math.random() * 0.2))
+      : Math.round(attacker.dmg * (0.8 + Math.random() * 0.4));
     target.hp       = Math.max(0, target.hp - dmgDealt);
     if (target.hp === 0) target.alive = false;
 

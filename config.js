@@ -59,6 +59,7 @@ module.exports = {
     { id: 'tattoos',    name: "Sukuna's Tattoos",  emoji: '', cardId: 'sukuna_fp_lt',   desc: 'Cursed marks of the King of Curses in their full glory.' },
     { id: 'instincts',  name: "Goku's Instincts",  emoji: '', cardId: 'ultra_goku_lt',  desc: 'The divine technique of pure autonomous movement.' },
     { id: 'ramen',      name: 'Ramen',             emoji: '', cardId: 'sage_naruto_lt', desc: 'A bowl of ramen carrying the chakra of the Sage of Six Paths.' },
+    { id: 'drugs',      name: 'Drugs',             emoji: '💊', cardId: 'daniel_park_ui_lt', desc: 'An unknown substance that awakens Ultra Instinct in Daniel Park.' },
   ],
 
   // ── Rarity Metadata (display) ────────────────────────────
