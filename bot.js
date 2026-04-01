@@ -584,7 +584,7 @@ function cardEmbed(card, title, footer, level = 1, personalCap = null) {
 
 // ── Pull embeds ───────────────────────────────────────────
 
-function singlePullEmbed(card, isDupe, plating, chargeInfo, authorUsername) {
+function singlePullEmbed(card, isDupe, plating, chargeInfo, authorUsername, raidTicket = false) {
   const meta  = rarityMeta(card.rarity);
   const stats = getCardStats(card, 1);
   const img   = imgCache.getImage(card.id) ?? card.image ?? null;
@@ -600,6 +600,7 @@ function singlePullEmbed(card, isDupe, plating, chargeInfo, authorUsername) {
     descLines.push(`Already owned — **+1 ${cardEmoji ? cardEmoji + ' ' : ''}${card.name} Shard** obtained`);
   }
   if (plating) descLines.push(`**${plating.label} Plating** dropped!`);
+  if (raidTicket) descLines.push(`🎟️ **Raid Ticket** dropped! Use \`ZP raid\` to fight a Limited Boss!`);
 
   const embed = new EmbedBuilder()
     .setColor(plating?.color ?? (isDupe ? 0x888888 : meta.color))
@@ -652,11 +653,13 @@ function allPullEmbed(results, charges, withReset, authorUsername, overrideNote)
 
   const newCount  = results.filter(r => !r.isDupe).length;
   const dupeCount = results.filter(r =>  r.isDupe).length;
+  const ticketCount = results.filter(r => r.raidTicket).length;
   const footerParts = [
     `Total Pulls: ${charges}/${charges}`,
     newCount  ? `✨ ${newCount} new` : null,
     dupeCount ? `${dupeCount} shard${dupeCount === 1 ? '' : 's'}` : null,
     platings.length ? `${platings.length} plating${platings.length === 1 ? '' : 's'}` : null,
+    ticketCount ? `🎟️ ${ticketCount} Raid Ticket${ticketCount === 1 ? '' : 's'}` : null,
     withReset ? `Pulls reset to ${charges}` : null,
     overrideNote || null,
   ].filter(Boolean).join('  •  ');
@@ -944,6 +947,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         { name: '`ZP team unequip <id>` / `ZP teamunequip <id>`', value: 'Remove a plating from a team card.', inline: false },
         { name: '`ZP fight @user` / `ZP fi @user`',      value: `Challenge a player to a turn-based team battle! ${config.FIGHT_COOLDOWN_SECONDS}s cooldown.`, inline: false },
         { name: '`ZP duofight @user` / `ZP df @user`',   value: 'Fight alongside your duo partner — your combined teams take on the opponent!', inline: false },
+        { name: '`ZP raid`',                              value: `Spend a **🎟️ Raid Ticket** to fight a random Limited card Raid Boss (HP: 10,000–30,000). Drops one of: the Limited card item, ¥10k–100k Yen, 1–5 Legendary–Ultra Rare cards, or 1–5 Limit Breakers. Tickets drop at **${config.RAID_TICKET_CHANCE * 100}%** per pull.`, inline: false },
       )
       .setFooter({ text: 'Page 4 of 7 • ZP help' }),
 
@@ -1189,8 +1193,10 @@ client.on('interactionCreate', async (interaction) => {
 
     if (action === 'run') {
       activeBattles.delete(battleId);
-      const embed = buildBattleEmbed(state, `**${state.attackerName}** ran away from the battle!`);
-      return interaction.update({ embeds: [embed], components: [] });
+      const runEmbed = state.isRaid
+        ? buildRaidEmbed(state, `**${state.attackerName}** fled from the Raid Boss!`)
+        : buildBattleEmbed(state, `**${state.attackerName}** ran away from the battle!`);
+      return interaction.update({ embeds: [runEmbed], components: [] });
     }
 
     const atkIdx   = parseInt(action, 10);
@@ -1216,7 +1222,16 @@ client.on('interactionCreate', async (interaction) => {
 
     if (state.defenderCards.every(bc => !bc.alive)) {
       activeBattles.delete(battleId);
-      const inventory   = inv.loadInventory();
+      const inventory = inv.loadInventory();
+
+      if (state.isRaid) {
+        const rewardText = generateRaidReward(state, inventory);
+        inv.saveInventory(inventory);
+        log += `\n\n🏆 **${state.attackerName}** defeated the Raid Boss!\n\n${rewardText}`;
+        const embed = buildRaidEmbed(state, log);
+        return interaction.update({ embeds: [embed], components: [] });
+      }
+
       const yenEarned   = Math.floor(config.FIGHT_YEN_MIN  + Math.random() * (config.FIGHT_YEN_MAX  - config.FIGHT_YEN_MIN + 1));
       const starsEarned = Math.floor(config.FIGHT_STAR_MIN + Math.random() * (config.FIGHT_STAR_MAX - config.FIGHT_STAR_MIN + 1));
       inv.addYen(inventory, state.attackerId, yenEarned);
@@ -1239,12 +1254,17 @@ client.on('interactionCreate', async (interaction) => {
 
     if (state.attackerCards.every(bc => !bc.alive)) {
       activeBattles.delete(battleId);
+      if (state.isRaid) {
+        log += `\n\n💀 Your team was wiped out! The Raid Boss **${state.defenderName}** is victorious!`;
+        const embed = buildRaidEmbed(state, log);
+        return interaction.update({ embeds: [embed], components: [] });
+      }
       log += `\n\n**${state.defenderName}** wins! **${state.attackerName}** was defeated!`;
       const embed = buildBattleEmbed(state, log);
       return interaction.update({ embeds: [embed], components: [] });
     }
 
-    const embed      = buildBattleEmbed(state, log);
+    const embed      = state.isRaid ? buildRaidEmbed(state, log) : buildBattleEmbed(state, log);
     const components = buildBattleComponents(state);
     return interaction.update({ embeds: [embed], components });
   }
@@ -1470,9 +1490,9 @@ client.on('messageCreate', async (message) => {
 
     setCharges(userId, charges - 1, lastRefill);
 
-    const inventory                 = inv.loadInventory();
-    const { card, isDupe, plating } = executeSinglePull(inventory, userId);
-    const wishGrant                 = checkAndGrantWish(inventory, userId);
+    const inventory                              = inv.loadInventory();
+    const { card, isDupe, plating, raidTicket } = executeSinglePull(inventory, userId);
+    const wishGrant                              = checkAndGrantWish(inventory, userId);
     inv.saveInventory(inventory);
 
     const remaining  = charges - 1;
@@ -1480,7 +1500,7 @@ client.on('messageCreate', async (message) => {
       ? `${remaining} pull${remaining === 1 ? '' : 's'} remaining`
       : `No pulls left — next charge in ${config.PULL_COOLDOWN_SECONDS}s`;
 
-    const embed = singlePullEmbed(card, isDupe, plating, chargeInfo, message.author.username);
+    const embed = singlePullEmbed(card, isDupe, plating, chargeInfo, message.author.username, raidTicket);
     await message.reply({ embeds: [embed] });
 
     if (wishGrant) {
@@ -1904,20 +1924,21 @@ client.on('messageCreate', async (message) => {
     const entries   = Object.entries(userItems).filter(([, n]) => n > 0);
 
     if (entries.length === 0) {
-      return message.reply(`${target.id === userId ? 'You have' : `**${target.username}** has`} no items. Items are granted by admins for special events!`);
+      return message.reply(`${target.id === userId ? 'You have' : `**${target.username}** has`} no items. Raid Tickets drop at **1%** per pull; other items are granted by admins!`);
     }
 
     const lines = entries.map(([itemId, count]) => {
       const item = config.ITEMS.find(i => i.id === itemId);
       if (!item) return `\`${itemId}\` — x${count}`;
-      return `${item.emoji} **${item.name}** — x${count}\n*${item.desc}*\nUse: \`ZP use ${item.id}\``;
+      const useCmd = item.useCmd ?? `ZP use ${item.id}`;
+      return `${item.emoji} **${item.name}** — x${count}\n*${item.desc}*\nUse: \`${useCmd}\``;
     }).join('\n\n');
 
     const embed = new EmbedBuilder()
       .setColor(0xFF69B4)
       .setTitle(`${target.username}'s Items`)
       .setDescription(lines)
-      .setFooter({ text: 'Use an item with: ZP use <itemId>' });
+      .setFooter({ text: 'Use an item with its listed command' });
     return message.reply({ embeds: [embed] });
   }
 
@@ -1929,10 +1950,15 @@ client.on('messageCreate', async (message) => {
     const item = config.ITEMS.find(i => i.id === itemId);
     if (!item) return message.reply(`Unknown item \`${itemId}\`. Check \`ZP items\` for your available items.`);
 
+    if (!item.cardId) {
+      const useCmd = item.useCmd ?? `ZP use ${item.id}`;
+      return message.reply(`**${item.emoji} ${item.name}** can't be used this way — run \`${useCmd}\` instead!`);
+    }
+
     const inventory = inv.loadInventory();
 
     if (!inv.removeItem(inventory, userId, itemId)) {
-      return message.reply(`You don't have **${item.emoji} ${item.name}**. Items are granted by admins for special events!`);
+      return message.reply(`You don't have **${item.emoji} ${item.name}**.`);
     }
 
     const card     = CARDS.find(c => c.id === item.cardId);
@@ -1952,6 +1978,69 @@ client.on('messageCreate', async (message) => {
       .setFooter({ text: `${item.name} consumed` });
     if (img) embed.setImage(img);
     return message.reply({ embeds: [embed] });
+  }
+
+  // ── raid ──────────────────────────────────────────────────
+  if (command === 'raid') {
+    const inventory = inv.loadInventory();
+
+    if (!inv.removeItem(inventory, userId, 'raid_ticket')) {
+      return message.reply(`You don't have a **🎟️ Raid Ticket**! Tickets have a **${config.RAID_TICKET_CHANCE * 100}%** chance to drop from each pull.`);
+    }
+
+    const team = inv.getTeam(inventory, userId);
+    if (team.length < 1) {
+      inv.addItem(inventory, userId, 'raid_ticket');
+      inv.saveInventory(inventory);
+      return message.reply(`You need at least **1 card** in your team to start a raid! Use \`ZP add <cardId>\` to fill your team first.`);
+    }
+
+    const ltCards  = CARDS.filter(c => c.rarity === 'LT');
+    const bossCard = ltCards[Math.floor(Math.random() * ltCards.length)];
+    const bossHp   = Math.floor(10000 + Math.random() * 20001);
+    const bossDmg  = Math.floor(1000  + Math.random() * 1001);
+    const bossImg  = imgCache.getImage(bossCard.id) ?? bossCard.image ?? null;
+    const bossMeta = rarityMeta(bossCard.rarity);
+
+    const bossBC = {
+      cardId:  bossCard.id,
+      name:    bossCard.name,
+      level:   1,
+      plating: null,
+      platEmoji: '',
+      rarEmoji:  bossMeta.emoji,
+      hp:      bossHp,
+      maxHp:   bossHp,
+      dmgMin:  Math.round(bossDmg * 0.8),
+      dmgMax:  Math.round(bossDmg * 1.2),
+      dmg:     bossDmg,
+      technique: false,
+      alive:   true,
+    };
+
+    const resolvedTeam  = resolveTeamSlots(team, inventory, userId);
+    const attackerCards = resolvedTeam.map(buildBattleCard).filter(Boolean);
+
+    inv.saveInventory(inventory);
+
+    const battleId = `raid_${userId}_${Date.now()}`;
+    const state = {
+      battleId,
+      isRaid:       true,
+      attackerId:   userId,
+      attackerName: message.author.username,
+      attackerCards,
+      defenderName: bossCard.name,
+      defenderCards: [bossBC],
+      bossImg,
+      raidBossCard: bossCard,
+      expiry: Date.now() + 10 * 60 * 1000,
+    };
+    activeBattles.set(battleId, state);
+
+    const embed      = buildRaidEmbed(state, `🎟️ **Raid Ticket** consumed! A **${bossMeta.emoji} ${bossCard.name}** Raid Boss appeared!\n**HP:** ${bossHp.toLocaleString()} | **DMG:** ${bossDmg.toLocaleString()}–${Math.round(bossDmg * 1.2).toLocaleString()}`);
+    const components = buildBattleComponents(state);
+    return message.reply({ embeds: [embed], components });
   }
 
   // ── card | c ─────────────────────────────────────────────
