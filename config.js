@@ -33,6 +33,19 @@ module.exports = {
     { id: 'diamond', label: 'Diamond', emoji: '💎', weight:  4, color: 0xB9F2FF },
   ],
 
+  // ── Card Stats (scale by rarity) ─────────────────────────
+  // Each card gets deterministic HP and DMG based on its card ID
+  // (same card always has the same stats). Values are a range
+  // within which the specific card's stats are generated.
+  STAT_RANGES: {
+    R:  { hpMin:  100, hpMax:  180, dmgMin:  15, dmgMax:  28 },
+    E:  { hpMin:  220, hpMax:  320, dmgMin:  35, dmgMax:  55 },
+    L:  { hpMin:  380, hpMax:  500, dmgMin:  65, dmgMax:  90 },
+    MY: { hpMin:  550, hpMax:  720, dmgMin: 100, dmgMax: 140 },
+    UR: { hpMin:  780, hpMax: 1000, dmgMin: 160, dmgMax: 220 },
+    LT: { hpMin: 1100, hpMax: 1500, dmgMin: 280, dmgMax: 400 },
+  },
+
   // ── Rarity Metadata (display) ────────────────────────────
   RARITY_META: {
     R:  { label: 'Rare',       emoji: '🔵', color: 0x4A90D9, stars: '⭐'            },

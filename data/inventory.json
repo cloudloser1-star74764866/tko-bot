@@ -134,21 +134,99 @@
           "series": "Dragon Ball Z",
           "rarity": "E",
           "obtainedAt": "2026-03-31T23:57:32.598Z"
+        },
+        {
+          "id": "sage_naruto_lt",
+          "name": "Naruto (Six Paths Sage)",
+          "series": "Naruto",
+          "rarity": "LT",
+          "obtainedAt": "2026-04-01T00:18:01.659Z"
+        },
+        {
+          "id": "naruto_r",
+          "name": "Naruto Uzumaki",
+          "series": "Naruto",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T00:18:42.919Z"
+        },
+        {
+          "id": "spike_r",
+          "name": "Spike Spiegel",
+          "series": "Cowboy Bebop",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T00:18:42.919Z"
+        },
+        {
+          "id": "kaguya_ur",
+          "name": "Kaguya Ōtsutsuki",
+          "series": "Naruto",
+          "rarity": "UR",
+          "obtainedAt": "2026-04-01T00:19:16.382Z"
+        },
+        {
+          "id": "shanks_l",
+          "name": "Red-Hair Shanks",
+          "series": "One Piece",
+          "rarity": "L",
+          "obtainedAt": "2026-04-01T00:19:16.382Z"
+        },
+        {
+          "id": "sasuke_e",
+          "name": "Sasuke Uchiha",
+          "series": "Naruto",
+          "rarity": "E",
+          "obtainedAt": "2026-04-01T00:19:16.383Z"
+        },
+        {
+          "id": "zoro_e",
+          "name": "Roronoa Zoro",
+          "series": "One Piece",
+          "rarity": "E",
+          "obtainedAt": "2026-04-01T00:19:16.383Z"
+        },
+        {
+          "id": "hisoka_l",
+          "name": "Hisoka Morow",
+          "series": "Hunter x Hunter",
+          "rarity": "L",
+          "obtainedAt": "2026-04-01T00:19:16.383Z"
+        },
+        {
+          "id": "mewtwo_my",
+          "name": "Mewtwo",
+          "series": "Pokémon",
+          "rarity": "MY",
+          "obtainedAt": "2026-04-01T00:19:16.383Z"
         }
       ],
-      "shards": 11,
       "characterShards": {
-        "bakugo_e": 1,
-        "link_r": 1,
+        "bakugo_e": 3,
+        "link_r": 6,
         "zeno_ur": 1,
-        "goku_r": 1
-      }
+        "goku_r": 1,
+        "gear5_luffy_lt": 5,
+        "ultra_goku_lt": 7,
+        "sage_naruto_lt": 7,
+        "eren_r": 5,
+        "luffy_r": 2,
+        "deku_r": 4,
+        "pikachu_r": 4,
+        "ichigo_r": 2,
+        "naruto_r": 1,
+        "vegeta_e": 1,
+        "levi_e": 2,
+        "kaguya_ur": 1,
+        "spike_r": 1,
+        "killua_e": 1,
+        "genos_l": 1
+      },
+      "platings": {}
     }
   },
   "pullCharges": {
     "833025999897755689": {
-      "charges": 18,
-      "lastRefill": 1775001479789
+      "charges": 0,
+      "lastRefill": 1775002755083
     }
   }
 }

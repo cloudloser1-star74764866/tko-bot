@@ -15,6 +15,7 @@
 //    ZP help  (h)                           – show all commands
 //  Admin-only (user 833025999897755689):
 //    ZP setrarity <rarity|reset>
+//    ZP setplating <tier|reset>
 //    ZP resetcooldown
 // ============================================================
 //
@@ -46,7 +47,8 @@ const client = new Client({
 
 // ── Admin ─────────────────────────────────────────────────
 const ADMIN_ID = '833025999897755689';
-let adminRarityOverride = null;
+let adminRarityOverride  = null;   // forced rarity key e.g. 'LT'
+let adminPlatingOverride = null;   // forced plating tier object or null
 
 function isAdmin(userId) { return userId === ADMIN_ID; }
 
@@ -108,6 +110,24 @@ function rollPlating() {
 
 function platingById(id) {
   return config.PLATING_TIERS.find(t => t.id === id) ?? null;
+}
+
+// ── Card stats ────────────────────────────────────────────
+
+/**
+ * Returns deterministic { hp, dmg } for a card based on its ID.
+ * Same card always gets the same stats; they scale within the
+ * rarity's range defined in config.STAT_RANGES.
+ */
+function getCardStats(card) {
+  // Simple deterministic hash of the card ID
+  let hash = 0;
+  for (const ch of card.id) hash = (hash * 31 + ch.charCodeAt(0)) & 0xffffffff;
+  const t = (hash >>> 0) % 1000 / 1000; // 0.000 – 0.999
+  const range = config.STAT_RANGES[card.rarity] ?? config.STAT_RANGES['R'];
+  const hp  = Math.round(range.hpMin  + t * (range.hpMax  - range.hpMin));
+  const dmg = Math.round(range.dmgMin + t * (range.dmgMax - range.dmgMin));
+  return { hp, dmg };
 }
 
 // ── Trade item helpers ────────────────────────────────────
@@ -188,7 +208,8 @@ function rarityMeta(rarity) {
 }
 
 function cardEmbed(card, title, footer) {
-  const meta = rarityMeta(card.rarity);
+  const meta  = rarityMeta(card.rarity);
+  const stats = getCardStats(card);
   const embed = new EmbedBuilder()
     .setColor(meta.color)
     .setTitle(title ?? `${meta.emoji} ${card.name}`)
@@ -196,6 +217,8 @@ function cardEmbed(card, title, footer) {
       { name: 'Series', value: card.series,                    inline: true },
       { name: 'Rarity', value: `${meta.emoji} ${meta.label}`, inline: true },
       { name: 'Stars',  value: meta.stars || '—',              inline: true },
+      { name: '❤️ Health', value: `${stats.hp}`,              inline: true },
+      { name: '⚔️ Damage', value: `${stats.dmg}`,             inline: true },
     );
   if (card.image) embed.setThumbnail(card.image);
   if (footer)     embed.setFooter({ text: footer });
@@ -235,6 +258,7 @@ function buildCollectionPage(authorId, targetUser, cards, page, filter, inventor
   page = Math.max(0, Math.min(page, filtered.length - 1));
   const card      = filtered[page];
   const meta      = rarityMeta(card.rarity);
+  const stats     = getCardStats(card);
   const shards    = inv.getCharacterShards(inventory, targetUser.id)[card.id] ?? 0;
   const filterTag = filter ? ` • Filter: "${filter}"` : '';
   const shardTag  = shards > 0 ? ` • 🔮 ×${shards} shard${shards === 1 ? '' : 's'}` : '';
@@ -244,9 +268,11 @@ function buildCollectionPage(authorId, targetUser, cards, page, filter, inventor
     .setTitle(`${meta.emoji} ${card.name}`)
     .setDescription(`🗂️ **${targetUser.username}'s Collection**`)
     .addFields(
-      { name: 'Series', value: card.series,                    inline: true },
-      { name: 'Rarity', value: `${meta.emoji} ${meta.label}`, inline: true },
-      { name: 'Stars',  value: meta.stars || '—',              inline: true },
+      { name: 'Series',      value: card.series,                    inline: true },
+      { name: 'Rarity',      value: `${meta.emoji} ${meta.label}`, inline: true },
+      { name: 'Stars',       value: meta.stars || '—',              inline: true },
+      { name: '❤️ Health',   value: `${stats.hp}`,                 inline: true },
+      { name: '⚔️ Damage',   value: `${stats.dmg}`,                inline: true },
     )
     .setFooter({ text: `Card ${page + 1} of ${filtered.length}${filterTag}${shardTag}` });
 
@@ -366,11 +392,14 @@ client.on('messageCreate', async (message) => {
       .setFooter({ text: 'Dupes earn character shards. Trades expire after 5 minutes.' });
 
     if (isAdmin(userId)) {
+      const tierIds = config.PLATING_TIERS.map(t => t.id).join(' | ');
       embed.addFields({
         name: '🔧 Admin Commands',
         value: [
           `\`ZP setrarity <${Object.keys(config.RARITY_META).join(' | ')}>\` — Force pulls to a rarity`,
           `\`ZP setrarity reset\` — Clear rarity override`,
+          `\`ZP setplating <${tierIds}>\` — Force pulls to always drop a plating of that tier`,
+          `\`ZP setplating reset\` — Clear plating override`,
           `\`ZP resetcooldown\` — Restore pull charges to max`,
         ].join('\n'),
         inline: false,
@@ -387,7 +416,9 @@ client.on('messageCreate', async (message) => {
       ? pullCardForced(adminRarityOverride)
       : pullCard();
     const { isDupe } = inv.addCardToInventory(inventory, userId, card);
-    const plating    = rollPlating();
+    const plating    = (isAdmin(userId) && adminPlatingOverride)
+      ? adminPlatingOverride
+      : rollPlating();
     if (plating) inv.addPlating(inventory, userId, plating.id);
     return { card, isDupe, plating };
   }
@@ -797,6 +828,27 @@ client.on('messageCreate', async (message) => {
       }
       adminRarityOverride = target;
       return message.reply(`🔧 Rarity locked to **${rarityMeta(target).emoji} ${rarityMeta(target).label}** — use \`ZP setrarity reset\` to clear.`);
+    }
+
+    if (command === 'setplating') {
+      const input = args[0]?.toLowerCase();
+      if (!input) {
+        const current = adminPlatingOverride
+          ? `Currently forcing **${adminPlatingOverride.emoji} ${adminPlatingOverride.label}** platings`
+          : 'Currently using normal 0.1% plating odds';
+        const tierIds = config.PLATING_TIERS.map(t => t.id).join(' | ');
+        return message.reply(`Usage: \`ZP setplating <${tierIds} | reset>\`\n${current}`);
+      }
+      if (input === 'reset') {
+        adminPlatingOverride = null;
+        return message.reply('🔧 Plating override cleared — back to normal 0.1% drop rate.');
+      }
+      const tier = platingById(input);
+      if (!tier) {
+        return message.reply(`❌ Unknown plating tier \`${input}\`. Valid tiers: ${config.PLATING_TIERS.map(t => t.id).join(', ')}`);
+      }
+      adminPlatingOverride = tier;
+      return message.reply(`🔧 Plating override set to **${tier.emoji} ${tier.label}** — every pull will now drop this plating. Use \`ZP setplating reset\` to clear.`);
     }
 
     if (command === 'resetcooldown') {
