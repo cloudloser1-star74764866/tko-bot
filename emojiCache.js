@@ -63,10 +63,15 @@ async function syncEmojis(client, cards, imgCache) {
       continue;
     }
 
-    const imageUrl = imgCache.getImage(card.id) ?? card.image ?? null;
+    let imageUrl = imgCache.getImage(card.id) ?? card.image ?? null;
 
     if (!imageUrl) {
-      console.warn(`😀 Emoji sync: no image for ${card.id}, skipping.`);
+      console.log(`😀 Emoji sync: no cached image for ${card.id}, trying fallback sources...`);
+      imageUrl = await imgCache.fetchFallbackImage(card.id, card.name);
+    }
+
+    if (!imageUrl) {
+      console.warn(`😀 Emoji sync: no image found for ${card.id}, skipping.`);
       failed++;
       continue;
     }

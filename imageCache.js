@@ -204,6 +204,44 @@ async function fetchFromAniList(searchName) {
   }
 }
 
+/** Fetch a character image from Jikan (MyAnimeList) by search name */
+async function fetchFromJikan(searchName) {
+  try {
+    const encoded = encodeURIComponent(searchName);
+    const resp = await fetch(`https://api.jikan.moe/v4/characters?q=${encoded}&limit=1`);
+    if (!resp.ok) return null;
+    const json = await resp.json();
+    return json.data?.[0]?.images?.jpg?.image_url ?? null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Try to fetch an image for a card that has no cached entry.
+ * First attempts AniList via SEARCH_TERMS; falls back to Jikan using the card name.
+ * Caches and saves on success.
+ */
+async function fetchFallbackImage(cardId, cardName) {
+  if (cache[cardId]) return cache[cardId];
+
+  const searchName = SEARCH_TERMS[cardId] ?? cardName;
+
+  let url = await fetchFromAniList(searchName);
+
+  if (!url && cardName && cardName !== searchName) {
+    url = await fetchFromJikan(cardName);
+  } else if (!url) {
+    url = await fetchFromJikan(searchName);
+  }
+
+  if (url) {
+    cache[cardId] = url;
+    saveCache();
+  }
+  return url ?? null;
+}
+
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 /**
@@ -233,4 +271,4 @@ async function refreshMissing() {
 
 loadCache();
 
-module.exports = { getImage, refreshMissing };
+module.exports = { getImage, refreshMissing, fetchFallbackImage };
