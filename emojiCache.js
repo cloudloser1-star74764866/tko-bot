@@ -104,4 +104,40 @@ async function syncEmojis(client, cards, imgCache) {
   console.log(`😀 Emoji sync done: ${uploaded} uploaded, ${skipped} already cached, ${failed} failed.`);
 }
 
-module.exports = { load, save, getEmoji, setEmoji, removeEmoji, syncEmojis };
+/**
+ * Delete every custom emoji from all EMOJI_SERVERS, then wipe the local cache.
+ * Call this before re-syncing to get fresh emojis from updated images.
+ */
+async function deleteAllEmojis(client) {
+  const cache = {};
+  save(cache); // clear cache file immediately
+
+  let deleted = 0;
+  let errors  = 0;
+
+  for (const serverId of EMOJI_SERVERS) {
+    try {
+      const guild  = await client.guilds.fetch(serverId);
+      const emojis = await guild.emojis.fetch();
+      console.log(`🗑️  Deleting ${emojis.size} emojis from server ${serverId}...`);
+
+      for (const [, emoji] of emojis) {
+        try {
+          await guild.emojis.delete(emoji.id);
+          deleted++;
+          await sleep(300);
+        } catch (err) {
+          console.error(`  Failed to delete ${emoji.name}: ${err.message}`);
+          errors++;
+        }
+      }
+    } catch (err) {
+      console.error(`  Failed to access server ${serverId}: ${err.message}`);
+      errors++;
+    }
+  }
+
+  console.log(`🗑️  Emoji wipe done: ${deleted} deleted, ${errors} errors.`);
+}
+
+module.exports = { load, save, getEmoji, setEmoji, removeEmoji, syncEmojis, deleteAllEmojis, EMOJI_SERVERS };

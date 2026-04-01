@@ -913,6 +913,22 @@
           "rarity": "E",
           "level": 1,
           "obtainedAt": "2026-04-01T10:59:49.485Z"
+        },
+        {
+          "id": "makima",
+          "name": "Makima",
+          "series": "Chainsaw Man",
+          "rarity": "E",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:20:13.380Z"
+        },
+        {
+          "id": "thorfinn",
+          "name": "Thorfinn",
+          "series": "Vinland Saga",
+          "rarity": "E",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:20:15.353Z"
         }
       ],
       "characterShards": {
@@ -945,7 +961,7 @@
         "allmight": 4,
         "cloud": 38,
         "kratos": 11,
-        "sephiroth": 11,
+        "sephiroth": 12,
         "itachi": 1,
         "natsu": 7,
         "itadori": 12,
@@ -977,7 +993,7 @@
         "nami": 4,
         "mob": 3,
         "edward": 4,
-        "hiei": 1,
+        "hiei": 2,
         "erza": 7,
         "gon": 11,
         "okabe": 6,
@@ -993,7 +1009,7 @@
         "zenitsu": 4,
         "inosuke": 4,
         "alphonse": 3,
-        "lelouch": 1,
+        "lelouch": 2,
         "loid": 4,
         "kurapika": 3,
         "yusuke": 4,
@@ -1009,8 +1025,12 @@
         "kira": 1,
         "byakuya": 2,
         "beerus": 1,
-        "ace": 1,
-        "emilia": 1
+        "ace": 2,
+        "emilia": 1,
+        "gojo": 1,
+        "rengoku": 1,
+        "laxus": 1,
+        "todo": 1
       },
       "platings": {
         "diamond": 4,
@@ -1038,13 +1058,16 @@
         }
       ],
       "items": {},
-      "wish": null,
+      "wish": {
+        "cardId": "beerus",
+        "pullCount": 0
+      },
       "levelCaps": {},
       "prestigePoints": {},
       "privacy": false,
       "clanId": null,
       "duoId": null,
-      "totalPulls": 61,
+      "totalPulls": 71,
       "totalKills": 0
     },
     "1488543846257262712": {
@@ -2213,36 +2236,337 @@
           "rarity": "E",
           "level": 1,
           "obtainedAt": "2026-04-01T11:14:55.721Z"
+        },
+        {
+          "id": "yuno",
+          "name": "Yuno",
+          "series": "Black Clover",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:22:26.951Z"
+        },
+        {
+          "id": "yor",
+          "name": "Yor Forger",
+          "series": "Spy x Family",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:22:59.350Z"
+        },
+        {
+          "id": "chad",
+          "name": "Yasutora Sado",
+          "series": "Bleach",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:23:12.631Z"
+        },
+        {
+          "id": "asta",
+          "name": "Asta",
+          "series": "Black Clover",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:23:16.748Z"
+        },
+        {
+          "id": "ichigo",
+          "name": "Ichigo Kurosaki",
+          "series": "Bleach",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:23:18.822Z"
+        },
+        {
+          "id": "cloud",
+          "name": "Cloud Strife",
+          "series": "Final Fantasy VII",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:23:20.480Z"
+        },
+        {
+          "id": "caesar",
+          "name": "Caesar Zeppeli",
+          "series": "JoJo's Bizarre Adventure",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:36:35.378Z"
+        },
+        {
+          "id": "noriaki",
+          "name": "Noriaki Kakyoin",
+          "series": "JoJo's Bizarre Adventure",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:36:35.378Z"
+        },
+        {
+          "id": "anya",
+          "name": "Anya Forger",
+          "series": "Spy x Family",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:36:35.378Z"
+        },
+        {
+          "id": "hisoka",
+          "name": "Hisoka Morow",
+          "series": "Hunter x Hunter",
+          "rarity": "L",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:36:35.378Z"
+        },
+        {
+          "id": "link",
+          "name": "Link",
+          "series": "The Legend of Zelda",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:36:35.378Z"
+        },
+        {
+          "id": "ulquiorra",
+          "name": "Ulquiorra Cifer",
+          "series": "Bleach",
+          "rarity": "E",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:36:35.378Z"
+        },
+        {
+          "id": "chopper",
+          "name": "Tony Tony Chopper",
+          "series": "One Piece",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:36:57.495Z"
+        },
+        {
+          "id": "laxus",
+          "name": "Laxus Dreyar",
+          "series": "Fairy Tail",
+          "rarity": "E",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:36:57.495Z"
+        },
+        {
+          "id": "goku",
+          "name": "Goku",
+          "series": "Dragon Ball Z",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:36:57.495Z"
+        },
+        {
+          "id": "josuke",
+          "name": "Josuke Higashikata",
+          "series": "JoJo's Bizarre Adventure",
+          "rarity": "E",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:36:57.495Z"
+        },
+        {
+          "id": "goku_ssj4",
+          "name": "Goku SSJ4",
+          "series": "Dragon Ball GT",
+          "rarity": "L",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:36:57.495Z"
+        },
+        {
+          "id": "gon",
+          "name": "Gon Freecss",
+          "series": "Hunter x Hunter",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:36:57.495Z"
+        },
+        {
+          "id": "makima",
+          "name": "Makima",
+          "series": "Chainsaw Man",
+          "rarity": "E",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:36:57.495Z"
+        },
+        {
+          "id": "alphonse",
+          "name": "Alphonse Elric",
+          "series": "Fullmetal Alchemist: Brotherhood",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:37:03.951Z"
+        },
+        {
+          "id": "ippo",
+          "name": "Makunouchi Ippo",
+          "series": "Hajime no Ippo",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:37:03.951Z"
+        },
+        {
+          "id": "sakura",
+          "name": "Sakura Haruno",
+          "series": "Naruto",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:37:03.951Z"
+        },
+        {
+          "id": "kamina",
+          "name": "Kamina",
+          "series": "Gurren Lagann",
+          "rarity": "E",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:37:14.003Z"
+        },
+        {
+          "id": "power",
+          "name": "Power",
+          "series": "Chainsaw Man",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:37:14.003Z"
+        },
+        {
+          "id": "inosuke",
+          "name": "Inosuke Hashibira",
+          "series": "Demon Slayer",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:37:14.003Z"
+        },
+        {
+          "id": "noelle",
+          "name": "Noelle Silva",
+          "series": "Black Clover",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:37:14.003Z"
+        },
+        {
+          "id": "itachi",
+          "name": "Itachi Uchiha",
+          "series": "Naruto",
+          "rarity": "L",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:37:24.589Z"
+        },
+        {
+          "id": "ace",
+          "name": "Portgas D. Ace",
+          "series": "One Piece",
+          "rarity": "E",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:37:24.589Z"
+        },
+        {
+          "id": "rengoku",
+          "name": "Kyojuro Rengoku",
+          "series": "Demon Slayer",
+          "rarity": "E",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:37:24.589Z"
+        },
+        {
+          "id": "subaru",
+          "name": "Subaru Natsuki",
+          "series": "Re:Zero",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:37:24.589Z"
+        },
+        {
+          "id": "gintoki",
+          "name": "Gintoki Sakata",
+          "series": "Gintama",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:37:24.589Z"
+        },
+        {
+          "id": "whitebeard",
+          "name": "Whitebeard",
+          "series": "One Piece",
+          "rarity": "MY",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:37:24.589Z"
+        },
+        {
+          "id": "jotaro",
+          "name": "Jotaro Kujo",
+          "series": "JoJo's Bizarre Adventure",
+          "rarity": "E",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:37:24.589Z"
         }
       ],
       "characterShards": {
-        "usopp": 2,
-        "gray": 2,
-        "edward": 1,
-        "zenitsu": 1,
-        "rukia": 2,
-        "spike": 1,
-        "eren": 1,
-        "sagiri": 1,
-        "yusuke": 1,
-        "orihime": 1,
-        "l": 1,
-        "naruto": 1,
+        "usopp": 7,
+        "gray": 4,
+        "edward": 2,
+        "zenitsu": 5,
+        "rukia": 4,
+        "spike": 2,
+        "eren": 3,
+        "sagiri": 3,
+        "yusuke": 4,
+        "orihime": 2,
+        "l": 6,
+        "naruto": 4,
         "winry": 2,
-        "nezuko": 1
+        "nezuko": 3,
+        "inuyasha": 2,
+        "nobara": 3,
+        "tanjiro": 6,
+        "joseph": 2,
+        "deku": 1,
+        "renji": 3,
+        "luffy": 2,
+        "sanji": 3,
+        "asuna": 2,
+        "caesar": 2,
+        "chad": 1,
+        "anya": 1,
+        "nami": 2,
+        "noriaki": 1,
+        "erza": 2,
+        "denji": 2,
+        "chopper": 2,
+        "mob": 2,
+        "itadori": 2,
+        "kirito": 1,
+        "loid": 2,
+        "reigen": 1,
+        "yuno": 1,
+        "alphonse": 1,
+        "yor": 1,
+        "roy": 1,
+        "ippo": 2,
+        "okabe": 1,
+        "gon": 1,
+        "power": 1,
+        "asta": 1,
+        "pikachu": 1,
+        "cloud": 1,
+        "ichigo": 1
       },
       "platings": {},
       "team": [],
       "yen": 6767,
       "stars": 0,
-      "candyTokens": 66,
-      "wish": null,
+      "candyTokens": 62,
+      "wish": {
+        "cardId": "goku",
+        "pullCount": 100
+      },
       "levelCaps": {},
       "prestigePoints": {},
       "privacy": false,
       "clanId": null,
       "duoId": null,
-      "totalPulls": 63,
+      "totalPulls": 287,
       "totalKills": 0,
       "items": {}
     }
@@ -2250,7 +2574,7 @@
   "pullCharges": {
     "833025999897755689": {
       "charges": 12,
-      "lastRefill": 1775041577668
+      "lastRefill": 1775042447668
     },
     "921838182927040602": {
       "charges": 0,
@@ -2265,8 +2589,8 @@
       "lastRefill": 1775036465086
     },
     "689152429341933780": {
-      "charges": 10,
-      "lastRefill": 1775042087661
+      "charges": 0,
+      "lastRefill": 1775043438629
     }
   },
   "clans": {},
