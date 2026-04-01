@@ -1097,6 +1097,14 @@
           "rarity": "MY",
           "level": 1,
           "obtainedAt": "2026-04-01T17:50:42.562Z"
+        },
+        {
+          "id": "daniel_park_ui_lt",
+          "name": "Daniel Park (Ultra Instinct)",
+          "series": "Lookism",
+          "rarity": "LT",
+          "level": 1,
+          "obtainedAt": "2026-04-01T18:57:59.290Z"
         }
       ],
       "characterShards": {
@@ -1218,7 +1226,7 @@
         "licht": 1
       },
       "platings": {
-        "diamond": 9,
+        "diamond": 13,
         "bronze": 3
       },
       "yen": 100331,
@@ -1246,7 +1254,7 @@
       "wish": null,
       "levelCaps": {},
       "prestigePoints": {},
-      "privacy": false,
+      "privacy": true,
       "clanId": null,
       "duoId": null,
       "totalPulls": 534,
@@ -3387,8 +3395,16 @@
           "name": "Daniel Park (Ultra Instinct)",
           "series": "Lookism",
           "rarity": "LT",
-          "level": 1,
+          "level": 61,
           "obtainedAt": "2026-04-01T18:46:30.785Z"
+        },
+        {
+          "id": "ultra_goku",
+          "name": "Goku (Ultra Instinct)",
+          "series": "Dragon Ball Super",
+          "rarity": "LT",
+          "level": 1,
+          "obtainedAt": "2026-04-01T18:59:26.066Z"
         }
       ],
       "characterShards": {
@@ -3516,6 +3532,7 @@
       },
       "platings": {
         "silver": 1,
+        "diamond": 3,
         "bronze": 1
       },
       "team": [
@@ -3533,7 +3550,7 @@
         },
         {
           "cardId": "daniel_park_ui_lt",
-          "plating": null
+          "plating": "diamond"
         }
       ],
       "yen": 267,
@@ -3595,6 +3612,23 @@
         "platings": {
           "bronze": 1
         }
+      },
+      "redeemedBy": [
+        "833025999897755689",
+        "689152429341933780"
+      ]
+    },
+    "betatesting": {
+      "name": "BetaTesting",
+      "code": "BETA",
+      "rewards": {
+        "yen": 0,
+        "stars": 0,
+        "candyTokens": 0,
+        "platings": {
+          "diamond": 4
+        },
+        "cardRarity": "LT"
       },
       "redeemedBy": [
         "833025999897755689",

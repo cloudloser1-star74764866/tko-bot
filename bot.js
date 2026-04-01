@@ -61,6 +61,7 @@
 //    ZP givelimitbreaker [@user] <amount>
 //  User:
 //    ZP redeem <code>
+//    ZP raid                                – fight a Limited raid boss (costs a raid ticket)
 //    ZP conquestsend <cardId>
 //    ZP conquestrecall
 // ============================================================
@@ -428,6 +429,74 @@ function buildBattleComponents(state) {
     )
   );
   return rows;
+}
+
+// ── Raid helpers ──────────────────────────────────────────
+
+function buildRaidEmbed(state, log = null) {
+  const boss     = state.defenderCards[0];
+  const atkLines = state.attackerCards.map(cardBattleLine).join('\n\n');
+  const allAtkDead = state.attackerCards.every(b => !b.alive);
+
+  const parts = [
+    `**═════ ${state.defenderName} ═════**`,
+    cardBattleLine(boss),
+    '',
+    `**═════ ${state.attackerName}'s Team ═════**`,
+    atkLines,
+  ];
+  if (log) parts.push('', log);
+  if (!allAtkDead && boss.alive) parts.push('', '*Choose a card to attack with!*');
+
+  const embed = new EmbedBuilder()
+    .setColor(0xFF69B4)
+    .setTitle('🔥 Raid Battle')
+    .setDescription(parts.join('\n'));
+
+  if (state.bossImg) embed.setThumbnail(state.bossImg);
+  return embed;
+}
+
+function generateRaidReward(state, inventory) {
+  const userId = state.attackerId;
+  const boss   = state.raidBossCard;
+  const roll   = Math.random();
+
+  if (roll < 0.25) {
+    const bossItem = config.ITEMS.find(i => i.cardId === boss.id);
+    if (bossItem) {
+      inv.addItem(inventory, userId, bossItem.id);
+      return `${bossItem.emoji} **${bossItem.name}** dropped! Use \`${bossItem.useCmd ?? `ZP use ${bossItem.id}`}\` to claim **${boss.name}**!`;
+    }
+    const yen = Math.floor(10000 + Math.random() * 90001);
+    inv.addYen(inventory, userId, yen);
+    return `💰 **¥${yen.toLocaleString()} Yen** dropped!`;
+  }
+
+  if (roll < 0.50) {
+    const yen = Math.floor(10000 + Math.random() * 90001);
+    inv.addYen(inventory, userId, yen);
+    return `💰 **¥${yen.toLocaleString()} Yen** dropped!`;
+  }
+
+  if (roll < 0.75) {
+    const rarities = ['L', 'MY', 'UR'];
+    const count    = Math.floor(1 + Math.random() * 5);
+    const lines    = [];
+    for (let i = 0; i < count; i++) {
+      const rarity       = rarities[Math.floor(Math.random() * rarities.length)];
+      const droppedCard  = pullCardForced(rarity);
+      const { isDupe }   = inv.addCardToInventory(inventory, userId, droppedCard);
+      const meta         = rarityMeta(droppedCard.rarity);
+      const emoji        = emojiCache.getEmoji(droppedCard.id) ?? '';
+      lines.push(`${meta.emoji} **${droppedCard.name}**${emoji ? ' ' + emoji : ''}${isDupe ? ' *(+1 shard)*' : ''}`);
+    }
+    return `🎴 **${count} card${count === 1 ? '' : 's'}** dropped!\n${lines.join('\n')}`;
+  }
+
+  const lbCount = Math.floor(1 + Math.random() * 5);
+  inv.addLimitBreakers(inventory, userId, lbCount);
+  return `💎 **${lbCount} Limit Breaker${lbCount === 1 ? '' : 's'}** dropped!`;
 }
 
 // ── Team / Fight helpers ──────────────────────────────────
@@ -1361,7 +1430,11 @@ client.on('messageCreate', async (message) => {
     // Track wish progress
     const wishCount = inv.incrementWishPulls(inventory, uid);
 
-    return { card, isDupe, plating, wishCount };
+    // 1% chance to drop a Raid Ticket
+    const raidTicket = Math.random() < config.RAID_TICKET_CHANCE;
+    if (raidTicket) inv.addItem(inventory, uid, 'raid_ticket');
+
+    return { card, isDupe, plating, wishCount, raidTicket };
   }
 
   /**
