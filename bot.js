@@ -9,6 +9,7 @@
 //    ZP all                                 – browse every card in the game
 //    ZP all [filter]                        – filter all cards by rarity or name
 //    ZP wallet                              – view your currencies
+//    ZP shop                                – view the shop and all buyable items
 //    ZP inventory  (inv)                    – view platings
 //    ZP shards [filter]                     – view character shards
 //    ZP wish <cardId>                       – set a wish card (guaranteed after 200 pulls)
@@ -762,6 +763,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
       .setDescription('Manage your currencies and player profile.')
       .addFields(
         { name: '`ZP wallet` / `ZP balance` / `ZP bal`', value: 'Check your 💴 Yen, ⭐ Stars, and 🍬 Candy Tokens. Add `@user` to check someone else.', inline: false },
+        { name: '`ZP shop`',                              value: 'Browse the shop — see all buyable items and their costs.', inline: false },
         { name: '`ZP buy candy stars <amount>`',           value: 'Buy candy tokens with stars. **1,000 stars** per token.', inline: false },
         { name: '`ZP buy candy yen <amount>`',             value: 'Buy candy tokens with yen. **¥10,000** per token.', inline: false },
         { name: '`ZP inventory` / `ZP inv`',              value: 'View your platings.', inline: false },
@@ -1522,6 +1524,56 @@ client.on('messageCreate', async (message) => {
         );
       return message.reply({ embeds: [embed] });
     }
+  }
+
+  // ── shop ──────────────────────────────────────────────────
+  if (command === 'shop') {
+    const STARS_PER_TOKEN = 1000;
+    const YEN_PER_TOKEN   = 10000;
+
+    const inventory = inv.loadInventory();
+    const yen       = inv.getYen(inventory, userId);
+    const stars     = inv.getStars(inventory, userId);
+    const candy     = inv.getCandyTokens(inventory, userId);
+
+    const platingLines = config.PLATING_TIERS.map(t =>
+      `${t.emoji} **${t.label}** — ${t.statMult}x stat multiplier *(drop from pulls)*`
+    ).join('\n');
+
+    const embed = new EmbedBuilder()
+      .setColor(0xF1C40F)
+      .setTitle('🛒 ZP Shop')
+      .setDescription(
+        `Your wallet: **¥${yen.toLocaleString()}** Yen  •  **${stars.toLocaleString()}** Stars  •  **${candy}** 🍬 Candy Tokens`
+      )
+      .addFields(
+        {
+          name: '🍬 Candy Tokens',
+          value: [
+            `Buy candy tokens to use in future shop features.`,
+            `> \`ZP buy candy stars <amount>\` — **${STARS_PER_TOKEN.toLocaleString()} stars** each`,
+            `> \`ZP buy candy yen <amount>\` — **¥${YEN_PER_TOKEN.toLocaleString()}** each`,
+          ].join('\n'),
+          inline: false,
+        },
+        {
+          name: '🪙 Platings *(from pulls only)*',
+          value: platingLines,
+          inline: false,
+        },
+        {
+          name: '⭐ How to Earn',
+          value: [
+            `> 💴 **Yen** — win fights, kill shards`,
+            `> ⭐ **Stars** — win fights`,
+            `> 🍬 **Candy Tokens** — buy with Yen or Stars above`,
+          ].join('\n'),
+          inline: false,
+        },
+      )
+      .setFooter({ text: 'More items coming soon!' });
+
+    return message.reply({ embeds: [embed] });
   }
 
   // ── inventory | inv ───────────────────────────────────────

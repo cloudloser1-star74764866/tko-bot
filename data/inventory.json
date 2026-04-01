@@ -2117,28 +2117,132 @@
           "rarity": "R",
           "level": 1,
           "obtainedAt": "2026-04-01T11:06:42.581Z"
+        },
+        {
+          "id": "eren",
+          "name": "Eren Yeager",
+          "series": "Attack on Titan",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:06:54.267Z"
+        },
+        {
+          "id": "nobara",
+          "name": "Nobara Kugisaki",
+          "series": "Jujutsu Kaisen",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:07:22.355Z"
+        },
+        {
+          "id": "kirito",
+          "name": "Kirito",
+          "series": "Sword Art Online",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:07:26.689Z"
+        },
+        {
+          "id": "sagiri",
+          "name": "Sagiri Izumi",
+          "series": "Eromanga-sensei",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:07:30.177Z"
+        },
+        {
+          "id": "joyboy",
+          "name": "Joy Boy",
+          "series": "One Piece",
+          "rarity": "UR",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:07:48.784Z"
+        },
+        {
+          "id": "emilia",
+          "name": "Emilia",
+          "series": "Re:Zero",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:08:23.791Z"
+        },
+        {
+          "id": "nezuko",
+          "name": "Nezuko Kamado",
+          "series": "Demon Slayer",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:14:04.362Z"
+        },
+        {
+          "id": "winry",
+          "name": "Winry Rockbell",
+          "series": "Fullmetal Alchemist: Brotherhood",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:14:24.766Z"
+        },
+        {
+          "id": "deku",
+          "name": "Izuku Midoriya",
+          "series": "My Hero Academia",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:14:32.725Z"
+        },
+        {
+          "id": "joseph",
+          "name": "Joseph Joestar",
+          "series": "JoJo's Bizarre Adventure",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:14:35.617Z"
+        },
+        {
+          "id": "shanks",
+          "name": "Red-Hair Shanks",
+          "series": "One Piece",
+          "rarity": "L",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:14:42.067Z"
+        },
+        {
+          "id": "todo",
+          "name": "Aoi Todo",
+          "series": "Jujutsu Kaisen",
+          "rarity": "E",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:14:55.721Z"
         }
       ],
       "characterShards": {
-        "usopp": 1,
+        "usopp": 2,
         "gray": 2,
         "edward": 1,
         "zenitsu": 1,
         "rukia": 2,
-        "spike": 1
+        "spike": 1,
+        "eren": 1,
+        "sagiri": 1,
+        "yusuke": 1,
+        "orihime": 1,
+        "l": 1,
+        "naruto": 1,
+        "winry": 2,
+        "nezuko": 1
       },
       "platings": {},
       "team": [],
       "yen": 6767,
       "stars": 0,
-      "candyTokens": 67,
+      "candyTokens": 66,
       "wish": null,
       "levelCaps": {},
       "prestigePoints": {},
       "privacy": false,
       "clanId": null,
       "duoId": null,
-      "totalPulls": 41,
+      "totalPulls": 63,
       "totalKills": 0,
       "items": {}
     }
@@ -2161,8 +2265,8 @@
       "lastRefill": 1775036465086
     },
     "689152429341933780": {
-      "charges": 2,
-      "lastRefill": 1775041599960
+      "charges": 10,
+      "lastRefill": 1775042087661
     }
   },
   "clans": {},
