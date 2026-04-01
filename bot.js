@@ -950,6 +950,12 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
               '`ZP giveyen [@user] <amount>` – Add Yen to a user',
               '`ZP givestars [@user] <amount>` – Add Stars to a user',
               '`ZP givecandytokens [@user] <amount>` – Give Candy Tokens to a user',
+            ].join('\n'),
+            inline: false,
+          },
+          {
+            name: '\u200b',
+            value: [
               '`ZP refresh` – Delete all server emojis and re-sync from scratch',
               '`ZP giveitem @user <itemId>` – Give a limited item to a player',
               '`ZP givelimitbreaker [@user] <amount>` – Give Limit Breakers to a player',
@@ -3281,6 +3287,11 @@ client.on('messageCreate', async (message) => {
       ],
     });
   }
+});
+
+// ── Error handler ─────────────────────────────────────────
+client.on('error', (err) => {
+  console.error('[Discord Client Error]', err);
 });
 
 // ── Login ─────────────────────────────────────────────────
