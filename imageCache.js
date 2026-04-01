@@ -39,7 +39,7 @@ const SEED = {
   shanks_l:        'https://s4.anilist.co/file/anilistcdn/character/large/b727-wUJx7M1z5xON.png',
   mihawk_l:        'https://s4.anilist.co/file/anilistcdn/character/large/n2064-OpnF4nLi6bvL.png',
   whitebeard_my:   'https://s4.anilist.co/file/anilistcdn/character/large/b2751-NnzW0N2vCTjX.jpg',
-  kaido_my:        'https://s4.anilist.co/file/anilistcdn/character/large/b90112-KVRcvbKBKLxY.png',
+  kaido_my:        'https://myanimelist.net/images/characters/4/492819.jpg',
   blackbeard_ur:   'https://s4.anilist.co/file/anilistcdn/character/large/b3331-7ZJDc4BNv9Yp.jpg',
   joyboy_ur:       'https://s4.anilist.co/file/anilistcdn/character/large/b341936-l61bq77sTJBM.png',
   // Bleach
