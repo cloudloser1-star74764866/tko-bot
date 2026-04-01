@@ -26,14 +26,15 @@ function saveInventory(data) {
 
 function ensureUser(inventory, userId) {
   if (!inventory.users[userId]) {
-    inventory.users[userId] = { cards: [], characterShards: {}, platings: {}, yen: 0, stars: 0 };
+    inventory.users[userId] = { cards: [], characterShards: {}, platings: {}, yen: 0, stars: 0, candyTokens: 0 };
   }
   const u = inventory.users[userId];
-  if (!u.characterShards)      u.characterShards = {};
-  if (!u.platings)             u.platings        = {};
-  if (typeof u.yen   !== 'number') u.yen   = 0;
-  if (typeof u.stars !== 'number') u.stars = 0;
-  if ('shards' in u)           delete u.shards;
+  if (!u.characterShards)               u.characterShards = {};
+  if (!u.platings)                      u.platings        = {};
+  if (typeof u.yen          !== 'number') u.yen          = 0;
+  if (typeof u.stars        !== 'number') u.stars        = 0;
+  if (typeof u.candyTokens  !== 'number') u.candyTokens  = 0;
+  if ('shards' in u)                    delete u.shards;
 }
 
 // ── Card Operations ───────────────────────────────────────
@@ -166,6 +167,25 @@ function removeStars(inventory, userId, amount) {
   return true;
 }
 
+// ── Candy Token Operations ────────────────────────────────
+
+function getCandyTokens(inventory, userId) {
+  ensureUser(inventory, userId);
+  return inventory.users[userId].candyTokens;
+}
+
+function addCandyTokens(inventory, userId, amount) {
+  ensureUser(inventory, userId);
+  inventory.users[userId].candyTokens += amount;
+}
+
+function removeCandyTokens(inventory, userId, amount) {
+  ensureUser(inventory, userId);
+  if (inventory.users[userId].candyTokens < amount) return false;
+  inventory.users[userId].candyTokens -= amount;
+  return true;
+}
+
 // ── Pull Charge Helpers ───────────────────────────────────
 
 function loadPullCharges(inventory, userId) {
@@ -185,4 +205,5 @@ module.exports = {
   getPlatings, addPlating, addPlatings, removePlating,
   getYen, addYen, removeYen,
   getStars, addStars, removeStars,
+  getCandyTokens, addCandyTokens, removeCandyTokens,
 };

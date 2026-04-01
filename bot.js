@@ -443,6 +443,8 @@ client.on('messageCreate', async (message) => {
       .addFields(
         { name: '`ZP pull` / `ZP p`',                          value: `Pull a random card (${config.MAX_PULL_CHARGES} charges, +1 every ${config.PULL_COOLDOWN_SECONDS}s)`, inline: false },
         { name: '`ZP allpull` / `ZP ap`',                      value: 'Spend all pull charges at once and see a full summary',                          inline: false },
+        { name: '`ZP allpull reset` / `ZP ap reset`',          value: '🍬 Spend all charges then instantly reset to 20 (costs 1 Candy Token)',          inline: false },
+        { name: '`ZP reset`',                                   value: '🍬 Use a Candy Token to instantly reset your pulls back to 20',                  inline: false },
         { name: '`ZP collection` / `ZP col`',                  value: 'Browse your card collection one card at a time',                                 inline: false },
         { name: '`ZP col [rarity or name]`',                   value: 'Filter by rarity code (e.g. `LT`) or name/series keyword',                       inline: false },
         { name: '`ZP col @user [filter]`',                     value: "Browse another player's collection",                                              inline: false },
@@ -484,6 +486,7 @@ client.on('messageCreate', async (message) => {
           `\`ZP resetcooldown\` — Restore pull charges to max`,
           `\`ZP giveyen [@user] <amount>\` — Add Yen to yourself or a user`,
           `\`ZP givestars [@user] <amount>\` — Add Stars to yourself or a user`,
+          `\`ZP givecandytokens [@user] <amount>\` — Give 🍬 Candy Tokens to yourself or a user`,
         ].join('\n'),
         inline: false,
       });
@@ -548,11 +551,21 @@ client.on('messageCreate', async (message) => {
 
   // ── allpull | ap ──────────────────────────────────────────
   if (command === 'allpull' || command === 'ap') {
+    const withReset = args[0]?.toLowerCase() === 'reset';
     const { charges, lastRefill } = getCharges(userId);
 
     if (charges <= 0) {
       const secsUntilNext = Math.ceil(config.PULL_COOLDOWN_SECONDS - (Date.now() - lastRefill) / 1000);
       return message.reply(`⏳ No pulls left! Next charge in **${secsUntilNext}s**. Charges refill 1 every **${config.PULL_COOLDOWN_SECONDS}s** (max **${config.MAX_PULL_CHARGES}**).`);
+    }
+
+    // If reset flag given, consume a Candy Token before pulling
+    if (withReset) {
+      const inventory = inv.loadInventory();
+      if (!inv.removeCandyTokens(inventory, userId, 1)) {
+        return message.reply(`❌ You need a 🍬 **Candy Token** to use \`ZP ap reset\`. You currently have none.`);
+      }
+      inv.saveInventory(inventory);
     }
 
     setCharges(userId, 0, lastRefill);
@@ -639,8 +652,27 @@ client.on('messageCreate', async (message) => {
       }
     }
 
-    embed.setFooter({ text: `Charges spent: ${charges} • Next charge in ${config.PULL_COOLDOWN_SECONDS}s` });
+    if (withReset) {
+      setCharges(userId, config.MAX_PULL_CHARGES, Date.now());
+      embed.addFields({ name: '🍬 Candy Token Used', value: `Pulls reset to **${config.MAX_PULL_CHARGES}**!`, inline: false });
+      embed.setFooter({ text: `Charges spent: ${charges} • Pulls instantly reset to ${config.MAX_PULL_CHARGES} via Candy Token` });
+    } else {
+      embed.setFooter({ text: `Charges spent: ${charges} • Next charge in ${config.PULL_COOLDOWN_SECONDS}s` });
+    }
     return message.reply({ embeds: [embed] });
+  }
+
+  // ── reset ─────────────────────────────────────────────────
+  if (command === 'reset') {
+    const inventory = inv.loadInventory();
+    const tokens = inv.getCandyTokens(inventory, userId);
+    if (tokens <= 0) {
+      return message.reply(`❌ You have no 🍬 **Candy Tokens**. Ask an admin to give you one!`);
+    }
+    inv.removeCandyTokens(inventory, userId, 1);
+    inv.saveInventory(inventory);
+    setCharges(userId, config.MAX_PULL_CHARGES, Date.now());
+    return message.reply(`🍬 **Candy Token** used! Your pulls have been reset to **${config.MAX_PULL_CHARGES}**. You have **${tokens - 1}** token${tokens - 1 === 1 ? '' : 's'} remaining.`);
   }
 
   // ── collection | col ─────────────────────────────────────
@@ -671,8 +703,9 @@ client.on('messageCreate', async (message) => {
     const platingEntries = Object.entries(platingsObj).filter(([, n]) => n > 0);
     const yen            = inv.getYen(inventory, target.id);
     const stars          = inv.getStars(inventory, target.id);
+    const candyTokens    = inv.getCandyTokens(inventory, target.id);
 
-    const hasAnything = shardEntries.length > 0 || platingEntries.length > 0 || yen > 0 || stars > 0;
+    const hasAnything = shardEntries.length > 0 || platingEntries.length > 0 || yen > 0 || stars > 0 || candyTokens > 0;
 
     if (!hasAnything) {
       return message.reply(
@@ -685,8 +718,9 @@ client.on('messageCreate', async (message) => {
       .setTitle(`🎒 ${target.username}'s Inventory`);
 
     embed.addFields(
-      { name: '💴 Yen',   value: `¥${yen.toLocaleString()}`,   inline: true },
-      { name: '⭐ Stars', value: `${stars.toLocaleString()}`,   inline: true },
+      { name: '💴 Yen',           value: `¥${yen.toLocaleString()}`,           inline: true },
+      { name: '⭐ Stars',         value: `${stars.toLocaleString()}`,           inline: true },
+      { name: '🍬 Candy Tokens',  value: `${candyTokens.toLocaleString()}`,     inline: true },
     );
 
     if (platingEntries.length > 0) {
@@ -1033,6 +1067,16 @@ client.on('messageCreate', async (message) => {
       inv.addStars(inventory, target.id, amount);
       inv.saveInventory(inventory);
       return message.reply(`🔧 Added **⭐ ${amount.toLocaleString()} Stars** to **${target.username}**. New balance: ${inv.getStars(inventory, target.id).toLocaleString()}`);
+    }
+
+    if (command === 'givecandytokens' || command === 'givecandy') {
+      const target = message.mentions.users.first() ?? message.author;
+      const amount = parseInt(args.find(a => !a.startsWith('<@')), 10);
+      if (isNaN(amount) || amount <= 0) return message.reply('Usage: `ZP givecandytokens <amount>` or `ZP givecandytokens @user <amount>`');
+      const inventory = inv.loadInventory();
+      inv.addCandyTokens(inventory, target.id, amount);
+      inv.saveInventory(inventory);
+      return message.reply(`🔧 Given **🍬 ×${amount.toLocaleString()} Candy Token${amount === 1 ? '' : 's'}** to **${target.username}**. They now have ${inv.getCandyTokens(inventory, target.id).toLocaleString()}.`);
     }
 
     if (command === 'resetcooldown') {
