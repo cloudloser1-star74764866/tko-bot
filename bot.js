@@ -112,7 +112,7 @@ function parseRewardArgs(argList) {
       if (tier && amount > 0) rewards.platings[tier] = amount;
     }
     else if (lower.startsWith('card:')) {
-      rewards.cardRarity = arg.slice(5).toUpperCase();
+      rewards.cardRarity = normalizeRarity(arg.slice(5)) ?? arg.slice(5).toUpperCase();
     }
   }
   return rewards;
@@ -445,14 +445,31 @@ function rarityMeta(rarity) {
   return config.RARITY_META[rarity] ?? { label: rarity, emoji: '❔', color: 0xffffff, stars: '' };
 }
 
+const RARITY_ALIASES = {
+  'rare': 'R', 'r': 'R',
+  'epic': 'E', 'e': 'E',
+  'legendary': 'L', 'l': 'L',
+  'mythic': 'MY', 'mythical': 'MY', 'my': 'MY',
+  'ultrarare': 'UR', 'ultra-rare': 'UR', 'ultra rare': 'UR', 'ur': 'UR',
+  'limited': 'LT', 'lt': 'LT',
+};
+
+function normalizeRarity(input) {
+  if (!input) return null;
+  const upper = input.toUpperCase();
+  if (config.RARITY_META[upper]) return upper;
+  const lower = input.toLowerCase();
+  return RARITY_ALIASES[lower] ?? null;
+}
+
 function lookupCard(cardId) {
   return CARDS.find(c => c.id.toLowerCase() === cardId.toLowerCase()) ?? null;
 }
 
 function applyFilter(cards, filter) {
   if (!filter) return cards;
-  const upper = filter.toUpperCase();
-  if (config.RARITY_META[upper]) return cards.filter(c => c.rarity === upper);
+  const rarity = normalizeRarity(filter);
+  if (rarity) return cards.filter(c => c.rarity === rarity);
   const lower = filter.toLowerCase();
   return cards.filter(c =>
     c.name.toLowerCase().includes(lower) ||
@@ -1164,10 +1181,9 @@ client.on('interactionCreate', async (interaction) => {
     let allEntries   = Object.entries(charShards).filter(([, n]) => n > 0);
 
     if (filterArg) {
-      const rarityKeys   = Object.keys(config.RARITY_META);
-      const upperFilter  = filterArg.toUpperCase();
-      if (rarityKeys.includes(upperFilter)) {
-        allEntries = allEntries.filter(([cardId]) => (lookupCard(cardId)?.rarity ?? 'R') === upperFilter);
+      const rarityFilter = normalizeRarity(filterArg);
+      if (rarityFilter) {
+        allEntries = allEntries.filter(([cardId]) => (lookupCard(cardId)?.rarity ?? 'R') === rarityFilter);
       } else {
         allEntries = allEntries.filter(([cardId]) => {
           const card = lookupCard(cardId);
@@ -1703,12 +1719,11 @@ client.on('messageCreate', async (message) => {
       return message.reply(`${target.id === userId ? 'You have' : `**${target.username}** has`} no character shards yet. Pull duplicates to earn shards!`);
     }
 
-    const rarityKeys = Object.keys(config.RARITY_META);
     let filtered;
     if (filterArg) {
-      const upperFilter = filterArg.toUpperCase();
-      if (rarityKeys.includes(upperFilter)) {
-        filtered = allEntries.filter(([cardId]) => (lookupCard(cardId)?.rarity ?? 'R') === upperFilter);
+      const rarityFilter = normalizeRarity(filterArg);
+      if (rarityFilter) {
+        filtered = allEntries.filter(([cardId]) => (lookupCard(cardId)?.rarity ?? 'R') === rarityFilter);
       } else {
         filtered = allEntries.filter(([cardId]) => {
           const card = lookupCard(cardId);
@@ -3124,13 +3139,14 @@ client.on('messageCreate', async (message) => {
 
   // ── setrarity ─────────────────────────────────────────────
   if (command === 'setrarity') {
-    const val = args[0]?.toUpperCase();
-    if (!val) return message.reply(`Usage: \`ZP setrarity <${Object.keys(config.RARITY_META).join('|')}|reset>\``);
-    if (val === 'RESET') {
+    const raw = args[0];
+    if (!raw) return message.reply(`Usage: \`ZP setrarity <${Object.keys(config.RARITY_META).join('|')}|reset>\``);
+    if (raw.toLowerCase() === 'reset') {
       adminRarityOverride = null;
       return message.reply('Rarity override cleared. Pulls are back to normal rates.');
     }
-    if (!config.RARITY_META[val]) return message.reply(`Unknown rarity \`${val}\`.`);
+    const val = normalizeRarity(raw);
+    if (!val) return message.reply(`Unknown rarity \`${raw}\`.`);
     adminRarityOverride = val;
     return message.reply(`All future pulls will be forced to **${rarityMeta(val).label}**. Use \`ZP setrarity reset\` to clear.`);
   }
