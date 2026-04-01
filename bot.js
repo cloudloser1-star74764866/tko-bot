@@ -762,6 +762,8 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
       .setDescription('Manage your currencies and player profile.')
       .addFields(
         { name: '`ZP wallet` / `ZP balance` / `ZP bal`', value: 'Check your 💴 Yen, ⭐ Stars, and 🍬 Candy Tokens. Add `@user` to check someone else.', inline: false },
+        { name: '`ZP buy candy stars <amount>`',           value: 'Buy candy tokens with stars. **1,000 stars** per token.', inline: false },
+        { name: '`ZP buy candy yen <amount>`',             value: 'Buy candy tokens with yen. **¥10,000** per token.', inline: false },
         { name: '`ZP inventory` / `ZP inv`',              value: 'View your platings.', inline: false },
         { name: '`ZP shards [rarity or name]`',           value: 'View your character shards. Filter by rarity or character name.', inline: false },
         { name: '`ZP items`',                             value: 'View your special items.', inline: false },
@@ -1444,6 +1446,82 @@ client.on('messageCreate', async (message) => {
       )
       .setFooter({ text: 'Earn yen from fights and kills • Stars from fights' });
     return message.reply({ embeds: [embed] });
+  }
+
+  // ── buy ───────────────────────────────────────────────────
+  if (command === 'buy') {
+    const STARS_PER_TOKEN = 1000;
+    const YEN_PER_TOKEN   = 10000;
+
+    // ZP buy candy stars [amount]
+    // ZP buy candy yen [amount]
+    const what     = args[0]?.toLowerCase();
+    const currency = args[1]?.toLowerCase();
+    const amount   = Math.max(1, parseInt(args[2], 10) || 1);
+
+    if (what !== 'candy') {
+      return message.reply(
+        `Usage:\n` +
+        `\`ZP buy candy stars <amount>\` — spend stars to buy candy tokens (**${STARS_PER_TOKEN.toLocaleString()} stars** each)\n` +
+        `\`ZP buy candy yen <amount>\` — spend yen to buy candy tokens (**¥${YEN_PER_TOKEN.toLocaleString()}** each)`
+      );
+    }
+
+    if (currency !== 'stars' && currency !== 'yen') {
+      return message.reply(
+        `Choose a currency:\n` +
+        `\`ZP buy candy stars <amount>\` — **${STARS_PER_TOKEN.toLocaleString()} stars** per token\n` +
+        `\`ZP buy candy yen <amount>\` — **¥${YEN_PER_TOKEN.toLocaleString()}** per token`
+      );
+    }
+
+    const inventory = inv.loadInventory();
+
+    if (currency === 'stars') {
+      const cost = STARS_PER_TOKEN * amount;
+      const have = inv.getStars(inventory, userId);
+      if (have < cost) {
+        return message.reply(
+          `You need **${cost.toLocaleString()} stars** for **${amount}** candy token${amount === 1 ? '' : 's'}, but you only have **${have.toLocaleString()}**.`
+        );
+      }
+      inv.removeStars(inventory, userId, cost);
+      inv.addCandyTokens(inventory, userId, amount);
+      inv.saveInventory(inventory);
+
+      const embed = new EmbedBuilder()
+        .setColor(0xFF69B4)
+        .setTitle(`Purchase Successful`)
+        .setDescription(
+          `You spent **${cost.toLocaleString()} stars** and received **${amount} candy token${amount === 1 ? '' : 's'}**.\n\n` +
+          `**Stars remaining:** ${inv.getStars(inventory, userId).toLocaleString()}\n` +
+          `**Candy tokens:** ${inv.getCandyTokens(inventory, userId).toLocaleString()}`
+        );
+      return message.reply({ embeds: [embed] });
+    }
+
+    if (currency === 'yen') {
+      const cost = YEN_PER_TOKEN * amount;
+      const have = inv.getYen(inventory, userId);
+      if (have < cost) {
+        return message.reply(
+          `You need **¥${cost.toLocaleString()}** for **${amount}** candy token${amount === 1 ? '' : 's'}, but you only have **¥${have.toLocaleString()}**.`
+        );
+      }
+      inv.removeYen(inventory, userId, cost);
+      inv.addCandyTokens(inventory, userId, amount);
+      inv.saveInventory(inventory);
+
+      const embed = new EmbedBuilder()
+        .setColor(0xFF69B4)
+        .setTitle(`Purchase Successful`)
+        .setDescription(
+          `You spent **¥${cost.toLocaleString()}** and received **${amount} candy token${amount === 1 ? '' : 's'}**.\n\n` +
+          `**Yen remaining:** ¥${inv.getYen(inventory, userId).toLocaleString()}\n` +
+          `**Candy tokens:** ${inv.getCandyTokens(inventory, userId).toLocaleString()}`
+        );
+      return message.reply({ embeds: [embed] });
+    }
   }
 
   // ── inventory | inv ───────────────────────────────────────
