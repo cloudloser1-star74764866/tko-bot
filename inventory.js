@@ -10,13 +10,16 @@ const DATA_FILE = path.join(__dirname, 'data', 'inventory.json');
 // ── Persistence ───────────────────────────────────────────
 
 function loadInventory() {
-  if (!fs.existsSync(DATA_FILE)) return { users: {}, pullCharges: {} };
+  if (!fs.existsSync(DATA_FILE)) return { users: {}, pullCharges: {}, clans: {}, duos: {}, guilds: {} };
   try {
     const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
     if (!data.pullCharges) data.pullCharges = {};
+    if (!data.clans)       data.clans       = {};
+    if (!data.duos)        data.duos        = {};
+    if (!data.guilds)      data.guilds      = {};
     return data;
   }
-  catch { return { users: {}, pullCharges: {} }; }
+  catch { return { users: {}, pullCharges: {}, clans: {}, duos: {}, guilds: {} }; }
 }
 
 function saveInventory(data) {
@@ -26,7 +29,13 @@ function saveInventory(data) {
 
 function ensureUser(inventory, userId) {
   if (!inventory.users[userId]) {
-    inventory.users[userId] = { cards: [], characterShards: {}, platings: {}, team: [], yen: 0, stars: 0, candyTokens: 0 };
+    inventory.users[userId] = {
+      cards: [], characterShards: {}, platings: {}, team: [],
+      yen: 0, stars: 0, candyTokens: 0,
+      wish: null, levelCaps: {}, prestigePoints: {},
+      privacy: false, clanId: null, duoId: null,
+      totalPulls: 0, totalKills: 0, items: {},
+    };
   }
   const u = inventory.users[userId];
   if (!u.characterShards)               u.characterShards = {};
@@ -36,6 +45,14 @@ function ensureUser(inventory, userId) {
   if (typeof u.yen          !== 'number') u.yen          = 0;
   if (typeof u.stars        !== 'number') u.stars        = 0;
   if (typeof u.candyTokens  !== 'number') u.candyTokens  = 0;
+  if (!u.wish)                          u.wish           = null;
+  if (!u.levelCaps)                     u.levelCaps      = {};
+  if (!u.prestigePoints)                u.prestigePoints = {};
+  if (typeof u.privacy      !== 'boolean') u.privacy     = false;
+  if (u.clanId === undefined)           u.clanId         = null;
+  if (u.duoId === undefined)            u.duoId          = null;
+  if (typeof u.totalPulls   !== 'number') u.totalPulls  = 0;
+  if (typeof u.totalKills   !== 'number') u.totalKills  = 0;
   if ('shards' in u)                    delete u.shards;
   for (const card of u.cards) {
     if (typeof card.level !== 'number') card.level = 1;
@@ -95,10 +112,98 @@ function getCardLevel(inventory, userId, cardId) {
 
 function setCardLevel(inventory, userId, cardId, level) {
   ensureUser(inventory, userId);
+  const cap  = getPersonalLevelCap(inventory, userId, cardId);
   const card = inventory.users[userId].cards.find(c => c.id === cardId);
   if (!card) return false;
-  card.level = Math.max(1, Math.min(MAX_CARD_LEVEL, level));
+  card.level = Math.max(1, Math.min(cap, level));
   return true;
+}
+
+// ── Personal Level Cap ────────────────────────────────────
+
+function getPersonalLevelCap(inventory, userId, cardId) {
+  ensureUser(inventory, userId);
+  const extra = inventory.users[userId].levelCaps[cardId] ?? 0;
+  return MAX_CARD_LEVEL + extra;
+}
+
+function increaseLevelCap(inventory, userId, cardId, amount) {
+  ensureUser(inventory, userId);
+  inventory.users[userId].levelCaps[cardId] = (inventory.users[userId].levelCaps[cardId] ?? 0) + amount;
+}
+
+// ── Prestige Points ───────────────────────────────────────
+
+function getPrestigePoints(inventory, userId) {
+  ensureUser(inventory, userId);
+  return inventory.users[userId].prestigePoints;
+}
+
+function addPrestigePoints(inventory, userId, cardId, amount) {
+  ensureUser(inventory, userId);
+  const pp = inventory.users[userId].prestigePoints;
+  pp[cardId] = (pp[cardId] ?? 0) + amount;
+}
+
+// ── Wish System ───────────────────────────────────────────
+
+const WISH_THRESHOLD = 200;
+
+function getWish(inventory, userId) {
+  ensureUser(inventory, userId);
+  return inventory.users[userId].wish;
+}
+
+function setWish(inventory, userId, cardId) {
+  ensureUser(inventory, userId);
+  inventory.users[userId].wish = { cardId, pullCount: 0 };
+}
+
+function clearWish(inventory, userId) {
+  ensureUser(inventory, userId);
+  inventory.users[userId].wish = null;
+}
+
+/**
+ * Increment the wish pull counter for a user.
+ * Returns the new pull count, or null if no wish is set.
+ */
+function incrementWishPulls(inventory, userId) {
+  ensureUser(inventory, userId);
+  const wish = inventory.users[userId].wish;
+  if (!wish) return null;
+  wish.pullCount += 1;
+  inventory.users[userId].totalPulls = (inventory.users[userId].totalPulls ?? 0) + 1;
+  return wish.pullCount;
+}
+
+function getTotalPulls(inventory, userId) {
+  ensureUser(inventory, userId);
+  return inventory.users[userId].totalPulls;
+}
+
+function incrementTotalPulls(inventory, userId, amount = 1) {
+  ensureUser(inventory, userId);
+  inventory.users[userId].totalPulls = (inventory.users[userId].totalPulls ?? 0) + amount;
+}
+
+// ── Kill Stats ────────────────────────────────────────────
+
+function incrementTotalKills(inventory, userId, amount = 1) {
+  ensureUser(inventory, userId);
+  inventory.users[userId].totalKills = (inventory.users[userId].totalKills ?? 0) + amount;
+}
+
+// ── Privacy ───────────────────────────────────────────────
+
+function getPrivacy(inventory, userId) {
+  ensureUser(inventory, userId);
+  return inventory.users[userId].privacy === true;
+}
+
+function setPrivacy(inventory, userId, value) {
+  ensureUser(inventory, userId);
+  inventory.users[userId].privacy = !!value;
 }
 
 // ── Team Operations ───────────────────────────────────────
@@ -128,6 +233,20 @@ function removeFromTeam(inventory, userId, cardId) {
   if (idx === -1) return null;
   const [slot] = team.splice(idx, 1);
   return slot;
+}
+
+/**
+ * Swap two cards' positions in the team.
+ * Returns true on success, false if either card is not on the team.
+ */
+function swapTeamPositions(inventory, userId, cardId1, cardId2) {
+  ensureUser(inventory, userId);
+  const team  = inventory.users[userId].team;
+  const idx1  = team.findIndex(s => s.cardId === cardId1);
+  const idx2  = team.findIndex(s => s.cardId === cardId2);
+  if (idx1 === -1 || idx2 === -1) return false;
+  [team[idx1], team[idx2]] = [team[idx2], team[idx1]];
+  return true;
 }
 
 /**
@@ -307,16 +426,161 @@ function savePullCharges(inventory, userId, charges, lastRefill) {
   saveInventory(inventory);
 }
 
+// ── Clan Operations ───────────────────────────────────────
+
+function getClan(inventory, clanId) {
+  return inventory.clans[clanId] ?? null;
+}
+
+function getUserClan(inventory, userId) {
+  ensureUser(inventory, userId);
+  const clanId = inventory.users[userId].clanId;
+  if (!clanId) return null;
+  return inventory.clans[clanId] ?? null;
+}
+
+function createClan(inventory, userId, name) {
+  ensureUser(inventory, userId);
+  if (inventory.users[userId].clanId) return null;
+  const clanId = `clan_${userId}_${Date.now()}`;
+  inventory.clans[clanId] = { id: clanId, name, ownerId: userId, members: [userId], fund: 0 };
+  inventory.users[userId].clanId = clanId;
+  return clanId;
+}
+
+function addToClan(inventory, clanId, userId) {
+  ensureUser(inventory, userId);
+  const clan = inventory.clans[clanId];
+  if (!clan) return false;
+  if (clan.members.includes(userId)) return false;
+  if (inventory.users[userId].clanId) return false;
+  clan.members.push(userId);
+  inventory.users[userId].clanId = clanId;
+  return true;
+}
+
+function removeFromClan(inventory, clanId, userId) {
+  const clan = inventory.clans[clanId];
+  if (!clan) return false;
+  const idx = clan.members.indexOf(userId);
+  if (idx === -1) return false;
+  clan.members.splice(idx, 1);
+  if (inventory.users[userId]) {
+    inventory.users[userId].clanId = null;
+  }
+  return true;
+}
+
+function deleteClan(inventory, clanId) {
+  const clan = inventory.clans[clanId];
+  if (!clan) return false;
+  for (const memberId of clan.members) {
+    if (inventory.users[memberId]) {
+      inventory.users[memberId].clanId = null;
+    }
+  }
+  delete inventory.clans[clanId];
+  return true;
+}
+
+// ── Duo Operations ────────────────────────────────────────
+
+function getDuo(inventory, duoId) {
+  return inventory.duos[duoId] ?? null;
+}
+
+function getUserDuo(inventory, userId) {
+  ensureUser(inventory, userId);
+  const duoId = inventory.users[userId].duoId;
+  if (!duoId) return null;
+  return inventory.duos[duoId] ?? null;
+}
+
+function createDuo(inventory, userId, partnerId) {
+  ensureUser(inventory, userId);
+  ensureUser(inventory, partnerId);
+  if (inventory.users[userId].duoId || inventory.users[partnerId].duoId) return null;
+  const duoId = `duo_${Date.now()}`;
+  inventory.duos[duoId] = { id: duoId, members: [userId, partnerId] };
+  inventory.users[userId].duoId   = duoId;
+  inventory.users[partnerId].duoId = duoId;
+  return duoId;
+}
+
+function disbandDuo(inventory, duoId) {
+  const duo = inventory.duos[duoId];
+  if (!duo) return false;
+  for (const memberId of duo.members) {
+    if (inventory.users[memberId]) {
+      inventory.users[memberId].duoId = null;
+    }
+  }
+  delete inventory.duos[duoId];
+  return true;
+}
+
+// ── Guild Settings ────────────────────────────────────────
+
+function ensureGuild(inventory, guildId) {
+  if (!inventory.guilds[guildId]) {
+    inventory.guilds[guildId] = { allowedChannels: [], disallowedCommands: [] };
+  }
+  const g = inventory.guilds[guildId];
+  if (!g.allowedChannels)      g.allowedChannels      = [];
+  if (!g.disallowedCommands)   g.disallowedCommands   = [];
+  return g;
+}
+
+function getGuildSettings(inventory, guildId) {
+  return ensureGuild(inventory, guildId);
+}
+
+function addAllowedChannel(inventory, guildId, channelId) {
+  const g = ensureGuild(inventory, guildId);
+  if (!g.allowedChannels.includes(channelId)) g.allowedChannels.push(channelId);
+}
+
+function removeAllowedChannel(inventory, guildId, channelId) {
+  const g   = ensureGuild(inventory, guildId);
+  g.allowedChannels = g.allowedChannels.filter(id => id !== channelId);
+}
+
+function clearAllowedChannels(inventory, guildId) {
+  const g = ensureGuild(inventory, guildId);
+  g.allowedChannels = [];
+}
+
+function disallowCommand(inventory, guildId, cmd) {
+  const g = ensureGuild(inventory, guildId);
+  if (!g.disallowedCommands.includes(cmd)) g.disallowedCommands.push(cmd);
+}
+
+function allowCommand(inventory, guildId, cmd) {
+  const g = ensureGuild(inventory, guildId);
+  g.disallowedCommands = g.disallowedCommands.filter(c => c !== cmd);
+}
+
 module.exports = {
   loadInventory, saveInventory,
   loadPullCharges, savePullCharges,
   addCardToInventory, removeCardFromInventory, hasCard, getCards,
-  MAX_CARD_LEVEL, getCardLevel, setCardLevel,
-  TEAM_SIZE, getTeam, addToTeam, removeFromTeam, equipPlatingToTeam, unequipPlatingFromTeam,
+  MAX_CARD_LEVEL,
+  getCardLevel, setCardLevel,
+  getPersonalLevelCap, increaseLevelCap,
+  getPrestigePoints, addPrestigePoints,
+  getWish, setWish, clearWish, incrementWishPulls, WISH_THRESHOLD,
+  getTotalPulls, incrementTotalPulls, incrementTotalKills,
+  getPrivacy, setPrivacy,
+  TEAM_SIZE, getTeam, addToTeam, removeFromTeam, swapTeamPositions,
+  equipPlatingToTeam, unequipPlatingFromTeam,
   getCharacterShards, addCharacterShards, removeCharacterShards,
   getPlatings, addPlating, addPlatings, removePlating,
   getYen, addYen, removeYen,
   getStars, addStars, removeStars,
   getCandyTokens, addCandyTokens, removeCandyTokens,
   getItems, addItem, removeItem,
+  getClan, getUserClan, createClan, addToClan, removeFromClan, deleteClan,
+  getDuo, getUserDuo, createDuo, disbandDuo,
+  getGuildSettings, addAllowedChannel, removeAllowedChannel, clearAllowedChannels,
+  disallowCommand, allowCommand,
 };

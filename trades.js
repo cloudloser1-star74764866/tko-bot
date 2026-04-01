@@ -1,36 +1,38 @@
 // ============================================================
 //  test BOT — TRADE MANAGER
 //  Trades are in-memory only (reset on bot restart).
-//  Each trade: one user offers shards/platings, asks for
-//  shards/platings in return.
 //
-//  Item format: { type: 'shard'|'plating', id: string, amount: number }
-//    shard   → id = cardId     (e.g. 'naruto_r')
-//    plating → id = tier id    (e.g. 'gold')
+//  Trade object:
+//    tradeId   – unique identifier
+//    offerId   – userId of the person who created the trade
+//    offerName – display name of the offerer
+//    askId     – userId of the person being asked
+//    askName   – display name of the asker target
+//    offerItems – array of items the offerer is giving
+//    askItems   – array of items the offerer wants in return
+//    createdAt  – timestamp
+//
+//  Item format: { type: 'shard'|'plating'|'yen'|'stars', id?, amount }
 // ============================================================
 
-const pendingTrades = new Map();
-let   tradeCounter  = 1;
-const TRADE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+const pendingTrades  = new Map();
+let   tradeCounter   = 1;
+const TRADE_EXPIRY_MS = 5 * 60 * 1000;
 
-function createTrade({ fromUserId, toUserId, offer, ask }) {
+function createTrade({ offerId, offerName, askId, askName, offerItems, askItems }) {
   pruneExpired();
   const tradeId = `T${tradeCounter++}`;
   pendingTrades.set(tradeId, {
     tradeId,
-    fromUserId,
-    toUserId,
-    offer,   // { type, id, amount }
-    ask,     // { type, id, amount }
+    offerId,
+    offerName,
+    askId,
+    askName,
+    offerItems,
+    askItems,
     createdAt: Date.now(),
-    offerMessage: null,
   });
   return tradeId;
-}
-
-function setOfferMessage(tradeId, message) {
-  const trade = pendingTrades.get(tradeId);
-  if (trade) trade.offerMessage = message;
 }
 
 function getTrade(tradeId) {
@@ -38,8 +40,13 @@ function getTrade(tradeId) {
   return pendingTrades.get(tradeId) ?? null;
 }
 
-function cancelTrade(tradeId) {
+function removeTrade(tradeId) {
   pendingTrades.delete(tradeId);
+}
+
+function getTradesFor(userId) {
+  pruneExpired();
+  return [...pendingTrades.values()].filter(t => t.askId === userId);
 }
 
 function pruneExpired() {
@@ -51,9 +58,4 @@ function pruneExpired() {
   }
 }
 
-function getTradesForUser(userId) {
-  pruneExpired();
-  return [...pendingTrades.values()].filter(t => t.toUserId === userId);
-}
-
-module.exports = { createTrade, setOfferMessage, getTrade, cancelTrade, getTradesForUser };
+module.exports = { createTrade, getTrade, removeTrade, getTradesFor };

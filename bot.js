@@ -8,36 +8,63 @@
 //    ZP collection @user [filter]           – view someone else's cards
 //    ZP all                                 – browse every card in the game
 //    ZP all [filter]                        – filter all cards by rarity or name
+//    ZP wallet                              – view your currencies
 //    ZP inventory  (inv)                    – view platings
-//    ZP shards [filter]                     – view character shards (filter by rarity or name)
+//    ZP shards [filter]                     – view character shards
+//    ZP wish <cardId>                       – set a wish card (guaranteed after 200 pulls)
 //    ZP card <id>  (c <id>)                 – inspect a card
+//    ZP mycard <id>  (mc <id>)             – inspect your own card (shows prestige)
+//    ZP cardinfo <id>  (ci <id>)           – view card game info
 //    ZP absorb shard:<id>:<count>           – level up a card using its shards
+//    ZP increaselevelcap <id> <count>  (ilc) – raise a card's level cap using its shards
+//    ZP kill <cardId> <shardId>:<count>     – kill shards for yen + prestige points
+//    ZP profile  (pro)                      – view your player profile
+//    ZP vote                                – get voting link
+//    ZP privacy                             – toggle profile privacy
 //    ZP team                                – view your battle team
-//    ZP team add/remove <id>               – manage team cards
-//    ZP team equip/unequip <id> <plating>  – equip platings to team cards
+//    ZP add <id>                            – shortcut: add card to team
+//    ZP remove <id>                         – shortcut: remove card from team
+//    ZP swap <id1> <id2>                    – swap two team card positions
 //    ZP fight @user                         – challenge a player to a team battle
+//    ZP duofight @user  (df)               – fight with your duo partner's team
 //    ZP trade @user <offer> for <ask>       – offer a trade
 //    ZP accept <tradeId>  (a)               – accept a trade offer
 //    ZP decline <tradeId>  (dec)            – decline / cancel a trade
 //    ZP trades                              – view trade offers sent to you
+//    ZP clan                                – view your clan
+//    ZP clancreate <name>                   – create a new clan
+//    ZP clanadd @user                       – add a member to your clan
+//    ZP clanremove @user                    – remove a member from your clan
+//    ZP clanleave                           – leave your clan
+//    ZP clandelete                          – delete your clan
+//    ZP clanfundadd <amount>                – donate yen to clan fund
+//    ZP clanfundtake <amount>               – withdraw yen from clan fund (owner)
+//    ZP duo                                 – view your duo partnership
+//    ZP duocreate @user                     – create a duo with another player
+//    ZP duoadd @user                        – invite a player to your duo
+//    ZP duoremove                           – disband your duo
 //    ZP help  (h)                           – show all commands
-//  Admin-only (user 833025999897755689):
+//  Server Admin:
+//    ZP setup                               – set this channel as the bot channel
+//    ZP limit #channel                      – restrict bot to a channel
+//    ZP limitremove                         – remove channel restriction
+//    ZP allow <command>                     – allow a command in this server
+//    ZP disallow <command>                  – disallow a command in this server
+//  Bot Admin (user 833025999897755689):
 //    ZP setrarity <rarity|reset>
 //    ZP setplating <tier|reset>
 //    ZP resetcooldown
-// ============================================================
-//
-//  TRADE ITEM FORMAT
-//    shard:<cardId>:<amount>      e.g.  shard:naruto_r:3
-//    plating:<tierId>:<amount>    e.g.  plating:gold:1
-//  FULL EXAMPLE
-//    ZP trade @Alice shard:naruto_r:3 for plating:gold:1
+//    ZP giveyen [@user] <amount>
+//    ZP givestars [@user] <amount>
+//    ZP givecandytokens [@user] <amount>
+//    ZP giveitem @user <itemId>
 // ============================================================
 
 require('dotenv').config();
 const {
   Client, GatewayIntentBits, EmbedBuilder,
   ActionRowBuilder, ButtonBuilder, ButtonStyle,
+  PermissionFlagsBits,
 } = require('discord.js');
 
 const config      = require('./config');
@@ -55,12 +82,19 @@ const client = new Client({
   ],
 });
 
+// ── Kill yen per shard by rarity ──────────────────────────
+const KILL_YEN = { R: 50, E: 150, L: 350, MY: 600, UR: 1000, LT: 2000 };
+
 // ── Admin ─────────────────────────────────────────────────
 const ADMIN_ID = '833025999897755689';
-let adminRarityOverride  = null;   // forced rarity key e.g. 'LT'
-let adminPlatingOverride = null;   // forced plating tier object or null
+let adminRarityOverride  = null;
+let adminPlatingOverride = null;
 
 function isAdmin(userId) { return userId === ADMIN_ID; }
+
+function isServerAdmin(member) {
+  return member?.permissions?.has(PermissionFlagsBits.Administrator) ?? false;
+}
 
 function pullCardForced(rarity) {
   const pool = CARDS.filter(c => c.rarity === rarity);
@@ -124,19 +158,14 @@ function platingById(id) {
 
 // ── Card stats ────────────────────────────────────────────
 
-/**
- * Returns deterministic { hp, dmg } for a card based on its ID and level.
- * Base stats are fixed by the card ID; each level above 1 adds 2%.
- */
 function getCardStats(card, level = 1) {
-  // Simple deterministic hash of the card ID
   let hash = 0;
   for (const ch of card.id) hash = (hash * 31 + ch.charCodeAt(0)) & 0xffffffff;
-  const t = (hash >>> 0) % 1000 / 1000; // 0.000 – 0.999
+  const t = (hash >>> 0) % 1000 / 1000;
   const range = config.STAT_RANGES[card.rarity] ?? config.STAT_RANGES['R'];
   const baseHp  = Math.round(range.hpMin  + t * (range.hpMax  - range.hpMin));
   const baseDmg = Math.round(range.dmgMin + t * (range.dmgMax - range.dmgMin));
-  const lvl = Math.max(1, Math.min(inv.MAX_CARD_LEVEL, level ?? 1));
+  const lvl  = Math.max(1, level ?? 1);
   const mult = 1 + 0.02 * (lvl - 1);
   return {
     hp:  Math.round(baseHp  * mult),
@@ -146,14 +175,6 @@ function getCardStats(card, level = 1) {
 
 // ── Trade item helpers ────────────────────────────────────
 
-/**
- * Parse a single trade item token. Supported formats:
- *   shard:<cardId>:<amount>      e.g. shard:naruto_r:3
- *   plating:<tierId>:<amount>    e.g. plating:gold:1
- *   yen:<amount>                 e.g. yen:500
- *   stars:<amount>               e.g. stars:100
- * Returns { type, id?, amount } or null on bad input.
- */
 function parseTradeItem(str) {
   const parts  = str.trim().split(':');
   const type   = parts[0]?.toLowerCase();
@@ -177,10 +198,6 @@ function parseTradeItem(str) {
   return null;
 }
 
-/**
- * Parse a comma-separated list of trade item tokens.
- * Returns an array of items, or null if any token is invalid.
- */
 function parseTradeItems(str) {
   const tokens = str.split(',').map(s => s.trim()).filter(Boolean);
   if (tokens.length === 0) return null;
@@ -189,9 +206,6 @@ function parseTradeItems(str) {
   return items;
 }
 
-/**
- * Validate that type + id refer to something real.
- */
 function validateTradeItem(item) {
   if (item.type === 'shard')   return !!lookupCard(item.id);
   if (item.type === 'plating') return !!platingById(item.id);
@@ -200,34 +214,25 @@ function validateTradeItem(item) {
   return false;
 }
 
-/**
- * Human-readable label for a single trade item.
- */
 function describeItem(item) {
   if (item.type === 'shard') {
     const card      = lookupCard(item.id);
     const cardEmoji = emojiCache.getEmoji(item.id) ?? '';
-    return `${cardEmoji ? cardEmoji + ' ' : ''}**×${item.amount}** ${card?.name ?? item.id} shard${item.amount === 1 ? '' : 's'}`;
+    return `${cardEmoji ? cardEmoji + ' ' : ''}**x${item.amount}** ${card?.name ?? item.id} shard${item.amount === 1 ? '' : 's'}`;
   }
   if (item.type === 'plating') {
     const tier = platingById(item.id);
-    return `**×${item.amount}** ${tier?.label ?? item.id} plating${item.amount === 1 ? '' : 's'}`;
+    return `**x${item.amount}** ${tier?.label ?? item.id} plating${item.amount === 1 ? '' : 's'}`;
   }
   if (item.type === 'yen')   return `**¥${item.amount.toLocaleString()}** Yen`;
   if (item.type === 'stars') return `**${item.amount.toLocaleString()}** Star${item.amount === 1 ? '' : 's'}`;
   return '?';
 }
 
-/**
- * Human-readable label for an array of trade items.
- */
 function describeItems(items) {
   return items.map(describeItem).join('\n');
 }
 
-/**
- * Check whether a user currently holds enough of a trade item.
- */
 function userHasItem(inventory, userId, item) {
   if (item.type === 'shard')   return (inv.getCharacterShards(inventory, userId)[item.id] ?? 0) >= item.amount;
   if (item.type === 'plating') return (inv.getPlatings(inventory, userId)[item.id] ?? 0) >= item.amount;
@@ -236,17 +241,10 @@ function userHasItem(inventory, userId, item) {
   return false;
 }
 
-/**
- * Check whether a user holds enough for every item in an array.
- * Returns the first missing item, or null if all are present.
- */
 function findMissingItem(inventory, userId, items) {
   return items.find(item => !userHasItem(inventory, userId, item)) ?? null;
 }
 
-/**
- * Remove a single item from a user (returns false if insufficient).
- */
 function removeItems(inventory, userId, item) {
   if (item.type === 'shard')   return inv.removeCharacterShards(inventory, userId, item.id, item.amount);
   if (item.type === 'plating') return inv.removePlating(inventory, userId, item.id, item.amount);
@@ -255,16 +253,10 @@ function removeItems(inventory, userId, item) {
   return false;
 }
 
-/**
- * Remove every item in an array from a user.
- */
 function removeAllItems(inventory, userId, items) {
   for (const item of items) removeItems(inventory, userId, item);
 }
 
-/**
- * Add a single item to a user.
- */
 function addItems(inventory, userId, item) {
   if (item.type === 'shard')   inv.addCharacterShards(inventory, userId, item.id, item.amount);
   if (item.type === 'plating') inv.addPlatings(inventory, userId, item.id, item.amount);
@@ -272,17 +264,14 @@ function addItems(inventory, userId, item) {
   if (item.type === 'stars')   inv.addStars(inventory, userId, item.amount);
 }
 
-/**
- * Add every item in an array to a user.
- */
 function addAllItems(inventory, userId, items) {
   for (const item of items) addItems(inventory, userId, item);
 }
 
 // ── Fight cooldown ────────────────────────────────────────
 
-const fightCooldowns = new Map(); // userId -> timestamp
-const activeBattles  = new Map(); // battleId -> battleState
+const fightCooldowns = new Map();
+const activeBattles  = new Map();
 
 function getFightCooldownSecs(userId) {
   const last      = fightCooldowns.get(userId) ?? 0;
@@ -297,7 +286,6 @@ function setFightCooldown(userId) {
 
 // ── Battle helpers ─────────────────────────────────────────
 
-/** Convert a resolved team slot into a live battle card with HP & DMG. */
 function buildBattleCard(slot) {
   const card    = slot.card ?? lookupCard(slot.cardId);
   if (!card) return null;
@@ -324,14 +312,12 @@ function buildBattleCard(slot) {
   };
 }
 
-/** Render a 10-block HP bar. */
 function hpBar(current, max) {
   const pct    = max <= 0 ? 0 : Math.max(0, Math.min(1, current / max));
   const filled = Math.round(pct * 10);
   return '[' + '#'.repeat(filled) + '-'.repeat(10 - filled) + ']';
 }
 
-/** Render a single card's battle display lines. */
 function cardBattleLine(bc) {
   if (!bc.alive) {
     return `~~=> **${bc.name}** | Lv. ${bc.level}~~\nDefeated`;
@@ -343,7 +329,6 @@ function cardBattleLine(bc) {
   ].join('\n');
 }
 
-/** Build the battle embed showing both teams' current state. */
 function buildBattleEmbed(state, log = null) {
   const oppLines = state.defenderCards.map(cardBattleLine).join('\n\n');
   const atkLines = state.attackerCards.map(cardBattleLine).join('\n\n');
@@ -368,14 +353,12 @@ function buildBattleEmbed(state, log = null) {
     .setDescription(parts.join('\n'));
 }
 
-/** Build button rows for the attacker's alive cards + Run Away. */
 function buildBattleComponents(state) {
   const rows = [];
   const alive = state.attackerCards
     .map((bc, i) => ({ bc, i }))
     .filter(({ bc }) => bc.alive);
 
-  // Up to 4 card buttons per row
   for (let r = 0; r < alive.length; r += 4) {
     const row = new ActionRowBuilder().addComponents(
       alive.slice(r, r + 4).map(({ bc, i }) =>
@@ -401,10 +384,6 @@ function buildBattleComponents(state) {
 
 // ── Team / Fight helpers ──────────────────────────────────
 
-/**
- * Calculate the combat power of a single team slot.
- * power = (hp + dmg) * levelMult * platingMult
- */
 function slotPower(slot) {
   const card = lookupCard(slot.cardId);
   if (!card) return 0;
@@ -415,10 +394,6 @@ function slotPower(slot) {
   return (stats.hp + stats.dmg) * platMult;
 }
 
-/**
- * Build a rich team snapshot for display / battle, merging team slots
- * with live inventory card data (level, etc.).
- */
 function resolveTeamSlots(team, inventory, userId) {
   return team.map(slot => {
     const card     = lookupCard(slot.cardId);
@@ -434,12 +409,29 @@ function rarityMeta(rarity) {
   return config.RARITY_META[rarity] ?? { label: rarity, emoji: '❔', color: 0xffffff, stars: '' };
 }
 
-function cardEmbed(card, title, footer, level = 1) {
-  const meta  = rarityMeta(card.rarity);
-  const lvl   = Math.max(1, Math.min(inv.MAX_CARD_LEVEL, level ?? 1));
-  const stats = getCardStats(card, lvl);
-  const levelLabel = lvl >= inv.MAX_CARD_LEVEL ? `✨ **MAX** (${lvl})` : `Lv. ${lvl}`;
-  const embed = new EmbedBuilder()
+function lookupCard(cardId) {
+  return CARDS.find(c => c.id.toLowerCase() === cardId.toLowerCase()) ?? null;
+}
+
+function applyFilter(cards, filter) {
+  if (!filter) return cards;
+  const upper = filter.toUpperCase();
+  if (config.RARITY_META[upper]) return cards.filter(c => c.rarity === upper);
+  const lower = filter.toLowerCase();
+  return cards.filter(c =>
+    c.name.toLowerCase().includes(lower) ||
+    c.series.toLowerCase().includes(lower)
+  );
+}
+
+function cardEmbed(card, title, footer, level = 1, personalCap = null) {
+  const cap    = personalCap ?? inv.MAX_CARD_LEVEL;
+  const meta   = rarityMeta(card.rarity);
+  const lvl    = Math.max(1, level ?? 1);
+  const stats  = getCardStats(card, lvl);
+  const isMax  = lvl >= cap;
+  const levelLabel = isMax ? `✨ **MAX** (${lvl}/${cap})` : `Lv. ${lvl} / ${cap}`;
+  const embed  = new EmbedBuilder()
     .setColor(meta.color)
     .setTitle(title ?? `${meta.emoji} ${card.name}`)
     .addFields(
@@ -456,10 +448,8 @@ function cardEmbed(card, title, footer, level = 1) {
   return embed;
 }
 
-/**
- * Big-art pull embed for a single pull.
- * Uses setImage (full-width) so the card artwork dominates the embed.
- */
+// ── Pull embeds ───────────────────────────────────────────
+
 function singlePullEmbed(card, isDupe, plating, chargeInfo, authorUsername) {
   const meta  = rarityMeta(card.rarity);
   const stats = getCardStats(card, 1);
@@ -491,12 +481,7 @@ function singlePullEmbed(card, isDupe, plating, chargeInfo, authorUsername) {
   return embed;
 }
 
-/**
- * Summary embed for allpull — numbered list in pull order.
- */
 function allPullEmbed(results, charges, withReset, authorUsername, overrideNote) {
-  // Numbered list lines
-  // Group results by card so duplicates are shown as "x3 CardName"
   const grouped = new Map();
   for (const r of results) {
     if (!grouped.has(r.card.id)) {
@@ -513,22 +498,20 @@ function allPullEmbed(results, charges, withReset, authorUsername, overrideNote)
     const m         = rarityMeta(g.card.rarity);
     const cardEmoji = emojiCache.getEmoji(g.card.id) ?? '';
     const total     = g.newCount + g.dupeCount;
-    const emojiSuffix = cardEmoji ? ` ${cardEmoji}` : '';
 
     const outcomeParts = [];
     if (g.newCount > 0)   outcomeParts.push('✨ New!');
     if (g.dupeCount > 0)  outcomeParts.push(`${cardEmoji ? cardEmoji + ' ' : ''}${g.dupeCount} Shard${g.dupeCount === 1 ? '' : 's'}`);
     const outcomeLine = outcomeParts.join(' • ');
 
-    const platingStr = g.platings.map(p => `${p.emoji} ${p.label} Plating!`).join('  ');
+    const platingStr  = g.platings.map(p => `${p.emoji} ${p.label} Plating!`).join('  ');
     const platingPart = platingStr ? `  ${platingStr}` : '';
 
-    lines.push(`**${lineNum}** ${m.emoji} x${total} **${g.card.name}**${emojiSuffix}\n${outcomeLine}${platingPart}`);
+    lines.push(`**${lineNum}** ${m.emoji} x${total} **${g.card.name}**${cardEmoji ? ' ' + cardEmoji : ''}\n${outcomeLine}${platingPart}`);
     lineNum++;
   }
 
-  // Color: highest plating dropped, or teal
-  const platings = results.map(r => r.plating).filter(Boolean);
+  const platings    = results.map(r => r.plating).filter(Boolean);
   const rarityOrder = ['diamond', 'gold', 'silver', 'bronze'];
   const topPlating  = rarityOrder.map(id => platings.find(p => p.id === id)).find(Boolean);
   const color       = topPlating?.color ?? 0x00FFD1;
@@ -544,42 +527,19 @@ function allPullEmbed(results, charges, withReset, authorUsername, overrideNote)
     overrideNote || null,
   ].filter(Boolean).join('  •  ');
 
-  // Split description into chunks if needed (4096 char limit)
   const fullDesc = lines.join('\n\n');
 
-  const embed = new EmbedBuilder()
+  return new EmbedBuilder()
     .setColor(color)
     .setTitle(`🎴 ${authorUsername} Has Pulled ${charges} Card${charges === 1 ? '' : 's'}!`)
     .setDescription(fullDesc.length <= 4000 ? fullDesc : fullDesc.slice(0, 3990) + '\n…')
     .setFooter({ text: footerParts });
-
-  return embed;
-}
-
-function lookupCard(cardId) {
-  return CARDS.find(c => c.id.toLowerCase() === cardId.toLowerCase()) ?? null;
-}
-
-function applyFilter(cards, filter) {
-  if (!filter) return cards;
-  const upper = filter.toUpperCase();
-  if (config.RARITY_META[upper]) return cards.filter(c => c.rarity === upper);
-  const lower = filter.toLowerCase();
-  return cards.filter(c =>
-    c.name.toLowerCase().includes(lower) ||
-    c.series.toLowerCase().includes(lower)
-  );
 }
 
 // ── Collection page builder ───────────────────────────────
 
-// customId format: col|authorId|targetId|expiry|page|filter
-// Expiry is a ms Unix timestamp; filter may contain | so it is always last.
 const COLLECTION_TIMEOUT_MS = 60_000;
 
-// ── All Cards page builder ────────────────────────────────
-
-// Rarity display order for ZP all
 const RARITY_ORDER = ['R', 'E', 'L', 'MY', 'UR', 'LT'];
 
 function getSortedAllCards() {
@@ -591,7 +551,6 @@ function getSortedAllCards() {
   });
 }
 
-// customId format: zpa|authorId|expiry|page|filter
 function buildAllCardsPage(authorId, allCards, page, filter, expiry) {
   const filtered = applyFilter(allCards, filter);
 
@@ -671,7 +630,8 @@ function buildCollectionPage(authorId, targetUser, cards, page, filter, inventor
   const filterTag = filter ? ` • Filter: "${filter}"` : '';
   const cardEmojiTag = emojiCache.getEmoji(card.id) ?? '';
   const shardTag  = shards > 0 ? ` • ${cardEmojiTag ? cardEmojiTag + ' ' : ''}×${shards} shard${shards === 1 ? '' : 's'}` : '';
-  const levelLabel = cardLevel >= inv.MAX_CARD_LEVEL ? `✨ MAX (${cardLevel})` : `Lv. ${cardLevel}`;
+  const personalCap = inv.getPersonalLevelCap(inventory, targetUser.id, card.id);
+  const levelLabel  = cardLevel >= personalCap ? `✨ MAX (${cardLevel}/${personalCap})` : `Lv. ${cardLevel}/${personalCap}`;
 
   const embed = new EmbedBuilder()
     .setColor(meta.color)
@@ -691,7 +651,6 @@ function buildCollectionPage(authorId, targetUser, cards, page, filter, inventor
   const colImg = imgCache.getImage(card.id) ?? card.image ?? null;
   if (colImg) embed.setThumbnail(colImg);
 
-  // Carry the same expiry forward so the 60s window doesn't reset on each click
   const base = `col|${authorId}|${targetUser.id}|${expiry}|%page%|${filter}`;
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
@@ -713,8 +672,6 @@ function buildCollectionPage(authorId, targetUser, cards, page, filter, inventor
   return { embed, components: [row] };
 }
 
-// ── Ready ─────────────────────────────────────────────────
-
 // ── Help pages ────────────────────────────────────────────
 
 const HELP_TIMEOUT_MS = 120_000;
@@ -724,136 +681,194 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
     .map(([k, v]) => `${v.emoji} **${v.label}** \`${k}\``)
     .join('\n');
   const platingList = config.PLATING_TIERS
-    .map(t => `${t.emoji} **${t.label}** — ×${t.statMult} battle stats (+${Math.round((t.statMult - 1) * 100)}%)`)
+    .map(t => `${t.emoji} **${t.label}** — x${t.statMult} battle stats (+${Math.round((t.statMult - 1) * 100)}%)`)
     .join('\n');
 
   const pages = [
-    // ── Page 0: Pulling ──────────────────────────────────
+    // Page 0: Pulling
     new EmbedBuilder()
       .setColor(0x00FFD1)
-      .setTitle('📖 Help — 🎴 Pulling (1/5)')
+      .setTitle('📖 Help — 🎴 Pulling (1/7)')
       .setDescription('Pull random character cards from anime, manga, and games!')
       .addFields(
-        { name: '`ZP pull` / `ZP p`',              value: `Pull a random card. You have up to **${config.MAX_PULL_CHARGES}** charges; +1 regenerates every **${config.PULL_COOLDOWN_SECONDS}s**.`, inline: false },
-        { name: '`ZP allpull` / `ZP ap`',           value: 'Spend **all** your current pull charges at once and see a full summary of results.', inline: false },
+        { name: '`ZP pull` / `ZP p`',                value: `Pull a random card. You have up to **${config.MAX_PULL_CHARGES}** charges; +1 regenerates every **${config.PULL_COOLDOWN_SECONDS}s**.`, inline: false },
+        { name: '`ZP allpull` / `ZP ap`',             value: 'Spend **all** your current pull charges at once.', inline: false },
         { name: '`ZP allpull reset` / `ZP ap reset`', value: '🍬 Spend all charges then instantly refill back to max. Costs **1 Candy Token**.', inline: false },
-        { name: '`ZP reset`',                        value: '🍬 Use a **Candy Token** to instantly refill your pulls to max without spending them first.', inline: false },
+        { name: '`ZP reset`',                          value: '🍬 Use a Candy Token to instantly refill your pulls to max.', inline: false },
+        { name: '`ZP wish <cardId>`',                  value: `Set a card as your wish. After **${inv.WISH_THRESHOLD} pulls**, you are guaranteed to receive that card!`, inline: false },
       )
-      .setFooter({ text: 'Page 1 of 5 • ZP help' }),
+      .setFooter({ text: 'Page 1 of 7 • ZP help' }),
 
-    // ── Page 1: Collection & Cards ────────────────────────
+    // Page 1: Collection & Cards
     new EmbedBuilder()
       .setColor(0x4A90D9)
-      .setTitle('📖 Help — 🗂️ Collection & Cards (2/5)')
-      .setDescription('Browse your collection, inspect cards, level them up, and check your currencies.')
+      .setTitle('📖 Help — 🗂️ Collection & Cards (2/7)')
+      .setDescription('Browse your collection, inspect cards, and level them up.')
       .addFields(
-        { name: '`ZP collection` / `ZP col`',        value: 'Browse your card collection one card at a time with Prev/Next buttons.', inline: false },
-        { name: '`ZP col [rarity or keyword]`',       value: 'Filter by rarity code (e.g. `LT`, `MY`) or a name/series keyword.', inline: false },
-        { name: '`ZP col @user [filter]`',            value: "Browse another player's collection.", inline: false },
-        { name: '`ZP all` / `ZP all [filter]`',      value: 'Browse **every card in the game**, sorted by rarity then name. Same filter options as `col`.', inline: false },
-        { name: '`ZP card <cardId>` / `ZP c <id>`',  value: 'Inspect a specific card — shows level, stats, shards, and an absorb hint.', inline: false },
-        { name: '`ZP absorb shard:<id>:<count>`',     value: 'Spend character shards to level up a card. **1 shard = 1 level**, max **Lv. 100**. Each level gives **+2% stats**.', inline: false },
-        { name: '`ZP inventory` / `ZP inv`',         value: 'View your 🪙 platings. Add `@user` to check someone else.', inline: false },
-        { name: '`ZP shards [rarity or name]`',      value: 'View your character shards. Filter by rarity (`R`, `E`, `L`, `MY`, `UR`, `LT`) or by character name. Add `@user` to check someone else.', inline: false },
-        { name: '`ZP items`',                        value: 'View your special items. Items are granted by admins and can be used to obtain Limited cards.', inline: false },
-        { name: '`ZP use <itemId>`',                 value: `Use a special item to claim its Limited card. Current items: ${config.ITEMS.map(i => `\`${i.id}\` → ${i.name}`).join(', ')}.`, inline: false },
-        { name: '`ZP balance` / `ZP bal`',           value: 'Check your 💴 Yen, ⭐ Stars, and 🍬 Candy Tokens. Add `@user` to check someone else.', inline: false },
+        { name: '`ZP collection` / `ZP col`',         value: 'Browse your card collection with Prev/Next buttons.', inline: false },
+        { name: '`ZP col [rarity or keyword]`',        value: 'Filter by rarity code (e.g. `LT`, `MY`) or a name/series keyword.', inline: false },
+        { name: '`ZP col @user [filter]`',             value: "Browse another player's collection.", inline: false },
+        { name: '`ZP all` / `ZP all [filter]`',       value: 'Browse every card in the game, sorted by rarity.', inline: false },
+        { name: '`ZP card <id>` / `ZP c <id>`',       value: 'Inspect a specific card — shows level, stats, shards.', inline: false },
+        { name: '`ZP mycard <id>` / `ZP mc <id>`',    value: 'Inspect your own card with prestige points.', inline: false },
+        { name: '`ZP cardinfo <id>` / `ZP ci <id>`',  value: 'View base game info for any card.', inline: false },
+        { name: '`ZP absorb shard:<id>:<count>`',      value: 'Spend character shards to level up a card. **1 shard = 1 level**. Each level gives **+2% stats**.', inline: false },
+        { name: '`ZP increaselevelcap <id> <count>` / `ZP ilc <id> <count>`', value: 'Spend shards of a card to increase its personal level cap beyond 100. **1 shard = +1 cap**.', inline: false },
+        { name: '`ZP kill <cardId> <shardId>:<count>`', value: 'Use a card to kill shards — earn **yen** and **prestige points** on the card used. 1 prestige point per shard.', inline: false },
       )
-      .setFooter({ text: 'Page 2 of 5 • ZP help' }),
+      .setFooter({ text: 'Page 2 of 7 • ZP help' }),
 
-    // ── Page 2: Team & Battle ─────────────────────────────
-    new EmbedBuilder()
-      .setColor(0xFF4757)
-      .setTitle('📖 Help — ⚔️ Team & Battle (3/5)')
-      .setDescription(`Build a team of **${inv.TEAM_SIZE} cards** and fight other players for Yen and Stars!\n\n**Plating battle bonuses:**\n${platingList}`)
-      .addFields(
-        { name: '`ZP team`',                              value: 'View your battle team. Shows each card\'s level, equipped plating, and power score. Add `@user` to see someone else\'s team.', inline: false },
-        { name: '`ZP team add <cardId>`',                 value: `Add one of your owned cards to your team (max ${inv.TEAM_SIZE}).`, inline: false },
-        { name: '`ZP team remove <cardId>`',              value: 'Remove a card from your team. Any equipped plating is returned to your inventory.', inline: false },
-        { name: '`ZP team equip <cardId> <plating>`',    value: 'Equip a plating from your inventory onto a team card. The plating is **consumed** until unequipped. Valid: `bronze` `silver` `gold` `diamond`', inline: false },
-        { name: '`ZP team unequip <cardId>`',             value: 'Remove a plating from a team card and return it to your inventory.', inline: false },
-        { name: '`ZP fight @user`',                       value: `Start a **turn-based battle**! Both players need a full **${inv.TEAM_SIZE}-card team**. Click your card buttons to attack — each card hits the opponent's frontline card. The opponent retaliates automatically. Last team standing wins **100–1,000 💴 Yen** and **10–100 ⭐ Stars**. ${config.FIGHT_COOLDOWN_SECONDS}s cooldown.`, inline: false },
-      )
-      .setFooter({ text: 'Page 3 of 5 • ZP help' }),
-
-    // ── Page 3: Trading ───────────────────────────────────
+    // Page 2: Economy & Profile
     new EmbedBuilder()
       .setColor(0xF1C40F)
-      .setTitle('📖 Help — 🤝 Trading (4/5)')
-      .setDescription('Trade shards, platings, Yen, and Stars with other players. Omit `for <ask>` to send a free gift.')
+      .setTitle('📖 Help — 💰 Economy & Profile (3/7)')
+      .setDescription('Manage your currencies and player profile.')
+      .addFields(
+        { name: '`ZP wallet` / `ZP balance` / `ZP bal`', value: 'Check your 💴 Yen, ⭐ Stars, and 🍬 Candy Tokens. Add `@user` to check someone else.', inline: false },
+        { name: '`ZP inventory` / `ZP inv`',              value: 'View your platings.', inline: false },
+        { name: '`ZP shards [rarity or name]`',           value: 'View your character shards. Filter by rarity or character name.', inline: false },
+        { name: '`ZP items`',                             value: 'View your special items.', inline: false },
+        { name: '`ZP use <itemId>`',                      value: 'Use a special item to claim its Limited card.', inline: false },
+        { name: '`ZP profile` / `ZP pro`',                value: 'View your player profile — total cards, kills, pulls, wish progress, and more.', inline: false },
+        { name: '`ZP profile @user`',                     value: "View another player's profile (if they haven't set it to private).", inline: false },
+        { name: '`ZP vote`',                              value: 'Get the link to vote for the bot and earn extra pull charges!', inline: false },
+        { name: '`ZP privacy`',                           value: 'Toggle your profile and collection privacy on/off.', inline: false },
+      )
+      .setFooter({ text: 'Page 3 of 7 • ZP help' }),
+
+    // Page 3: Team & Battle
+    new EmbedBuilder()
+      .setColor(0xFF4757)
+      .setTitle('📖 Help — ⚔️ Team & Battle (4/7)')
+      .setDescription(`Build a team of **${inv.TEAM_SIZE} cards** and fight other players!\n\n**Plating battle bonuses:**\n${platingList}`)
+      .addFields(
+        { name: '`ZP team`',                              value: 'View your battle team with power scores.', inline: false },
+        { name: '`ZP team add <cardId>` / `ZP add <id>`', value: `Add a card to your team (max ${inv.TEAM_SIZE}).`, inline: false },
+        { name: '`ZP team remove <cardId>` / `ZP remove <id>`', value: 'Remove a card from your team.', inline: false },
+        { name: '`ZP swap <cardId1> <cardId2>`',          value: 'Swap the positions of two cards on your team.', inline: false },
+        { name: '`ZP team equip <cardId> <plating>`',     value: 'Equip a plating onto a team card. Valid: `bronze` `silver` `gold` `diamond`', inline: false },
+        { name: '`ZP team unequip <cardId>`',             value: 'Remove a plating from a team card.', inline: false },
+        { name: '`ZP fight @user`',                       value: `Challenge a player to a turn-based team battle! ${config.FIGHT_COOLDOWN_SECONDS}s cooldown.`, inline: false },
+        { name: '`ZP duofight @user` / `ZP df @user`',   value: 'Fight alongside your duo partner — your combined teams take on the opponent!', inline: false },
+      )
+      .setFooter({ text: 'Page 4 of 7 • ZP help' }),
+
+    // Page 4: Trading
+    new EmbedBuilder()
+      .setColor(0x9B59B6)
+      .setTitle('📖 Help — 🤝 Trading (5/7)')
+      .setDescription('Trade shards, platings, Yen, and Stars with other players.')
       .addFields(
         {
           name: '`ZP trade @user <offer> [for <ask>]`',
           value: [
             'Send a trade offer or instant gift.',
             '**Item formats:** `shard:<cardId>:<amount>` • `plating:<tier>:<amount>` • `yen:<amount>` • `stars:<amount>`',
-            '**Multiple items:** separate with commas — e.g. `shard:naruto_r:3,yen:200`',
             '**Examples:**',
             '`ZP trade @Alice shard:naruto_r:5` — free gift',
             '`ZP trade @Alice yen:500 for stars:100` — currency swap',
-            '`ZP trade @Alice shard:goku_r:3 for plating:gold:1` — shard for plating',
           ].join('\n'),
           inline: false,
         },
-        { name: '`ZP accept <tradeId>` / `ZP a <id>`',    value: 'Accept a pending trade offer sent to you.', inline: false },
-        { name: '`ZP decline <tradeId>` / `ZP dec <id>`', value: 'Decline or cancel a trade (works for both sides).', inline: false },
-        { name: '`ZP trades`',                             value: 'List all pending trade/gift offers currently addressed to you.', inline: false },
+        { name: '`ZP accept <tradeId>` / `ZP a <id>`',    value: 'Accept a pending trade offer.', inline: false },
+        { name: '`ZP decline <tradeId>` / `ZP dec <id>`', value: 'Decline or cancel a trade.', inline: false },
+        { name: '`ZP trades`',                             value: 'List all pending trade offers addressed to you.', inline: false },
       )
-      .setFooter({ text: 'Page 4 of 5 • Trades expire after 5 minutes' }),
+      .setFooter({ text: 'Page 5 of 7 • Trades expire after 5 minutes' }),
 
-    // ── Page 4: Reference ─────────────────────────────────
+    // Page 5: Clans & Duos
     new EmbedBuilder()
-      .setColor(0x9B59B6)
-      .setTitle('📖 Help — 📚 Reference (5/5)')
+      .setColor(0xFF6B35)
+      .setTitle('📖 Help — 🏛️ Clans & Duos (6/7)')
+      .setDescription('Form clans with other players and create duo partnerships for team battles!')
+      .addFields(
+        { name: '**Clan Commands**', value: '\u200b', inline: false },
+        { name: '`ZP clancreate <name>`', value: 'Create a new clan. You become the owner.', inline: false },
+        { name: '`ZP clan`',              value: 'View your clan info, members, and fund.', inline: false },
+        { name: '`ZP clanadd @user`',     value: '(Owner) Invite a player to your clan.', inline: false },
+        { name: '`ZP clanremove @user`',  value: '(Owner) Remove a player from your clan.', inline: false },
+        { name: '`ZP clanleave`',         value: 'Leave your current clan.', inline: false },
+        { name: '`ZP clandelete`',        value: '(Owner) Permanently delete your clan.', inline: false },
+        { name: '`ZP clanfundadd <yen>`', value: 'Donate yen to the clan fund.', inline: false },
+        { name: '`ZP clanfundtake <yen>`', value: '(Owner) Withdraw yen from the clan fund.', inline: false },
+        { name: '**Duo Commands**', value: '\u200b', inline: false },
+        { name: '`ZP duocreate @user`',   value: 'Send a duo partnership request to a player.', inline: false },
+        { name: '`ZP duo`',               value: 'View your duo partnership.', inline: false },
+        { name: '`ZP duoremove`',         value: 'Disband your current duo partnership.', inline: false },
+      )
+      .setFooter({ text: 'Page 6 of 7 • ZP help' }),
+
+    // Page 6: Reference
+    new EmbedBuilder()
+      .setColor(0x00FFD1)
+      .setTitle('📖 Help — 📚 Reference (7/7)')
       .setDescription('Quick reference for rarities, platings, and currencies.')
       .addFields(
         { name: '✨ Rarities', value: rarityList, inline: false },
         {
           name: '🪙 Platings',
-          value: config.PLATING_TIERS.map(t => `${t.emoji} **${t.label}** — 0.1% pull drop`).join('\n') +
-            '\nEquip to team cards for combat bonuses. Tradeable.',
+          value: config.PLATING_TIERS.map(t => `${t.emoji} **${t.label}** — 0.1% pull drop`).join('\n'),
           inline: false,
         },
         {
           name: '💰 Currencies',
           value: [
-            '💴 **Yen** — earned from fights & events. Traded between players.',
-            '⭐ **Stars** — earned from fights & events. Traded between players.',
+            '💴 **Yen** — earned from fights & kills. Traded between players.',
+            '⭐ **Stars** — earned from fights. Traded between players.',
             '🍬 **Candy Tokens** — given by admins. Resets pull charges.',
           ].join('\n'),
           inline: false,
         },
         {
+          name: '⚔️ Kill Yen Rewards (per shard)',
+          value: Object.entries(KILL_YEN)
+            .map(([r, y]) => `${rarityMeta(r).emoji} **${rarityMeta(r).label}** — ¥${y}`)
+            .join('\n'),
+          inline: false,
+        },
+        {
           name: '📊 Card Power Formula',
-          value: 'Power = (HP + DMG) × level bonus × plating multiplier\nLevel bonus: ×(1 + 0.02 × (level − 1)) — so Lv.50 = ×1.98, Lv.100 = ×2.98',
+          value: 'Power = (HP + DMG) × level bonus × plating multiplier\nLevel bonus: ×(1 + 0.02 × (level − 1))',
           inline: false,
         },
       )
-      .setFooter({ text: 'Page 5 of 5 • ZP help' }),
+      .setFooter({ text: 'Page 7 of 7 • ZP help' }),
   ];
 
-  // Admin page appended only for admins
   if (showAdmin) {
     const tierIds = config.PLATING_TIERS.map(t => t.id).join(' | ');
     pages.push(
       new EmbedBuilder()
-        .setColor(0xFF6B35)
-        .setTitle('📖 Help — 🔧 Admin Commands (6/6)')
-        .addFields({
-          name: 'Admin-only',
-          value: [
-            `\`ZP setrarity <${Object.keys(config.RARITY_META).join(' | ')}>\` — Force all pulls to a specific rarity`,
-            `\`ZP setrarity reset\` — Clear rarity override`,
-            `\`ZP setplating <${tierIds}>\` — Force every pull to drop a specific plating`,
-            `\`ZP setplating reset\` — Clear plating override`,
-            `\`ZP resetcooldown\` — Restore your pull charges to max`,
-            `\`ZP giveyen [@user] <amount>\` — Add Yen to yourself or a user`,
-            `\`ZP givestars [@user] <amount>\` — Add Stars to yourself or a user`,
-            `\`ZP givecandytokens [@user] <amount>\` — Give 🍬 Candy Tokens to yourself or a user`,
-            `\`ZP giveitem @user <itemId>\` — Give a limited item to a player (${config.ITEMS.map(i => `\`${i.id}\``).join(', ')})`,
-          ].join('\n'),
-          inline: false,
-        })
+        .setColor(0xFF0000)
+        .setTitle('📖 Help — 🔧 Admin Commands')
+        .addFields(
+          {
+            name: 'Bot Admin (owner only)',
+            value: [
+              `\`ZP setrarity <${Object.keys(config.RARITY_META).join(' | ')}>\` — Force all pulls to a specific rarity`,
+              `\`ZP setrarity reset\` — Clear rarity override`,
+              `\`ZP setplating <${tierIds}>\` — Force every pull to drop a specific plating`,
+              `\`ZP setplating reset\` — Clear plating override`,
+              `\`ZP resetcooldown\` — Restore your pull charges to max`,
+              `\`ZP giveyen [@user] <amount>\` — Add Yen to a user`,
+              `\`ZP givestars [@user] <amount>\` — Add Stars to a user`,
+              `\`ZP givecandytokens [@user] <amount>\` — Give Candy Tokens to a user`,
+              `\`ZP giveitem @user <itemId>\` — Give a limited item to a player`,
+            ].join('\n'),
+            inline: false,
+          },
+          {
+            name: 'Server Admin (server administrators)',
+            value: [
+              '`ZP setup` — Mark this channel as the bot\'s main channel',
+              '`ZP limit #channel` — Restrict bot usage to a specific channel',
+              '`ZP limitremove` — Remove channel restriction',
+              '`ZP allow <command>` — Re-enable a disallowed command',
+              '`ZP disallow <command>` — Block a command from being used in this server',
+            ].join('\n'),
+            inline: false,
+          },
+        )
         .setFooter({ text: `Page ${pages.length + 1} of ${pages.length + 1} • Admin only` })
     );
   }
@@ -883,13 +898,13 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
   return { embed, components: [row] };
 }
 
+// ── Ready ─────────────────────────────────────────────────
+
 client.once('ready', () => {
   initPullCharges();
   console.log(`✅ test Bot online as ${client.user.tag}`);
   client.user.setActivity('ZP help', { type: 0 });
-  // Fetch missing character images in the background (no await — non-blocking)
   imgCache.refreshMissing().catch(err => console.error('Image cache refresh error:', err));
-  // Upload card images as custom emojis across the 3 emoji servers
   emojiCache.syncEmojis(client, CARDS, imgCache).catch(err => console.error('Emoji sync error:', err));
 });
 
@@ -909,25 +924,23 @@ client.on('interactionCreate', async (interaction) => {
       return interaction.update({ components: [], embeds: interaction.message.embeds });
     }
     if (interaction.user.id !== state.attackerId) {
-      return interaction.reply({ content: '❌ Only the challenger controls this battle.', ephemeral: true });
+      return interaction.reply({ content: 'These buttons are not for you.', ephemeral: true });
     }
     if (Date.now() > state.expiry) {
       activeBattles.delete(battleId);
       return interaction.update({ components: [], embeds: interaction.message.embeds });
     }
 
-    // ── Run Away ──────────────────────────────────────────
     if (action === 'run') {
       activeBattles.delete(battleId);
-      const embed = buildBattleEmbed(state, `🏃 **${state.attackerName}** ran away from the battle!`);
+      const embed = buildBattleEmbed(state, `**${state.attackerName}** ran away from the battle!`);
       return interaction.update({ embeds: [embed], components: [] });
     }
 
-    // ── Attack ────────────────────────────────────────────
     const atkIdx   = parseInt(action, 10);
     const attacker = state.attackerCards[atkIdx];
     if (!attacker?.alive) {
-      return interaction.reply({ content: '❌ That card is already defeated!', ephemeral: true });
+      return interaction.reply({ content: 'That card is already defeated!', ephemeral: true });
     }
 
     const target = state.defenderCards.find(bc => bc.alive);
@@ -936,15 +949,13 @@ client.on('interactionCreate', async (interaction) => {
       return interaction.update({ components: [], embeds: interaction.message.embeds });
     }
 
-    // Player attacks first alive defender card
     const dmgDealt  = Math.round(attacker.dmg * (0.8 + Math.random() * 0.4));
     target.hp       = Math.max(0, target.hp - dmgDealt);
     if (target.hp === 0) target.alive = false;
 
     let log = `⚔️ **${attacker.name}** attacked **${target.name}** for **${dmgDealt.toLocaleString()}** damage!`;
-    if (!target.alive) log += ` **${target.name}** was defeated! 💀`;
+    if (!target.alive) log += ` **${target.name}** was defeated!`;
 
-    // Check if attacker wins
     if (state.defenderCards.every(bc => !bc.alive)) {
       activeBattles.delete(battleId);
       const inventory   = inv.loadInventory();
@@ -958,7 +969,6 @@ client.on('interactionCreate', async (interaction) => {
       return interaction.update({ embeds: [embed], components: [] });
     }
 
-    // Defender retaliation — first alive defender hits first alive attacker
     const retaliator = state.defenderCards.find(bc => bc.alive);
     const atkTarget  = state.attackerCards.find(bc => bc.alive);
     if (retaliator && atkTarget) {
@@ -966,18 +976,16 @@ client.on('interactionCreate', async (interaction) => {
       atkTarget.hp  = Math.max(0, atkTarget.hp - retDmg);
       if (atkTarget.hp === 0) atkTarget.alive = false;
       log += `\n💥 **${retaliator.name}** retaliated against **${atkTarget.name}** for **${retDmg.toLocaleString()}** damage!`;
-      if (!atkTarget.alive) log += ` **${atkTarget.name}** was defeated! 💀`;
+      if (!atkTarget.alive) log += ` **${atkTarget.name}** was defeated!`;
     }
 
-    // Check if defender wins
     if (state.attackerCards.every(bc => !bc.alive)) {
       activeBattles.delete(battleId);
-      log += `\n\n💀 **${state.defenderName}** wins! **${state.attackerName}** was defeated!`;
+      log += `\n\n**${state.defenderName}** wins! **${state.attackerName}** was defeated!`;
       const embed = buildBattleEmbed(state, log);
       return interaction.update({ embeds: [embed], components: [] });
     }
 
-    // Battle continues
     const embed      = buildBattleEmbed(state, log);
     const components = buildBattleComponents(state);
     return interaction.update({ embeds: [embed], components });
@@ -985,13 +993,12 @@ client.on('interactionCreate', async (interaction) => {
 
   // ── Help button handler ───────────────────────────────────
   if (parts[0] === 'help') {
-    // Format: help|authorId|expiry|page|showAdmin
     const [, authorId, expiryStr, pageStr, adminFlag] = parts;
     const expiry    = parseInt(expiryStr, 10);
     const showAdmin = adminFlag === '1';
 
     if (interaction.user.id !== authorId) {
-      return interaction.reply({ content: '❌ These buttons are not for you.', ephemeral: true });
+      return interaction.reply({ content: 'These buttons are not for you.', ephemeral: true });
     }
     if (Date.now() > expiry) {
       return interaction.update({ components: [], embeds: interaction.message.embeds });
@@ -999,6 +1006,7 @@ client.on('interactionCreate', async (interaction) => {
     if (pageStr === 'close') {
       return interaction.update({ components: [] });
     }
+
     const page = parseInt(pageStr, 10);
     const { embed, components } = buildHelpPage(authorId, page, showAdmin, expiry);
     return interaction.update({ embeds: [embed], components });
@@ -1006,13 +1014,12 @@ client.on('interactionCreate', async (interaction) => {
 
   // ── ZP all button handler ─────────────────────────────────
   if (parts[0] === 'zpa') {
-    // Format: zpa|authorId|expiry|page|...filter
     const [, authorId, expiryStr, pageStr, ...filterParts] = parts;
     const filter = filterParts.join('|');
     const expiry = parseInt(expiryStr, 10);
 
     if (interaction.user.id !== authorId) {
-      return interaction.reply({ content: '❌ These buttons are not for you.', ephemeral: true });
+      return interaction.reply({ content: 'These buttons are not for you.', ephemeral: true });
     }
 
     if (Date.now() > expiry) {
@@ -1035,16 +1042,14 @@ client.on('interactionCreate', async (interaction) => {
 
   if (parts[0] !== 'col') return;
 
-  // Format: col|authorId|targetId|expiry|page|...filter
   const [, authorId, targetId, expiryStr, pageStr, ...filterParts] = parts;
   const filter = filterParts.join('|');
   const expiry = parseInt(expiryStr, 10);
 
   if (interaction.user.id !== authorId) {
-    return interaction.reply({ content: '❌ These buttons are not for you.', ephemeral: true });
+    return interaction.reply({ content: 'These buttons are not for you.', ephemeral: true });
   }
 
-  // Expired — strip buttons so nobody can click them again
   if (Date.now() > expiry) {
     return interaction.update({
       components: [],
@@ -1059,7 +1064,7 @@ client.on('interactionCreate', async (interaction) => {
 
   const page       = parseInt(pageStr, 10);
   const targetUser = await client.users.fetch(targetId).catch(() => null);
-  if (!targetUser) return interaction.reply({ content: '❌ Could not find that user.', ephemeral: true });
+  if (!targetUser) return interaction.reply({ content: 'Could not find that user.', ephemeral: true });
 
   const inventory = inv.loadInventory();
   const cards     = inv.getCards(inventory, targetId);
@@ -1070,6 +1075,9 @@ client.on('interactionCreate', async (interaction) => {
 
 // ── Message Handler ───────────────────────────────────────
 
+// Pending duo invites: Map<inviteeId, { inviterId, inviterName }>
+const pendingDuoInvites = new Map();
+
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
@@ -1079,6 +1087,20 @@ client.on('messageCreate', async (message) => {
   const args    = message.content.slice(config.PREFIX.length).trim().split(/\s+/);
   const command = args.shift()?.toLowerCase();
   const userId  = message.author.id;
+  const guildId = message.guild?.id;
+
+  // ── Channel restriction check ─────────────────────────────
+  if (guildId) {
+    const guildInv  = inv.loadInventory();
+    const gSettings = inv.getGuildSettings(guildInv, guildId);
+    if (gSettings.allowedChannels.length > 0 && !gSettings.allowedChannels.includes(message.channel.id)) {
+      const allowed = gSettings.allowedChannels.map(id => `<#${id}>`).join(', ');
+      return message.reply(`This bot is currently restricted to: ${allowed}`).then(m => setTimeout(() => m.delete().catch(() => {}), 5000));
+    }
+    if (gSettings.disallowedCommands.includes(command)) {
+      return message.reply(`The command \`${config.PREFIX} ${command}\` is disabled in this server.`);
+    }
+  }
 
   // ── help | h ─────────────────────────────────────────────
   if (!command || command === 'help' || command === 'h') {
@@ -1090,16 +1112,43 @@ client.on('messageCreate', async (message) => {
 
   // ── Shared pull logic ────────────────────────────────────
 
-  function executeSinglePull(inventory, userId) {
-    const card    = (isAdmin(userId) && adminRarityOverride)
+  function executeSinglePull(inventory, uid) {
+    const card    = (isAdmin(uid) && adminRarityOverride)
       ? pullCardForced(adminRarityOverride)
       : pullCard();
-    const { isDupe } = inv.addCardToInventory(inventory, userId, card);
-    const plating    = (isAdmin(userId) && adminPlatingOverride)
+    const { isDupe } = inv.addCardToInventory(inventory, uid, card);
+    const plating    = (isAdmin(uid) && adminPlatingOverride)
       ? adminPlatingOverride
       : rollPlating();
-    if (plating) inv.addPlating(inventory, userId, plating.id);
-    return { card, isDupe, plating };
+    if (plating) inv.addPlating(inventory, uid, plating.id);
+
+    // Track total pulls
+    inv.incrementTotalPulls(inventory, uid, 1);
+
+    // Track wish progress
+    const wishCount = inv.incrementWishPulls(inventory, uid);
+
+    return { card, isDupe, plating, wishCount };
+  }
+
+  /**
+   * Check if wish threshold was reached, grant the card if so.
+   * Returns the granted wish card + info, or null.
+   */
+  function checkAndGrantWish(inventory, uid) {
+    const wish = inv.getWish(inventory, uid);
+    if (!wish) return null;
+    if (wish.pullCount < inv.WISH_THRESHOLD) return null;
+
+    const wishCard = lookupCard(wish.cardId);
+    if (!wishCard) {
+      inv.clearWish(inventory, uid);
+      return null;
+    }
+
+    const { isDupe } = inv.addCardToInventory(inventory, uid, wishCard);
+    inv.clearWish(inventory, uid);
+    return { card: wishCard, isDupe };
   }
 
   // ── pull | p ─────────────────────────────────────────────
@@ -1108,23 +1157,41 @@ client.on('messageCreate', async (message) => {
 
     if (charges <= 0) {
       const secsUntilNext = Math.ceil(config.PULL_COOLDOWN_SECONDS - (Date.now() - lastRefill) / 1000);
-      return message.reply(`⏳ No pulls left! Next charge in **${secsUntilNext}s**. Charges refill 1 every **${config.PULL_COOLDOWN_SECONDS}s** (max **${config.MAX_PULL_CHARGES}**).`);
+      return message.reply(`No pulls left! Next charge in **${secsUntilNext}s**. Charges refill 1 every **${config.PULL_COOLDOWN_SECONDS}s** (max **${config.MAX_PULL_CHARGES}**).`);
     }
 
     setCharges(userId, charges - 1, lastRefill);
 
     const inventory                 = inv.loadInventory();
     const { card, isDupe, plating } = executeSinglePull(inventory, userId);
+    const wishGrant                 = checkAndGrantWish(inventory, userId);
     inv.saveInventory(inventory);
 
-    const meta       = rarityMeta(card.rarity);
     const remaining  = charges - 1;
     const chargeInfo = remaining > 0
       ? `${remaining} pull${remaining === 1 ? '' : 's'} remaining`
       : `No pulls left — next charge in ${config.PULL_COOLDOWN_SECONDS}s`;
 
     const embed = singlePullEmbed(card, isDupe, plating, chargeInfo, message.author.username);
-    return message.reply({ embeds: [embed] });
+    await message.reply({ embeds: [embed] });
+
+    if (wishGrant) {
+      const wMeta = rarityMeta(wishGrant.card.rarity);
+      const wImg  = imgCache.getImage(wishGrant.card.id) ?? wishGrant.card.image ?? null;
+      const wEmbed = new EmbedBuilder()
+        .setColor(0xFFD700)
+        .setTitle(`✨ Wish Granted! ${wishGrant.card.name}!`)
+        .setDescription(
+          `After **${inv.WISH_THRESHOLD} pulls**, your wish was granted!\n` +
+          `${wMeta.emoji} **${wMeta.label}** — ${wishGrant.card.series}\n` +
+          (wishGrant.isDupe ? `You already owned this card — **+1 Shard** added instead.` : `**${wishGrant.card.name}** added to your collection!`)
+        )
+        .setFooter({ text: 'Your wish has been cleared. Use ZP wish to set a new one!' });
+      if (wImg) wEmbed.setImage(wImg);
+      await message.reply({ embeds: [wEmbed] });
+    }
+
+    return;
   }
 
   // ── allpull | ap ──────────────────────────────────────────
@@ -1134,14 +1201,13 @@ client.on('messageCreate', async (message) => {
 
     if (charges <= 0) {
       const secsUntilNext = Math.ceil(config.PULL_COOLDOWN_SECONDS - (Date.now() - lastRefill) / 1000);
-      return message.reply(`⏳ No pulls left! Next charge in **${secsUntilNext}s**. Charges refill 1 every **${config.PULL_COOLDOWN_SECONDS}s** (max **${config.MAX_PULL_CHARGES}**).`);
+      return message.reply(`No pulls left! Next charge in **${secsUntilNext}s**.`);
     }
 
-    // If reset flag given, consume a Candy Token before pulling
     if (withReset) {
       const inventory = inv.loadInventory();
       if (!inv.removeCandyTokens(inventory, userId, 1)) {
-        return message.reply(`❌ You need a 🍬 **Candy Token** to use \`ZP ap reset\`. You currently have none.`);
+        return message.reply(`You need a 🍬 **Candy Token** to use \`ZP ap reset\`. You currently have none.`);
       }
       inv.saveInventory(inventory);
     }
@@ -1155,6 +1221,7 @@ client.on('messageCreate', async (message) => {
       results.push(executeSinglePull(inventory, userId));
     }
 
+    const wishGrant = checkAndGrantWish(inventory, userId);
     inv.saveInventory(inventory);
 
     if (withReset) {
@@ -1162,10 +1229,28 @@ client.on('messageCreate', async (message) => {
     }
 
     const overrideNote = (isAdmin(userId) && adminRarityOverride)
-      ? `🔧 Rarity locked to ${rarityMeta(adminRarityOverride).label}` : '';
+      ? `Rarity locked to ${rarityMeta(adminRarityOverride).label}` : '';
 
     const embed = allPullEmbed(results, charges, withReset, message.author.username, overrideNote);
-    return message.reply({ embeds: [embed] });
+    await message.reply({ embeds: [embed] });
+
+    if (wishGrant) {
+      const wMeta  = rarityMeta(wishGrant.card.rarity);
+      const wImg   = imgCache.getImage(wishGrant.card.id) ?? wishGrant.card.image ?? null;
+      const wEmbed = new EmbedBuilder()
+        .setColor(0xFFD700)
+        .setTitle(`✨ Wish Granted! ${wishGrant.card.name}!`)
+        .setDescription(
+          `After **${inv.WISH_THRESHOLD} pulls**, your wish was granted!\n` +
+          `${wMeta.emoji} **${wMeta.label}** — ${wishGrant.card.series}\n` +
+          (wishGrant.isDupe ? `You already owned this card — **+1 Shard** added instead.` : `**${wishGrant.card.name}** added to your collection!`)
+        )
+        .setFooter({ text: 'Your wish has been cleared. Use ZP wish to set a new one!' });
+      if (wImg) wEmbed.setImage(wImg);
+      await message.reply({ embeds: [wEmbed] });
+    }
+
+    return;
   }
 
   // ── reset ─────────────────────────────────────────────────
@@ -1173,7 +1258,7 @@ client.on('messageCreate', async (message) => {
     const inventory = inv.loadInventory();
     const tokens = inv.getCandyTokens(inventory, userId);
     if (tokens <= 0) {
-      return message.reply(`❌ You have no 🍬 **Candy Tokens**. Ask an admin to give you one!`);
+      return message.reply(`You have no 🍬 **Candy Tokens**. Ask an admin to give you one!`);
     }
     inv.removeCandyTokens(inventory, userId, 1);
     inv.saveInventory(inventory);
@@ -1181,10 +1266,75 @@ client.on('messageCreate', async (message) => {
     return message.reply(`🍬 **Candy Token** used! Your pulls have been reset to **${config.MAX_PULL_CHARGES}**. You have **${tokens - 1}** token${tokens - 1 === 1 ? '' : 's'} remaining.`);
   }
 
+  // ── wish ─────────────────────────────────────────────────
+  if (command === 'wish') {
+    const cardId = args[0]?.toLowerCase();
+    if (!cardId) {
+      const inventory = inv.loadInventory();
+      const wish      = inv.getWish(inventory, userId);
+      if (!wish) {
+        return message.reply(
+          `You have no wish set. Use \`ZP wish <cardId>\` to wish for a card.\n` +
+          `After **${inv.WISH_THRESHOLD} pulls**, you are guaranteed to receive it!`
+        );
+      }
+      const wishCard = lookupCard(wish.cardId);
+      const remaining = inv.WISH_THRESHOLD - wish.pullCount;
+      const meta = wishCard ? rarityMeta(wishCard.rarity) : { emoji: '❔' };
+      const embed = new EmbedBuilder()
+        .setColor(0xFFD700)
+        .setTitle(`✨ Your Current Wish`)
+        .setDescription(
+          `**Card:** ${meta.emoji} **${wishCard?.name ?? wish.cardId}**\n` +
+          `**Progress:** ${wish.pullCount} / ${inv.WISH_THRESHOLD} pulls\n` +
+          `**Remaining:** ${remaining} pull${remaining === 1 ? '' : 's'} until guaranteed!\n\n` +
+          `Use \`ZP wish <cardId>\` to change your wish (progress will reset).`
+        )
+        .setFooter({ text: 'Pull more cards to make progress!' });
+      const wImg = wishCard ? (imgCache.getImage(wishCard.id) ?? wishCard.image ?? null) : null;
+      if (wImg) embed.setThumbnail(wImg);
+      return message.reply({ embeds: [embed] });
+    }
+
+    const card = lookupCard(cardId);
+    if (!card) {
+      return message.reply(`No card found with id \`${cardId}\`. Use \`ZP all\` to browse available cards.`);
+    }
+
+    const inventory = inv.loadInventory();
+    if (inv.hasCard(inventory, userId, card.id)) {
+      return message.reply(`You already own **${card.name}**! Wish for a card you don't have yet.`);
+    }
+
+    inv.setWish(inventory, userId, card.id);
+    inv.saveInventory(inventory);
+
+    const meta  = rarityMeta(card.rarity);
+    const wImg  = imgCache.getImage(card.id) ?? card.image ?? null;
+    const embed = new EmbedBuilder()
+      .setColor(0xFFD700)
+      .setTitle(`✨ Wish Set — ${card.name}!`)
+      .setDescription(
+        `${meta.emoji} **${meta.label}** — ${card.series}\n\n` +
+        `Your wish is set! After **${inv.WISH_THRESHOLD} pulls**, you are guaranteed to receive **${card.name}**.\n` +
+        `Use \`ZP wish\` anytime to check your progress.`
+      )
+      .setFooter({ text: 'Keep pulling! The pity resets after you receive your wish.' });
+    if (wImg) embed.setThumbnail(wImg);
+    return message.reply({ embeds: [embed] });
+  }
+
   // ── collection | col ─────────────────────────────────────
   if (command === 'collection' || command === 'col') {
     const target  = message.mentions.users.first() ?? message.author;
     const filter  = args.filter(a => !a.startsWith('<@')).join(' ').trim();
+
+    if (target.id !== userId) {
+      const checkInv  = inv.loadInventory();
+      if (inv.getPrivacy(checkInv, target.id)) {
+        return message.reply(`**${target.username}**'s collection is set to private.`);
+      }
+    }
 
     const inventory = inv.loadInventory();
     const cards     = inv.getCards(inventory, target.id);
@@ -1205,6 +1355,34 @@ client.on('messageCreate', async (message) => {
     const expiry   = Date.now() + COLLECTION_TIMEOUT_MS;
     const { embed, components } = buildAllCardsPage(userId, allCards, 0, filter, expiry);
     return message.reply({ embeds: [embed], components });
+  }
+
+  // ── wallet | balance | bal ────────────────────────────────
+  if (command === 'wallet' || command === 'balance' || command === 'bal') {
+    const target    = message.mentions.users.first() ?? message.author;
+
+    if (target.id !== userId) {
+      const checkInv = inv.loadInventory();
+      if (inv.getPrivacy(checkInv, target.id)) {
+        return message.reply(`**${target.username}**'s wallet is set to private.`);
+      }
+    }
+
+    const inventory = inv.loadInventory();
+    const yen       = inv.getYen(inventory, target.id);
+    const stars     = inv.getStars(inventory, target.id);
+    const candy     = inv.getCandyTokens(inventory, target.id);
+
+    const embed = new EmbedBuilder()
+      .setColor(0xF1C40F)
+      .setTitle(`💰 ${target.username}'s Wallet`)
+      .addFields(
+        { name: '💴 Yen',           value: `¥${yen.toLocaleString()}`,   inline: true },
+        { name: '⭐ Stars',          value: stars.toLocaleString(),       inline: true },
+        { name: '🍬 Candy Tokens',  value: candy.toLocaleString(),       inline: true },
+      )
+      .setFooter({ text: 'Earn yen from fights and kills • Stars from fights' });
+    return message.reply({ embeds: [embed] });
   }
 
   // ── inventory | inv ───────────────────────────────────────
@@ -1229,11 +1407,11 @@ client.on('messageCreate', async (message) => {
         name: `🪙 Platings (${totalPlatings} total)`,
         value: config.PLATING_TIERS
           .filter(t => platingsObj[t.id] > 0)
-          .map(t => `${t.emoji} **${t.label}** — ×${platingsObj[t.id]}`)
+          .map(t => `${t.emoji} **${t.label}** — x${platingsObj[t.id]}`)
           .join('\n'),
         inline: false,
       })
-      .setFooter({ text: 'Platings drop at 0.1% chance per pull • Use ZP equip to apply one' });
+      .setFooter({ text: 'Platings drop at 0.1% chance per pull' });
     return message.reply({ embeds: [embed] });
   }
 
@@ -1290,7 +1468,7 @@ client.on('messageCreate', async (message) => {
     for (const [rarity, group] of Object.entries(grouped)) {
       if (group.length === 0) continue;
       const meta = rarityMeta(rarity);
-      let value  = group.map(s => `${s.emoji ? s.emoji + ' ' : ''}${s.name} — ×${s.count}`).join('\n');
+      let value  = group.map(s => `${s.emoji ? s.emoji + ' ' : ''}${s.name} — x${s.count}`).join('\n');
       if (value.length > 1024) value = value.slice(0, 1020) + '\n…';
       embed.addFields({ name: `${meta.emoji} ${meta.label}`, value, inline: true });
     }
@@ -1312,8 +1490,8 @@ client.on('messageCreate', async (message) => {
 
     const lines = entries.map(([itemId, count]) => {
       const item = config.ITEMS.find(i => i.id === itemId);
-      if (!item) return `\`${itemId}\` — ×${count}`;
-      return `${item.emoji} **${item.name}** — ×${count}\n*${item.desc}*\nUse: \`ZP use ${item.id}\``;
+      if (!item) return `\`${itemId}\` — x${count}`;
+      return `${item.emoji} **${item.name}** — x${count}\n*${item.desc}*\nUse: \`ZP use ${item.id}\``;
     }).join('\n\n');
 
     const embed = new EmbedBuilder()
@@ -1330,12 +1508,12 @@ client.on('messageCreate', async (message) => {
     if (!itemId) return message.reply('Usage: `ZP use <itemId>` — check `ZP items` to see what you have.');
 
     const item = config.ITEMS.find(i => i.id === itemId);
-    if (!item) return message.reply(`❌ Unknown item \`${itemId}\`. Check \`ZP items\` for your available items.`);
+    if (!item) return message.reply(`Unknown item \`${itemId}\`. Check \`ZP items\` for your available items.`);
 
     const inventory = inv.loadInventory();
 
     if (!inv.removeItem(inventory, userId, itemId)) {
-      return message.reply(`❌ You don't have **${item.emoji} ${item.name}**. Items are granted by admins for special events!`);
+      return message.reply(`You don't have **${item.emoji} ${item.name}**. Items are granted by admins for special events!`);
     }
 
     const card     = CARDS.find(c => c.id === item.cardId);
@@ -1363,15 +1541,15 @@ client.on('messageCreate', async (message) => {
     if (!cardId) return message.reply('Usage: `ZP card <cardId>` or `ZP c <cardId>`');
 
     const card = lookupCard(cardId);
-    if (!card) return message.reply(`❌ No card found with id \`${cardId}\`. Check \`ZP col\` for your card IDs.`);
+    if (!card) return message.reply(`No card found with id \`${cardId}\`. Check \`ZP col\` for your card IDs.`);
 
-    const inventory = inv.loadInventory();
-    const owned     = inv.hasCard(inventory, userId, card.id);
-    const shards    = inv.getCharacterShards(inventory, userId)[card.id] ?? 0;
-    const level     = owned ? (inv.getCardLevel(inventory, userId, card.id) ?? 1) : 1;
-    const embed     = cardEmbed(card, undefined, undefined, level);
+    const inventory  = inv.loadInventory();
+    const owned      = inv.hasCard(inventory, userId, card.id);
+    const shards     = inv.getCharacterShards(inventory, userId)[card.id] ?? 0;
+    const level      = owned ? (inv.getCardLevel(inventory, userId, card.id) ?? 1) : 1;
+    const personalCap = owned ? inv.getPersonalLevelCap(inventory, userId, card.id) : inv.MAX_CARD_LEVEL;
+    const embed      = cardEmbed(card, undefined, undefined, level, personalCap);
 
-    // Check if the card is on the user's team with a plating equipped
     if (owned) {
       const team     = inv.getTeam(inventory, userId);
       const slot     = team.find(s => s.cardId === card.id);
@@ -1382,22 +1560,115 @@ client.on('messageCreate', async (message) => {
         const platedDmg  = Math.round(base.dmg * tierData.statMult);
         embed.addFields({
           name: `${tierData.emoji} ${tierData.label} Plating (in battle)`,
-          value: `❤️ **${platedHp}** HP  ⚔️ **${platedDmg}** DMG  *(×${tierData.statMult} boost)*`,
+          value: `❤️ **${platedHp}** HP  ⚔️ **${platedDmg}** DMG  *(x${tierData.statMult} boost)*`,
           inline: false,
         });
       }
     }
 
     const shardEmoji = emojiCache.getEmoji(card.id) ?? '';
-    const shardInfo = shards > 0 ? ` • ${shardEmoji ? shardEmoji + ' ' : ''}×${shards} shard${shards === 1 ? '' : 's'}` : '';
-    const lvlInfo   = owned ? ` • 📊 Lv. ${level}` : '';
-    const absorbHint = owned && shards > 0 && level < inv.MAX_CARD_LEVEL
+    const shardInfo  = shards > 0 ? ` • ${shardEmoji ? shardEmoji + ' ' : ''}x${shards} shard${shards === 1 ? '' : 's'}` : '';
+    const lvlInfo    = owned ? ` • Lv. ${level}` : '';
+    const absorbHint = owned && shards > 0 && level < personalCap
       ? ` • Use \`ZP absorb shard:${card.id}:${shards}\` to level up!`
       : '';
-    const status    = owned
-      ? `✅ In your collection${lvlInfo}${shardInfo}${absorbHint}`
-      : '❌ Not in your collection';
+    const status = owned
+      ? `In your collection${lvlInfo}${shardInfo}${absorbHint}`
+      : 'Not in your collection';
     embed.setFooter({ text: status });
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── mycard | mc ───────────────────────────────────────────
+  if (command === 'mycard' || command === 'mc') {
+    const cardId = args[0];
+    if (!cardId) return message.reply('Usage: `ZP mycard <cardId>` or `ZP mc <cardId>`');
+
+    const card = lookupCard(cardId);
+    if (!card) return message.reply(`No card found with id \`${cardId}\`.`);
+
+    const inventory = inv.loadInventory();
+    if (!inv.hasCard(inventory, userId, card.id)) {
+      return message.reply(`You don't own **${card.name}**. Use \`ZP card ${card.id}\` to view its base info.`);
+    }
+
+    const meta        = rarityMeta(card.rarity);
+    const level       = inv.getCardLevel(inventory, userId, card.id) ?? 1;
+    const personalCap = inv.getPersonalLevelCap(inventory, userId, card.id);
+    const stats       = getCardStats(card, level);
+    const shards      = inv.getCharacterShards(inventory, userId)[card.id] ?? 0;
+    const pp          = inv.getPrestigePoints(inventory, userId)[card.id] ?? 0;
+    const isMax       = level >= personalCap;
+    const levelLabel  = isMax ? `✨ MAX (${level}/${personalCap})` : `Lv. ${level} / ${personalCap}`;
+    const img         = imgCache.getImage(card.id) ?? card.image ?? null;
+
+    const team     = inv.getTeam(inventory, userId);
+    const slot     = team.find(s => s.cardId === card.id);
+    const tierData = slot?.plating ? config.PLATING_TIERS.find(t => t.id === slot.plating) : null;
+
+    const embed = new EmbedBuilder()
+      .setColor(meta.color)
+      .setTitle(`${meta.emoji} ${card.name} (Your Card)`)
+      .addFields(
+        { name: 'Series',           value: card.series,                    inline: true },
+        { name: 'Rarity',           value: `${meta.emoji} ${meta.label}`, inline: true },
+        { name: 'Stars',            value: meta.stars || '—',              inline: true },
+        { name: '📊 Level',         value: levelLabel,                     inline: true },
+        { name: '❤️ Health',        value: `${stats.hp}`,                 inline: true },
+        { name: '⚔️ Damage',        value: `${stats.dmg}`,                inline: true },
+        { name: '✨ Prestige Points', value: `${pp}`,                      inline: true },
+        { name: '🔮 Shards',        value: `${shards}`,                   inline: true },
+        { name: '🪙 Plating',       value: tierData ? `${tierData.emoji} ${tierData.label}` : 'None', inline: true },
+      );
+
+    if (tierData) {
+      const base       = getCardStats(card, level);
+      const platedHp   = Math.round(base.hp  * tierData.statMult);
+      const platedDmg  = Math.round(base.dmg * tierData.statMult);
+      embed.addFields({
+        name: `${tierData.emoji} Battle Stats (with plating)`,
+        value: `❤️ **${platedHp}** HP  ⚔️ **${platedDmg}** DMG  *(x${tierData.statMult} boost)*`,
+        inline: false,
+      });
+    }
+
+    if (img) embed.setThumbnail(img);
+    embed.setFooter({ text: `Use ZP kill ${card.id} to gain prestige points!` });
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── cardinfo | ci ─────────────────────────────────────────
+  if (command === 'cardinfo' || command === 'ci') {
+    const cardId = args[0];
+    if (!cardId) return message.reply('Usage: `ZP cardinfo <cardId>` or `ZP ci <cardId>`');
+
+    const card = lookupCard(cardId);
+    if (!card) return message.reply(`No card found with id \`${cardId}\`. Use \`ZP all\` to browse cards.`);
+
+    const meta  = rarityMeta(card.rarity);
+    const stats = getCardStats(card, 1);
+    const img   = imgCache.getImage(card.id) ?? card.image ?? null;
+
+    const embed = new EmbedBuilder()
+      .setColor(meta.color)
+      .setTitle(`${meta.emoji} ${card.name}`)
+      .setDescription(card.description || 'No description available.')
+      .addFields(
+        { name: 'Series',      value: card.series,                    inline: true },
+        { name: 'Rarity',      value: `${meta.emoji} ${meta.label}`, inline: true },
+        { name: 'Stars',       value: meta.stars || '—',              inline: true },
+        { name: '❤️ Base HP',  value: `${stats.hp}`,                 inline: true },
+        { name: '⚔️ Base DMG', value: `${stats.dmg}`,                inline: true },
+        { name: '🪪 Card ID',  value: `\`${card.id}\``,              inline: true },
+        {
+          name: '💀 Kill Value',
+          value: `¥${(KILL_YEN[card.rarity] ?? 50).toLocaleString()} yen per shard`,
+          inline: true,
+        },
+      )
+      .setFooter({ text: `Pull rate: ${config.PULL_RATES[card.rarity] ?? '?'}%` });
+
+    if (img) embed.setThumbnail(img);
     return message.reply({ embeds: [embed] });
   }
 
@@ -1406,47 +1677,51 @@ client.on('messageCreate', async (message) => {
     const raw = args[0];
     if (!raw) {
       return message.reply(
-        '❌ Usage: `ZP absorb shard:<cardId>:<count>`\n' +
+        'Usage: `ZP absorb shard:<cardId>:<count>`\n' +
         'Example: `ZP absorb shard:naruto_r:5` — spend 5 Naruto shards to gain 5 levels.'
       );
     }
 
     const parts = raw.split(':');
     if (parts.length !== 3 || parts[0].toLowerCase() !== 'shard') {
-      return message.reply('❌ Invalid format. Usage: `ZP absorb shard:<cardId>:<count>`');
+      return message.reply('Invalid format. Usage: `ZP absorb shard:<cardId>:<count>`');
     }
 
     const cardId = parts[1].toLowerCase();
     const count  = parseInt(parts[2], 10);
     if (isNaN(count) || count < 1) {
-      return message.reply('❌ Count must be a positive number.');
+      return message.reply('Count must be a positive number.');
     }
 
     const card = lookupCard(cardId);
     if (!card) {
-      return message.reply(`❌ No card found with id \`${cardId}\`. Check \`ZP col\` for valid IDs.`);
+      return message.reply(`No card found with id \`${cardId}\`. Check \`ZP col\` for valid IDs.`);
     }
 
     const inventory = inv.loadInventory();
 
     if (!inv.hasCard(inventory, userId, card.id)) {
-      return message.reply(`❌ You don't own **${card.name}**. You must collect the card before levelling it up.`);
+      return message.reply(`You don't own **${card.name}**. You must collect the card before levelling it up.`);
     }
 
     const currentLevel = inv.getCardLevel(inventory, userId, card.id) ?? 1;
+    const personalCap  = inv.getPersonalLevelCap(inventory, userId, card.id);
 
-    if (currentLevel >= inv.MAX_CARD_LEVEL) {
-      return message.reply(`✨ **${card.name}** is already at the maximum level (${inv.MAX_CARD_LEVEL})!`);
+    if (currentLevel >= personalCap) {
+      return message.reply(
+        `**${card.name}** is already at the maximum level (${personalCap})!\n` +
+        `Use \`ZP increaselevelcap ${card.id} <amount>\` to raise the cap using shards.`
+      );
     }
 
     const shards = inv.getCharacterShards(inventory, userId)[card.id] ?? 0;
     if (shards < count) {
-      return message.reply(`❌ You only have **${shards}** ${card.name} shard${shards === 1 ? '' : 's'} but tried to absorb **${count}**.`);
+      return message.reply(`You only have **${shards}** ${card.name} shard${shards === 1 ? '' : 's'} but tried to absorb **${count}**.`);
     }
 
-    const levelsGained  = Math.min(count, inv.MAX_CARD_LEVEL - currentLevel);
-    const shardsSpent   = levelsGained;
-    const newLevel      = currentLevel + levelsGained;
+    const levelsGained = Math.min(count, personalCap - currentLevel);
+    const shardsSpent  = levelsGained;
+    const newLevel     = currentLevel + levelsGained;
 
     inv.removeCharacterShards(inventory, userId, card.id, shardsSpent);
     inv.setCardLevel(inventory, userId, card.id, newLevel);
@@ -1455,7 +1730,7 @@ client.on('messageCreate', async (message) => {
     const meta     = rarityMeta(card.rarity);
     const oldStats = getCardStats(card, currentLevel);
     const newStats = getCardStats(card, newLevel);
-    const maxNote  = newLevel >= inv.MAX_CARD_LEVEL ? '\n✨ **MAX LEVEL REACHED!**' : '';
+    const maxNote  = newLevel >= personalCap ? '\n✨ **LEVEL CAP REACHED!** Use `ZP ilc` to raise it.' : '';
 
     const embed = new EmbedBuilder()
       .setColor(meta.color)
@@ -1464,23 +1739,265 @@ client.on('messageCreate', async (message) => {
         `**${currentLevel}** → **${newLevel}** *(+${levelsGained} level${levelsGained === 1 ? '' : 's'})*${maxNote}`
       )
       .addFields(
-        { name: 'Shards Spent',  value: `${shardsSpent}`,                                              inline: true },
-        { name: 'Shards Left',   value: `${shards - shardsSpent}`,                                     inline: true },
-        { name: '\u200b',           value: '\u200b',                                                      inline: true },
-        { name: '❤️ HP',            value: `${oldStats.hp} → **${newStats.hp}**`,                        inline: true },
-        { name: '⚔️ Damage',        value: `${oldStats.dmg} → **${newStats.dmg}**`,                      inline: true },
+        { name: 'Shards Spent',  value: `${shardsSpent}`,                  inline: true },
+        { name: 'Shards Left',   value: `${shards - shardsSpent}`,         inline: true },
+        { name: '\u200b',           value: '\u200b',                          inline: true },
+        { name: '❤️ HP',            value: `${oldStats.hp} → **${newStats.hp}**`,  inline: true },
+        { name: '⚔️ Damage',        value: `${oldStats.dmg} → **${newStats.dmg}**`, inline: true },
       );
 
     const img = imgCache.getImage(card.id) ?? card.image ?? null;
     if (img) embed.setThumbnail(img);
 
-    if (levelsGained < count) {
-      embed.setFooter({ text: `Only ${levelsGained} of ${count} shards used — card is now at max level.` });
-    } else {
-      const remaining = inv.MAX_CARD_LEVEL - newLevel;
-      embed.setFooter({ text: remaining > 0 ? `${remaining} more level${remaining === 1 ? '' : 's'} to MAX` : 'MAX LEVEL!' });
+    const remaining = personalCap - newLevel;
+    embed.setFooter({
+      text: levelsGained < count
+        ? `Only ${levelsGained} of ${count} shards used — card is at cap.`
+        : remaining > 0
+          ? `${remaining} more level${remaining === 1 ? '' : 's'} to cap (${personalCap})`
+          : `Level cap reached! Use ZP ilc to raise it.`,
+    });
+
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── increaselevelcap | ilc ────────────────────────────────
+  if (command === 'increaselevelcap' || command === 'ilc') {
+    const cardId = args[0]?.toLowerCase();
+    const count  = parseInt(args[1], 10);
+
+    if (!cardId || isNaN(count) || count < 1) {
+      return message.reply(
+        'Usage: `ZP increaselevelcap <cardId> <amount>` or `ZP ilc <cardId> <amount>`\n' +
+        'Spend **1 shard** of the card to raise its level cap by **1**.\n' +
+        'Example: `ZP ilc naruto_r 10` — spend 10 Naruto R shards to raise cap to 110.'
+      );
     }
 
+    const card = lookupCard(cardId);
+    if (!card) return message.reply(`No card found with id \`${cardId}\`.`);
+
+    const inventory = inv.loadInventory();
+
+    if (!inv.hasCard(inventory, userId, card.id)) {
+      return message.reply(`You don't own **${card.name}**. Collect it first!`);
+    }
+
+    const shards = inv.getCharacterShards(inventory, userId)[card.id] ?? 0;
+    if (shards < count) {
+      return message.reply(`You only have **${shards}** ${card.name} shard${shards === 1 ? '' : 's'} but tried to use **${count}**.`);
+    }
+
+    const currentCap = inv.getPersonalLevelCap(inventory, userId, card.id);
+
+    inv.removeCharacterShards(inventory, userId, card.id, count);
+    inv.increaseLevelCap(inventory, userId, card.id, count);
+    inv.saveInventory(inventory);
+
+    const newCap = currentCap + count;
+    const meta   = rarityMeta(card.rarity);
+    const img    = imgCache.getImage(card.id) ?? card.image ?? null;
+
+    const embed = new EmbedBuilder()
+      .setColor(meta.color)
+      .setTitle(`📊 ${card.name} — Level Cap Increased!`)
+      .setDescription(
+        `Level cap raised from **${currentCap}** → **${newCap}**!\n` +
+        `Used **${count}** ${card.name} shard${count === 1 ? '' : 's'}.\n\n` +
+        `You can now level **${card.name}** up to **Lv. ${newCap}** using \`ZP absorb\`!`
+      )
+      .addFields(
+        { name: 'Shards Used',  value: `${count}`,         inline: true },
+        { name: 'Shards Left',  value: `${shards - count}`, inline: true },
+        { name: 'New Cap',      value: `Lv. ${newCap}`,    inline: true },
+      )
+      .setFooter({ text: `Card: ${card.id}` });
+    if (img) embed.setThumbnail(img);
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── kill ─────────────────────────────────────────────────
+  if (command === 'kill') {
+    // Usage: ZP kill <killerCardId> <targetShardId>:<count>
+    const killerCardId = args[0]?.toLowerCase();
+    const shardArg     = args[1];
+
+    if (!killerCardId || !shardArg) {
+      return message.reply(
+        'Usage: `ZP kill <killerCardId> <shardCardId>:<count>`\n' +
+        'Use a card to destroy shards and earn **yen** + **prestige points** on the killer card.\n' +
+        'Example: `ZP kill naruto_r sasuke_r:5` — Naruto R kills 5 Sasuke R shards.'
+      );
+    }
+
+    const shardParts = shardArg.split(':');
+    if (shardParts.length !== 2) {
+      return message.reply('Invalid format. Use `ZP kill <killerCardId> <shardCardId>:<count>`');
+    }
+
+    const targetShardId = shardParts[0].toLowerCase();
+    const count         = parseInt(shardParts[1], 10);
+
+    if (isNaN(count) || count < 1) {
+      return message.reply('Count must be a positive number.');
+    }
+
+    const killerCard = lookupCard(killerCardId);
+    if (!killerCard) return message.reply(`No card found with id \`${killerCardId}\`.`);
+
+    const targetCard = lookupCard(targetShardId);
+    if (!targetCard) return message.reply(`No card found with shard id \`${targetShardId}\`.`);
+
+    const inventory = inv.loadInventory();
+
+    if (!inv.hasCard(inventory, userId, killerCard.id)) {
+      return message.reply(`You don't own **${killerCard.name}**. You need to own the killer card!`);
+    }
+
+    const shards = inv.getCharacterShards(inventory, userId)[targetCard.id] ?? 0;
+    if (shards < count) {
+      return message.reply(`You only have **${shards}** ${targetCard.name} shard${shards === 1 ? '' : 's'} but tried to kill **${count}**.`);
+    }
+
+    const yenPerShard = KILL_YEN[targetCard.rarity] ?? 50;
+    const totalYen    = yenPerShard * count;
+
+    inv.removeCharacterShards(inventory, userId, targetCard.id, count);
+    inv.addYen(inventory, userId, totalYen);
+    inv.addPrestigePoints(inventory, userId, killerCard.id, count);
+    inv.incrementTotalKills(inventory, userId, count);
+    inv.saveInventory(inventory);
+
+    const killerMeta = rarityMeta(killerCard.rarity);
+    const targetMeta = rarityMeta(targetCard.rarity);
+    const targetEmoji = emojiCache.getEmoji(targetCard.id) ?? '';
+    const newPP       = inv.getPrestigePoints(inv.loadInventory(), userId)[killerCard.id] ?? 0;
+    const img         = imgCache.getImage(killerCard.id) ?? killerCard.image ?? null;
+
+    const embed = new EmbedBuilder()
+      .setColor(killerMeta.color)
+      .setTitle(`⚔️ ${killerCard.name} killed ${count} shard${count === 1 ? '' : 's'}!`)
+      .setDescription(
+        `${killerMeta.emoji} **${killerCard.name}** destroyed **${count}** ${targetEmoji} ${targetMeta.emoji} **${targetCard.name}** shard${count === 1 ? '' : 's'}!`
+      )
+      .addFields(
+        { name: '💴 Yen Earned',        value: `¥${totalYen.toLocaleString()} (¥${yenPerShard} per shard)`, inline: true },
+        { name: '✨ Prestige Points',   value: `+${count} → **${newPP}** total on ${killerCard.name}`,       inline: true },
+        { name: `${targetEmoji} Shards Left`, value: `${shards - count}`,                                 inline: true },
+      )
+      .setFooter({ text: 'Prestige points are tracked per killer card!' });
+
+    if (img) embed.setThumbnail(img);
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── profile | pro ─────────────────────────────────────────
+  if (command === 'profile' || command === 'pro') {
+    const target = message.mentions.users.first() ?? message.author;
+
+    if (target.id !== userId) {
+      const checkInv = inv.loadInventory();
+      if (inv.getPrivacy(checkInv, target.id)) {
+        return message.reply(`**${target.username}**'s profile is set to private.`);
+      }
+    }
+
+    const inventory   = inv.loadInventory();
+    const cards       = inv.getCards(inventory, target.id);
+    const charShards  = inv.getCharacterShards(inventory, target.id);
+    const totalShards = Object.values(charShards).reduce((s, n) => s + n, 0);
+    const yen         = inv.getYen(inventory, target.id);
+    const stars       = inv.getStars(inventory, target.id);
+    const totalPulls  = inv.getTotalPulls(inventory, target.id);
+    const totalKills  = inventory.users[target.id]?.totalKills ?? 0;
+    const wish        = inv.getWish(inventory, target.id);
+    const isPrivate   = inv.getPrivacy(inventory, target.id);
+    const clan        = inv.getUserClan(inventory, target.id);
+    const duo         = inv.getUserDuo(inventory, target.id);
+    const team        = inv.getTeam(inventory, target.id);
+
+    // Top prestige card
+    const ppObj     = inv.getPrestigePoints(inventory, target.id);
+    const topPPEntry = Object.entries(ppObj).sort((a, b) => b[1] - a[1])[0];
+    const topPPCard  = topPPEntry ? lookupCard(topPPEntry[0]) : null;
+    const topPPVal   = topPPEntry ? topPPEntry[1] : 0;
+
+    // Rarity breakdown
+    const rarityCounts = {};
+    for (const c of cards) rarityCounts[c.rarity] = (rarityCounts[c.rarity] ?? 0) + 1;
+    const rarityStr = RARITY_ORDER
+      .filter(r => rarityCounts[r])
+      .map(r => `${rarityMeta(r).emoji} ${rarityCounts[r]}`)
+      .join('  ') || 'None';
+
+    // Wish info
+    let wishStr = 'None set';
+    if (wish) {
+      const wCard = lookupCard(wish.cardId);
+      wishStr = `${wCard?.name ?? wish.cardId} (${wish.pullCount}/${inv.WISH_THRESHOLD} pulls)`;
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor(0x00FFD1)
+      .setTitle(`📋 ${target.username}'s Profile`)
+      .setThumbnail(target.displayAvatarURL())
+      .addFields(
+        { name: '🃏 Cards Collected',    value: `${cards.length}`,              inline: true },
+        { name: '🔮 Total Shards',       value: `${totalShards}`,               inline: true },
+        { name: '⚔️ Team Size',          value: `${team.length} / ${inv.TEAM_SIZE}`, inline: true },
+        { name: '💴 Yen',                value: `¥${yen.toLocaleString()}`,      inline: true },
+        { name: '⭐ Stars',              value: stars.toLocaleString(),           inline: true },
+        { name: '🎴 Total Pulls',        value: totalPulls.toLocaleString(),      inline: true },
+        { name: '💀 Total Kills',        value: totalKills.toLocaleString(),      inline: true },
+        { name: '✨ Rarity Breakdown',   value: rarityStr,                        inline: false },
+        { name: '🌠 Wish Progress',      value: wishStr,                          inline: false },
+        { name: '🏛️ Clan',              value: clan ? clan.name : 'None',        inline: true },
+        { name: '🤝 Duo Partner',        value: duo ? duo.members.filter(id => id !== target.id).map(id => `<@${id}>`).join(', ') || 'Unknown' : 'None', inline: true },
+      );
+
+    if (topPPCard) {
+      embed.addFields({
+        name: '🏆 Top Prestige Card',
+        value: `${rarityMeta(topPPCard.rarity).emoji} **${topPPCard.name}** — ${topPPVal} prestige points`,
+        inline: false,
+      });
+    }
+
+    embed.setFooter({ text: isPrivate ? '🔒 This profile is private' : '🔓 Profile is public • Use ZP privacy to toggle' });
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── vote ─────────────────────────────────────────────────
+  if (command === 'vote') {
+    const embed = new EmbedBuilder()
+      .setColor(0xFFD700)
+      .setTitle('🗳️ Vote for the Bot!')
+      .setDescription(
+        'Support the bot by voting on top.gg! Voting helps the bot grow and may earn you extra pull charges.\n\n' +
+        '**Vote here:** https://top.gg/bot/1258837227971022970/vote\n\n' +
+        'Thank you for your support!'
+      )
+      .setFooter({ text: 'Voting resets every 12 hours' });
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── privacy ───────────────────────────────────────────────
+  if (command === 'privacy') {
+    const inventory  = inv.loadInventory();
+    const current    = inv.getPrivacy(inventory, userId);
+    const newVal     = !current;
+    inv.setPrivacy(inventory, userId, newVal);
+    inv.saveInventory(inventory);
+
+    const embed = new EmbedBuilder()
+      .setColor(newVal ? 0x888888 : 0x00FFD1)
+      .setTitle(`${newVal ? '🔒' : '🔓'} Privacy ${newVal ? 'Enabled' : 'Disabled'}`)
+      .setDescription(
+        newVal
+          ? 'Your profile, collection, and wallet are now **private**. Other players cannot view them.'
+          : 'Your profile, collection, and wallet are now **public**. Other players can view them.'
+      )
+      .setFooter({ text: 'Use ZP privacy again to toggle' });
     return message.reply({ embeds: [embed] });
   }
 
@@ -1488,7 +2005,6 @@ client.on('messageCreate', async (message) => {
   if (command === 'team') {
     const sub = args[0]?.toLowerCase();
 
-    // ── ZP team (view) ─────────────────────────────────────
     if (!sub || sub === 'view') {
       const target    = message.mentions.users.first() ?? message.author;
       const inventory = inv.loadInventory();
@@ -1500,7 +2016,7 @@ client.on('messageCreate', async (message) => {
         .setTitle(`⚔️ ${target.username}'s Team`);
 
       if (resolved.length === 0) {
-        embed.setDescription(`No cards on this team yet.\nUse \`ZP team add <cardId>\` to add up to ${inv.TEAM_SIZE} cards.`);
+        embed.setDescription(`No cards on this team yet.\nUse \`ZP team add <cardId>\` or \`ZP add <cardId>\` to add up to ${inv.TEAM_SIZE} cards.`);
       } else {
         let totalPower = 0;
         const lines = resolved.map((slot, i) => {
@@ -1510,486 +2026,849 @@ client.on('messageCreate', async (message) => {
           totalPower   += power;
           const plating = slot.plating ? config.PLATING_TIERS.find(t => t.id === slot.plating) : null;
           const platStr = plating ? ` ${plating.emoji}` : '';
-          return `${i + 1}. ${meta.emoji} **${slot.card.name}**${platStr} — Lv.${slot.level} • ⚡ ${Math.round(power).toLocaleString()} power`;
+          const cap     = inv.getPersonalLevelCap(inventory, target.id, slot.cardId);
+          return `${i + 1}. ${meta.emoji} **${slot.card.name}**${platStr} — Lv.${slot.level}/${cap} • ⚡ ${Math.round(power).toLocaleString()} power`;
         });
         embed.setDescription(lines.join('\n'));
         embed.addFields({ name: '⚡ Total Power', value: Math.round(totalPower).toLocaleString(), inline: true });
         if (resolved.length < inv.TEAM_SIZE) {
           embed.addFields({ name: '📋 Slots', value: `${resolved.length} / ${inv.TEAM_SIZE}`, inline: true });
-        } else {
-          embed.addFields({ name: '✅ Ready to Fight!', value: `Use \`ZP fight @user\``, inline: true });
         }
       }
-      embed.setFooter({ text: `team add <id> • team remove <id> • team equip <id> <plating> • team unequip <id>` });
+      embed.setFooter({ text: 'Use ZP add <cardId> to add cards • ZP swap <id1> <id2> to swap positions' });
       return message.reply({ embeds: [embed] });
     }
 
-    // ── ZP team add <cardId> ────────────────────────────────
+    // ── ZP team add ───────────────────────────────────────
     if (sub === 'add') {
       const cardId = args[1]?.toLowerCase();
       if (!cardId) return message.reply('Usage: `ZP team add <cardId>`');
 
       const card = lookupCard(cardId);
-      if (!card) return message.reply(`❌ No card found with id \`${cardId}\`.`);
+      if (!card) return message.reply(`No card found with id \`${cardId}\`.`);
 
       const inventory = inv.loadInventory();
       if (!inv.hasCard(inventory, userId, card.id)) {
-        return message.reply(`❌ You don't own **${card.name}**. Pull it first!`);
+        return message.reply(`You don't own **${card.name}**.`);
       }
 
       const result = inv.addToTeam(inventory, userId, card.id);
       inv.saveInventory(inventory);
 
-      if (result === 'already_on_team') return message.reply(`❌ **${card.name}** is already on your team.`);
-      if (result === 'full') return message.reply(`❌ Your team is full (${inv.TEAM_SIZE}/${inv.TEAM_SIZE}). Remove a card first with \`ZP team remove <cardId>\`.`);
-
-      const team = inv.getTeam(inventory, userId);
-      const meta = rarityMeta(card.rarity);
-      return message.reply(`✅ ${meta.emoji} **${card.name}** added to your team! (${team.length}/${inv.TEAM_SIZE})`);
+      if (result === 'added')          return message.reply(`**${card.name}** added to your team!`);
+      if (result === 'full')           return message.reply(`Your team is full (${inv.TEAM_SIZE}/${inv.TEAM_SIZE}). Remove a card first.`);
+      if (result === 'already_on_team') return message.reply(`**${card.name}** is already on your team.`);
     }
 
-    // ── ZP team remove <cardId> ─────────────────────────────
+    // ── ZP team remove ────────────────────────────────────
     if (sub === 'remove') {
       const cardId = args[1]?.toLowerCase();
       if (!cardId) return message.reply('Usage: `ZP team remove <cardId>`');
 
       const card = lookupCard(cardId);
-      const name = card?.name ?? cardId;
+      if (!card) return message.reply(`No card found with id \`${cardId}\`.`);
 
       const inventory = inv.loadInventory();
-      const removed   = inv.removeFromTeam(inventory, userId, cardId);
-      if (!removed) return message.reply(`❌ **${name}** is not on your team.`);
+      const slot      = inv.removeFromTeam(inventory, userId, card.id);
+      if (!slot) return message.reply(`**${card.name}** is not on your team.`);
+
+      if (slot.plating) {
+        inv.addPlating(inventory, userId, slot.plating);
+        const tier = config.PLATING_TIERS.find(t => t.id === slot.plating);
+        inv.saveInventory(inventory);
+        return message.reply(`**${card.name}** removed from your team. **${tier?.emoji} ${tier?.label} Plating** returned to inventory.`);
+      }
 
       inv.saveInventory(inventory);
-      const platReturn = removed.plating
-        ? ` Your ${config.PLATING_TIERS.find(t => t.id === removed.plating)?.emoji ?? ''} **${removed.plating}** plating was returned to your inventory.`
-        : '';
-      return message.reply(`✅ **${name}** removed from your team.${platReturn}`);
+      return message.reply(`**${card.name}** removed from your team.`);
     }
 
-    // ── ZP team equip <cardId> <platingTier> ───────────────
+    // ── ZP team equip ─────────────────────────────────────
     if (sub === 'equip') {
-      const cardId = args[1]?.toLowerCase();
-      const tierId = args[2]?.toLowerCase();
-      if (!cardId || !tierId) return message.reply('Usage: `ZP team equip <cardId> <bronze|silver|gold|diamond>`');
+      const cardId     = args[1]?.toLowerCase();
+      const platingStr = args[2]?.toLowerCase();
+      if (!cardId || !platingStr) return message.reply('Usage: `ZP team equip <cardId> <plating>` — valid platings: `bronze` `silver` `gold` `diamond`');
 
-      const card = lookupCard(cardId);
-      if (!card) return message.reply(`❌ No card found with id \`${cardId}\`.`);
+      const card    = lookupCard(cardId);
+      if (!card)    return message.reply(`No card found with id \`${cardId}\`.`);
 
-      const tier = config.PLATING_TIERS.find(t => t.id === tierId);
-      if (!tier) return message.reply(`❌ Unknown plating tier \`${tierId}\`. Valid: ${config.PLATING_TIERS.map(t => t.id).join(', ')}`);
+      const tier    = platingById(platingStr);
+      if (!tier)    return message.reply(`Unknown plating \`${platingStr}\`. Valid: \`bronze\` \`silver\` \`gold\` \`diamond\``);
 
       const inventory = inv.loadInventory();
       const result    = inv.equipPlatingToTeam(inventory, userId, card.id, tier.id);
       inv.saveInventory(inventory);
 
-      if (result === 'not_on_team')      return message.reply(`❌ **${card.name}** is not on your team. Add it first with \`ZP team add ${card.id}\`.`);
-      if (result === 'no_plating')       return message.reply(`❌ You don't have a **${tier.label}** plating in your inventory.`);
-      if (result === 'already_equipped') {
-        const existSlot = inv.getTeam(inventory, userId).find(s => s.cardId === card.id);
-        const existing  = config.PLATING_TIERS.find(t => t.id === existSlot?.plating);
-        return message.reply(`❌ **${card.name}** already has a ${existing?.emoji ?? ''} **${existing?.label ?? 'plating'}** equipped. Unequip it first with \`ZP team unequip ${card.id}\`.`);
-      }
-
-      const mult = tier.statMult;
-      return message.reply(`${tier.emoji} **${tier.label}** plating equipped to **${card.name}**! Stats in battle: ×${mult} (+${Math.round((mult - 1) * 100)}%)`);
+      if (result === 'equipped')        return message.reply(`${tier.emoji} **${tier.label} Plating** equipped to **${card.name}**!`);
+      if (result === 'not_on_team')     return message.reply(`**${card.name}** is not on your team.`);
+      if (result === 'no_plating')      return message.reply(`You don't have a **${tier.label} Plating** in your inventory.`);
+      if (result === 'already_equipped') return message.reply(`**${card.name}** already has a plating equipped. Unequip it first.`);
     }
 
-    // ── ZP team unequip <cardId> ────────────────────────────
+    // ── ZP team unequip ───────────────────────────────────
     if (sub === 'unequip') {
       const cardId = args[1]?.toLowerCase();
       if (!cardId) return message.reply('Usage: `ZP team unequip <cardId>`');
 
       const card = lookupCard(cardId);
-      const name = card?.name ?? cardId;
+      if (!card) return message.reply(`No card found with id \`${cardId}\`.`);
 
       const inventory = inv.loadInventory();
-      const returned  = inv.unequipPlatingFromTeam(inventory, userId, cardId);
+      const tier      = inv.unequipPlatingFromTeam(inventory, userId, card.id);
       inv.saveInventory(inventory);
 
-      if (!returned) return message.reply(`❌ **${name}** has no plating equipped (or is not on your team).`);
-
-      const tier = config.PLATING_TIERS.find(t => t.id === returned);
-      return message.reply(`✅ ${tier?.emoji ?? ''} **${tier?.label ?? returned}** plating unequipped from **${name}** and returned to your inventory.`);
+      if (!tier) return message.reply(`**${card.name}** doesn't have a plating equipped.`);
+      const tierData = config.PLATING_TIERS.find(t => t.id === tier);
+      return message.reply(`${tierData?.emoji} **${tierData?.label} Plating** unequipped from **${card.name}** and returned to your inventory.`);
     }
-
-    return message.reply('Usage: `ZP team` • `ZP team add <id>` • `ZP team remove <id>` • `ZP team equip <id> <plating>` • `ZP team unequip <id>`');
   }
 
-  // ── fight ─────────────────────────────────────────────────
+  // ── add (shortcut for team add) ───────────────────────────
+  if (command === 'add') {
+    const cardId = args[0]?.toLowerCase();
+    if (!cardId) return message.reply('Usage: `ZP add <cardId>`');
+
+    const card = lookupCard(cardId);
+    if (!card) return message.reply(`No card found with id \`${cardId}\`.`);
+
+    const inventory = inv.loadInventory();
+    if (!inv.hasCard(inventory, userId, card.id)) {
+      return message.reply(`You don't own **${card.name}**.`);
+    }
+
+    const result = inv.addToTeam(inventory, userId, card.id);
+    inv.saveInventory(inventory);
+
+    if (result === 'added')           return message.reply(`**${card.name}** added to your team!`);
+    if (result === 'full')            return message.reply(`Your team is full (${inv.TEAM_SIZE}/${inv.TEAM_SIZE}). Remove a card first with \`ZP remove <cardId>\`.`);
+    if (result === 'already_on_team') return message.reply(`**${card.name}** is already on your team.`);
+  }
+
+  // ── remove (shortcut for team remove) ────────────────────
+  if (command === 'remove') {
+    const cardId = args[0]?.toLowerCase();
+    if (!cardId) return message.reply('Usage: `ZP remove <cardId>`');
+
+    const card = lookupCard(cardId);
+    if (!card) return message.reply(`No card found with id \`${cardId}\`.`);
+
+    const inventory = inv.loadInventory();
+    const slot      = inv.removeFromTeam(inventory, userId, card.id);
+    if (!slot) return message.reply(`**${card.name}** is not on your team.`);
+
+    if (slot.plating) {
+      inv.addPlating(inventory, userId, slot.plating);
+      const tier = config.PLATING_TIERS.find(t => t.id === slot.plating);
+      inv.saveInventory(inventory);
+      return message.reply(`**${card.name}** removed from your team. **${tier?.emoji} ${tier?.label} Plating** returned to inventory.`);
+    }
+
+    inv.saveInventory(inventory);
+    return message.reply(`**${card.name}** removed from your team.`);
+  }
+
+  // ── swap ─────────────────────────────────────────────────
+  if (command === 'swap') {
+    const cardId1 = args[0]?.toLowerCase();
+    const cardId2 = args[1]?.toLowerCase();
+
+    if (!cardId1 || !cardId2) {
+      return message.reply('Usage: `ZP swap <cardId1> <cardId2>` — swaps the positions of two cards on your team.');
+    }
+
+    const card1 = lookupCard(cardId1);
+    const card2 = lookupCard(cardId2);
+    if (!card1) return message.reply(`No card found with id \`${cardId1}\`.`);
+    if (!card2) return message.reply(`No card found with id \`${cardId2}\`.`);
+
+    const inventory = inv.loadInventory();
+    const success   = inv.swapTeamPositions(inventory, userId, card1.id, card2.id);
+
+    if (!success) return message.reply(`Both cards must be on your team. Check \`ZP team\` to see your current lineup.`);
+
+    inv.saveInventory(inventory);
+
+    const meta1 = rarityMeta(card1.rarity);
+    const meta2 = rarityMeta(card2.rarity);
+    return message.reply(`Swapped ${meta1.emoji} **${card1.name}** and ${meta2.emoji} **${card2.name}** on your team!`);
+  }
+
+  // ── fight @user ───────────────────────────────────────────
   if (command === 'fight') {
     const opponent = message.mentions.users.first();
-    if (!opponent) return message.reply('Usage: `ZP fight @user` — challenge another player to a team battle!');
-    if (opponent.id === userId) return message.reply('❌ You cannot fight yourself.');
-    if (opponent.bot)           return message.reply('❌ You cannot fight a bot.');
+    if (!opponent) return message.reply('Usage: `ZP fight @user` — mention someone to challenge!');
+    if (opponent.id === userId) return message.reply('You cannot fight yourself!');
+    if (opponent.bot) return message.reply('You cannot fight bots!');
 
     const coolSecs = getFightCooldownSecs(userId);
-    if (coolSecs > 0) {
-      return message.reply(`⏳ You're on cooldown! You can fight again in **${coolSecs}s**.`);
+    if (coolSecs > 0) return message.reply(`You're on cooldown! Wait **${coolSecs}s** before fighting again.`);
+
+    const inventory      = inv.loadInventory();
+    const attackerTeam   = inv.getTeam(inventory, userId);
+    const defenderTeam   = inv.getTeam(inventory, opponent.id);
+
+    if (attackerTeam.length < inv.TEAM_SIZE) {
+      return message.reply(`You need a full team of **${inv.TEAM_SIZE}** cards to fight! Use \`ZP add <cardId>\` to fill your team.`);
+    }
+    if (defenderTeam.length < inv.TEAM_SIZE) {
+      return message.reply(`**${opponent.username}** doesn't have a full team of **${inv.TEAM_SIZE}** cards yet.`);
     }
 
-    const existing = [...activeBattles.values()].find(b => b.attackerId === userId);
-    if (existing) return message.reply('❌ You already have an active battle in progress! Finish it first.');
+    const attackerResolved = resolveTeamSlots(attackerTeam, inventory, userId);
+    const defenderResolved = resolveTeamSlots(defenderTeam, inventory, opponent.id);
 
-    const inventory  = inv.loadInventory();
-    const atkTeamRaw = inv.getTeam(inventory, userId);
-    const defTeamRaw = inv.getTeam(inventory, opponent.id);
-
-    if (atkTeamRaw.length < inv.TEAM_SIZE) {
-      return message.reply(`❌ Your team only has **${atkTeamRaw.length}/${inv.TEAM_SIZE}** cards. Use \`ZP team add <cardId>\` to fill it up.`);
-    }
-    if (defTeamRaw.length < inv.TEAM_SIZE) {
-      return message.reply(`❌ **${opponent.username}** only has **${defTeamRaw.length}/${inv.TEAM_SIZE}** cards on their team.`);
-    }
-
-    const atkTeam = resolveTeamSlots(atkTeamRaw, inventory, userId);
-    const defTeam = resolveTeamSlots(defTeamRaw, inventory, opponent.id);
-
-    const battleId = `${userId}_${Date.now()}`;
-    const state = {
-      battleId,
-      attackerId:    userId,
-      defenderId:    opponent.id,
-      attackerName:  message.author.username,
-      defenderName:  opponent.username,
-      attackerCards: atkTeam.map(buildBattleCard).filter(Boolean),
-      defenderCards: defTeam.map(buildBattleCard).filter(Boolean),
-      expiry:        Date.now() + 5 * 60 * 1000,
-    };
+    const attackerCards = attackerResolved.map(buildBattleCard).filter(Boolean);
+    const defenderCards = defenderResolved.map(buildBattleCard).filter(Boolean);
 
     setFightCooldown(userId);
+
+    const battleId = `${userId}_${Date.now()}`;
+    const state    = {
+      battleId,
+      attackerId:   userId,
+      defenderId:   opponent.id,
+      attackerName: message.author.username,
+      defenderName: opponent.username,
+      attackerCards,
+      defenderCards,
+      expiry: Date.now() + 5 * 60 * 1000,
+    };
     activeBattles.set(battleId, state);
 
-    const embed      = buildBattleEmbed(state, `⚔️ **${message.author.username}** challenged **${opponent.username}**! Click a card button to attack!`);
+    const embed      = buildBattleEmbed(state);
     const components = buildBattleComponents(state);
-    return message.reply({ content: `${opponent}`, embeds: [embed], components });
+    return message.reply({ embeds: [embed], components });
   }
 
-  // ── trade ─────────────────────────────────────────────────
+  // ── duofight | df ─────────────────────────────────────────
+  if (command === 'duofight' || command === 'df') {
+    const opponent = message.mentions.users.first();
+    if (!opponent) return message.reply('Usage: `ZP duofight @user` — challenge someone with your duo partner!');
+    if (opponent.id === userId) return message.reply('You cannot fight yourself!');
+    if (opponent.bot) return message.reply('You cannot fight bots!');
+
+    const coolSecs = getFightCooldownSecs(userId);
+    if (coolSecs > 0) return message.reply(`You're on cooldown! Wait **${coolSecs}s** before fighting again.`);
+
+    const inventory = inv.loadInventory();
+    const duo       = inv.getUserDuo(inventory, userId);
+    if (!duo) return message.reply(`You don't have a duo partner! Use \`ZP duocreate @user\` to create one.`);
+
+    const partnerId = duo.members.find(id => id !== userId);
+    if (!partnerId) return message.reply(`Your duo has no partner. Use \`ZP duoremove\` and create a new duo.`);
+
+    const attackerTeam = inv.getTeam(inventory, userId);
+    const partnerTeam  = inv.getTeam(inventory, partnerId);
+    const defenderTeam = inv.getTeam(inventory, opponent.id);
+
+    if (attackerTeam.length === 0) {
+      return message.reply(`Your team is empty! Add cards with \`ZP add <cardId>\`.`);
+    }
+    if (defenderTeam.length < inv.TEAM_SIZE) {
+      return message.reply(`**${opponent.username}** doesn't have a full team of **${inv.TEAM_SIZE}** cards yet.`);
+    }
+
+    const partnerUser = await client.users.fetch(partnerId).catch(() => null);
+    const partnerName = partnerUser?.username ?? 'Partner';
+
+    // Combine attacker + partner teams
+    const combinedTeam = [
+      ...resolveTeamSlots(attackerTeam, inventory, userId),
+      ...resolveTeamSlots(partnerTeam, inventory, partnerId),
+    ];
+
+    const defenderResolved = resolveTeamSlots(defenderTeam, inventory, opponent.id);
+
+    const attackerCards = combinedTeam.map(buildBattleCard).filter(Boolean);
+    const defenderCards = defenderResolved.map(buildBattleCard).filter(Boolean);
+
+    setFightCooldown(userId);
+
+    const battleId = `${userId}_${Date.now()}`;
+    const state    = {
+      battleId,
+      attackerId:   userId,
+      defenderId:   opponent.id,
+      attackerName: `${message.author.username} & ${partnerName}`,
+      defenderName: opponent.username,
+      attackerCards,
+      defenderCards,
+      expiry: Date.now() + 5 * 60 * 1000,
+    };
+    activeBattles.set(battleId, state);
+
+    const embed      = buildBattleEmbed(state);
+    const components = buildBattleComponents(state);
+
+    // Limit buttons to 5 rows (Discord cap) — only show first 16 alive cards in buttons
+    const safeComponents = components.slice(0, 5);
+    return message.reply({
+      content: `${partnerUser ? `<@${partnerId}>` : ''} — Duo Battle started!`,
+      embeds:  [embed],
+      components: safeComponents,
+    });
+  }
+
+  // ── trade @user <offer> [for <ask>] ──────────────────────
   if (command === 'trade') {
-    const toUser = message.mentions.users.first();
-    if (!toUser) {
-      return message.reply(
-        '❌ You must mention a user.\n' +
-        'Usage: `ZP trade @user <offer>` (free gift) or `ZP trade @user <offer> for <ask>`\n' +
-        'Item formats: `shard:<cardId>:<amount>` • `plating:<tier>:<amount>` • `yen:<amount>` • `stars:<amount>`\n' +
-        'Examples:\n' +
-        '`ZP trade @Alice shard:naruto_r:3` — free gift\n' +
-        '`ZP trade @Alice yen:500 for stars:100` — currency swap\n' +
-        '`ZP trade @Alice shard:naruto_r:3 for plating:gold:1` — shard for plating'
-      );
-    }
-    if (toUser.id === userId) return message.reply('❌ You cannot trade with yourself.');
-    if (toUser.bot)           return message.reply('❌ You cannot trade with a bot.');
+    const target = message.mentions.users.first();
+    if (!target) return message.reply('Usage: `ZP trade @user <offer> [for <ask>]`');
+    if (target.id === userId) return message.reply('You cannot trade with yourself.');
+    if (target.bot) return message.reply('You cannot trade with bots.');
 
-    // Strip mention tokens and find optional "for" separator
-    // Rejoin with spaces so comma-separated items with spaces work
-    const tradeArgs = args.filter(a => !a.startsWith('<@'));
-    const forIndex  = tradeArgs.findIndex(a => a.toLowerCase() === 'for');
-    const isFree    = forIndex === -1;
+    const content = args.filter(a => !a.startsWith('<@')).join(' ');
+    const forIdx  = content.toLowerCase().split(' ').indexOf('for');
+    let offerStr, askStr;
 
-    if (tradeArgs.length === 0) {
-      return message.reply('❌ You need to specify what you are offering.');
-    }
-    if (!isFree && (forIndex === 0 || forIndex === tradeArgs.length - 1)) {
-      return message.reply('❌ Invalid format — you wrote "for" but left one side empty.');
+    if (forIdx === -1) {
+      offerStr = content.trim();
+      askStr   = null;
+    } else {
+      const tokens = content.trim().split(/\s+/);
+      offerStr = tokens.slice(0, forIdx).join(' ');
+      askStr   = tokens.slice(forIdx + 1).join(' ');
     }
 
-    const offerStr = (isFree ? tradeArgs : tradeArgs.slice(0, forIndex)).join(' ');
-    const askStr   = isFree ? null : tradeArgs.slice(forIndex + 1).join(' ');
+    if (!offerStr) return message.reply('Usage: `ZP trade @user <offer> [for <ask>]`\nOffer format: `shard:<cardId>:<count>` or `plating:<tier>:<count>` or `yen:<amount>` or `stars:<amount>`');
 
-    const offer = parseTradeItems(offerStr);
-    if (!offer) return message.reply(`❌ Couldn't parse offer \`${offerStr}\`.\nFormat: \`shard:<cardId>:<amount>\` • \`plating:<tier>:<amount>\` • \`yen:<amount>\` • \`stars:<amount>\`\nSeparate multiple items with commas: \`shard:naruto_r:3,yen:500\``);
+    const offerItems = parseTradeItems(offerStr);
+    const askItems   = askStr ? parseTradeItems(askStr) : null;
 
-    const ask = askStr ? parseTradeItems(askStr) : null;
-    if (askStr && !ask) return message.reply(`❌ Couldn't parse ask \`${askStr}\`.\nFormat: \`shard:<cardId>:<amount>\` • \`plating:<tier>:<amount>\` • \`yen:<amount>\` • \`stars:<amount>\`\nSeparate multiple items with commas: \`plating:gold:1,stars:100\``);
+    if (!offerItems) return message.reply('Could not parse your offer. Format: `shard:naruto_r:3` or `yen:500` (separate multiple items with commas).');
+    if (askStr && !askItems) return message.reply('Could not parse your ask. Format: `shard:naruto_r:3` or `plating:gold:1`');
 
-    for (const item of offer) {
-      if (!validateTradeItem(item)) {
-        return message.reply(item.type === 'shard'
-          ? `❌ Unknown card ID \`${item.id}\`. Check \`ZP col\` for valid IDs.`
-          : `❌ Unknown plating tier \`${item.id}\`. Valid tiers: ${config.PLATING_TIERS.map(t => t.id).join(', ')}`
-        );
-      }
-    }
-    if (ask) {
-      for (const item of ask) {
-        if (!validateTradeItem(item)) {
-          return message.reply(item.type === 'shard'
-            ? `❌ Unknown card ID \`${item.id}\`. Check \`ZP col\` for valid IDs.`
-            : `❌ Unknown plating tier \`${item.id}\`. Valid tiers: ${config.PLATING_TIERS.map(t => t.id).join(', ')}`
-          );
-        }
-      }
+    const badOffer = offerItems.find(i => !validateTradeItem(i));
+    if (badOffer) return message.reply(`Unknown trade item: \`${badOffer.type}:${badOffer.id ?? ''}\``);
+
+    if (askItems) {
+      const badAsk = askItems.find(i => !validateTradeItem(i));
+      if (badAsk) return message.reply(`Unknown trade item: \`${badAsk.type}:${badAsk.id ?? ''}\``);
     }
 
     const inventory = inv.loadInventory();
-    const missingOffer = findMissingItem(inventory, userId, offer);
-    if (missingOffer) {
-      return message.reply(`❌ You don't have enough to offer. You need ${describeItem(missingOffer)}.`);
+    const missing   = findMissingItem(inventory, userId, offerItems);
+    if (missing) {
+      return message.reply(`You don't have enough **${describeItem(missing)}** to offer.`);
     }
 
-    // Free gifts auto-complete immediately — no pending trade needed
-    if (isFree) {
-      removeAllItems(inventory, userId, offer);
-      addAllItems(inventory, toUser.id, offer);
+    // If no ask — instant gift
+    if (!askItems) {
+      removeAllItems(inventory, userId, offerItems);
+      addAllItems(inventory, target.id, offerItems);
       inv.saveInventory(inventory);
 
       const embed = new EmbedBuilder()
-        .setColor(0x2ecc71)
-        .setTitle('🎁 Gift Sent!')
-        .setDescription(`**${message.author.username}** → **${toUser.username}**`)
-        .addFields(
-          { name: `${toUser.username} received`, value: describeItems(offer), inline: true },
-        )
-        .setFooter({ text: 'Gift delivered instantly!' });
-
-      return message.reply({ content: `${toUser}`, embeds: [embed] });
+        .setColor(0x00FFD1)
+        .setTitle(`🎁 Gift Sent!`)
+        .setDescription(`**${message.author.username}** gifted **${target.username}**:\n${describeItems(offerItems)}`)
+        .setFooter({ text: 'No return gift expected!' });
+      return message.reply({ embeds: [embed] });
     }
 
-    const tradeId = trades.createTrade({ fromUserId: userId, toUserId: toUser.id, offer, ask });
+    // Create pending trade
+    removeAllItems(inventory, userId, offerItems);
+    inv.saveInventory(inventory);
+
+    const tradeId = trades.createTrade({
+      tradeId: `trade_${Date.now()}`,
+      offerId: userId,
+      offerName: message.author.username,
+      askId: target.id,
+      askName: target.username,
+      offerItems,
+      askItems,
+    });
 
     const embed = new EmbedBuilder()
-      .setColor(0x4A90D9)
-      .setTitle('🤝 Trade Offer Sent')
-      .setDescription(`**${message.author.username}** → **${toUser.username}**`)
+      .setColor(0xF1C40F)
+      .setTitle(`🤝 Trade Offer — ID: \`${tradeId}\``)
       .addFields(
-        { name: 'Offering',   value: describeItems(offer),  inline: true },
-        { name: 'Asking for', value: describeItems(ask),    inline: true },
-        { name: 'Trade ID',   value: `\`${tradeId}\``,      inline: true },
+        { name: `📤 ${message.author.username} offers`, value: describeItems(offerItems), inline: false },
+        { name: `📥 ${message.author.username} wants`,  value: describeItems(askItems),  inline: false },
       )
-      .setFooter({ text: `${toUser.username}: use  ZP a ${tradeId}  or  ZP dec ${tradeId}  • Expires in 5 min` });
-
-    const sentMsg = await message.reply({ content: `${toUser}`, embeds: [embed] });
-    trades.setOfferMessage(tradeId, sentMsg);
-    return;
+      .setDescription(`<@${target.id}> — use \`ZP accept ${tradeId}\` to accept or \`ZP decline ${tradeId}\` to decline.`)
+      .setFooter({ text: 'Trade expires in 5 minutes' });
+    return message.reply({ embeds: [embed] });
   }
 
   // ── accept | a ────────────────────────────────────────────
   if (command === 'accept' || command === 'a') {
     const tradeId = args[0];
-    if (!tradeId) return message.reply('Usage: `ZP accept <tradeId>` or `ZP a <tradeId>`');
+    if (!tradeId) return message.reply('Usage: `ZP accept <tradeId>`');
 
     const trade = trades.getTrade(tradeId);
-    if (!trade) return message.reply(`❌ Trade \`${tradeId}\` not found or has expired.`);
-    if (trade.toUserId !== userId) return message.reply('❌ That trade is not addressed to you.');
+    if (!trade) return message.reply('Trade not found or already expired.');
+    if (trade.askId !== userId) return message.reply('This trade is not addressed to you.');
 
     const inventory = inv.loadInventory();
-
-    // Check sender still has everything they offered
-    const missingSenderItem = findMissingItem(inventory, trade.fromUserId, trade.offer);
-    if (missingSenderItem) {
-      trades.cancelTrade(tradeId);
-      return message.reply(`❌ The sender no longer has ${describeItem(missingSenderItem)}. Trade cancelled.`);
+    const missing   = findMissingItem(inventory, userId, trade.askItems);
+    if (missing) {
+      // Refund offerer
+      addAllItems(inventory, trade.offerId, trade.offerItems);
+      inv.saveInventory(inventory);
+      trades.removeTrade(tradeId);
+      return message.reply(`You don't have enough **${describeItem(missing)}** to complete this trade. The trade has been cancelled and items refunded.`);
     }
 
-    // Check receiver has everything being asked (skip for free trades)
-    if (trade.ask) {
-      const missingReceiverItem = findMissingItem(inventory, userId, trade.ask);
-      if (missingReceiverItem) {
-        return message.reply(`❌ You don't have enough: you need ${describeItem(missingReceiverItem)} to accept this trade.`);
-      }
-    }
-
-    // Execute the transfer / swap
-    removeAllItems(inventory, trade.fromUserId, trade.offer);
-    if (trade.ask) {
-      removeAllItems(inventory, userId,           trade.ask);
-      addAllItems(inventory,    trade.fromUserId, trade.ask);
-    }
-    addAllItems(inventory, userId, trade.offer);
+    removeAllItems(inventory, userId, trade.askItems);
+    addAllItems(inventory, userId, trade.offerItems);
+    addAllItems(inventory, trade.offerId, trade.askItems);
     inv.saveInventory(inventory);
-    const offerMsg = trade.offerMessage;
-    trades.cancelTrade(tradeId);
+    trades.removeTrade(tradeId);
 
-    const fromUser = await client.users.fetch(trade.fromUserId).catch(() => ({ username: trade.fromUserId }));
     const embed = new EmbedBuilder()
-      .setColor(0x2ecc71)
-      .setTitle(trade.ask ? '✅ Trade Complete!' : '🎁 Gift Accepted!')
-      .setDescription(`**${fromUser.username}** → **${message.author.username}**`)
+      .setColor(0x00FFD1)
+      .setTitle('🤝 Trade Complete!')
       .addFields(
-        { name: `${message.author.username} received`, value: describeItems(trade.offer),                        inline: true },
-        { name: `${fromUser.username} received`,       value: trade.ask ? describeItems(trade.ask) : '🆓 Nothing', inline: true },
-      );
-
-    if (offerMsg) {
-      const updatedEmbed = EmbedBuilder.from(offerMsg.embeds[0])
-        .setFooter({ text: `✅ Trade accepted by ${message.author.username}` })
-        .setColor(0x2ecc71);
-      offerMsg.edit({ embeds: [updatedEmbed] }).catch(() => {});
-    }
-
+        { name: `${message.author.username} received`, value: describeItems(trade.offerItems), inline: true },
+        { name: `${trade.offerName} received`,         value: describeItems(trade.askItems),   inline: true },
+      )
+      .setFooter({ text: `Trade ID: ${tradeId}` });
     return message.reply({ embeds: [embed] });
   }
 
   // ── decline | dec ─────────────────────────────────────────
   if (command === 'decline' || command === 'dec') {
     const tradeId = args[0];
-    if (!tradeId) return message.reply('Usage: `ZP decline <tradeId>` or `ZP dec <tradeId>`');
+    if (!tradeId) return message.reply('Usage: `ZP decline <tradeId>`');
 
     const trade = trades.getTrade(tradeId);
-    if (!trade) return message.reply(`❌ Trade \`${tradeId}\` not found or already expired.`);
-    if (trade.toUserId !== userId && trade.fromUserId !== userId) {
-      return message.reply('❌ You are not part of that trade.');
-    }
+    if (!trade) return message.reply('Trade not found or already expired.');
+    if (trade.askId !== userId && trade.offerId !== userId) return message.reply('You are not part of this trade.');
 
-    const offerMsg = trade.offerMessage;
-    trades.cancelTrade(tradeId);
+    // Refund offerer
+    const inventory = inv.loadInventory();
+    addAllItems(inventory, trade.offerId, trade.offerItems);
+    inv.saveInventory(inventory);
+    trades.removeTrade(tradeId);
 
-    if (offerMsg) {
-      const updatedEmbed = EmbedBuilder.from(offerMsg.embeds[0])
-        .setFooter({ text: `🚫 Trade cancelled` })
-        .setColor(0x888888);
-      offerMsg.edit({ embeds: [updatedEmbed] }).catch(() => {});
-    }
-
-    return message.reply(`🚫 Trade \`${tradeId}\` has been cancelled.`);
+    return message.reply(`Trade \`${tradeId}\` cancelled. Items returned to **${trade.offerName}**.`);
   }
 
   // ── trades ────────────────────────────────────────────────
   if (command === 'trades') {
-    const pending = trades.getTradesForUser(userId);
-    if (pending.length === 0) {
-      return message.reply('📭 You have no pending trade offers.');
-    }
+    const pending = trades.getTradesFor(userId);
+    if (pending.length === 0) return message.reply('You have no pending trade offers. They appear when someone sends you a trade!');
+
+    const lines = pending.map(t =>
+      `**\`${t.tradeId}\`** — From **${t.offerName}**\nOffers: ${describeItems(t.offerItems)}\nWants: ${describeItems(t.askItems)}`
+    );
 
     const embed = new EmbedBuilder()
       .setColor(0xF1C40F)
-      .setTitle('📬 Pending Trade Offers');
-
-    for (const trade of pending) {
-      const fromUser = await client.users.fetch(trade.fromUserId).catch(() => ({ username: trade.fromUserId }));
-      embed.addFields({
-        name:  `${trade.ask ? 'Trade' : 'Gift'} \`${trade.tradeId}\` — from ${fromUser.username}`,
-        value: [
-          `They offer: ${describeItem(trade.offer)}`,
-          `They want:  ${trade.ask ? describeItem(trade.ask) : '🆓 Nothing (free gift)'}`,
-          `\`ZP a ${trade.tradeId}\`  •  \`ZP dec ${trade.tradeId}\``,
-        ].join('\n'),
-        inline: false,
-      });
-    }
-
+      .setTitle(`🤝 Pending Trades (${pending.length})`)
+      .setDescription(lines.join('\n\n').slice(0, 4000))
+      .setFooter({ text: 'Use ZP accept <id> or ZP decline <id>' });
     return message.reply({ embeds: [embed] });
   }
 
-  // ── balance | bal ─────────────────────────────────────────
-  if (command === 'balance' || command === 'bal') {
-    const target      = message.mentions.users.first() ?? message.author;
-    const inventory   = inv.loadInventory();
-    const yen         = inv.getYen(inventory, target.id);
-    const stars       = inv.getStars(inventory, target.id);
-    const candyTokens = inv.getCandyTokens(inventory, target.id);
+  // ── Clan commands ─────────────────────────────────────────
+
+  // ── clancreate ───────────────────────────────────────────
+  if (command === 'clancreate') {
+    const name = args.join(' ').trim();
+    if (!name) return message.reply('Usage: `ZP clancreate <name>` — choose a name for your clan.');
+    if (name.length > 30) return message.reply('Clan name must be 30 characters or fewer.');
+
+    const inventory = inv.loadInventory();
+    const existing  = inv.getUserClan(inventory, userId);
+    if (existing) {
+      return message.reply(`You are already in the clan **${existing.name}**. Leave it first with \`ZP clanleave\`.`);
+    }
+
+    const clanId = inv.createClan(inventory, userId, name);
+    if (!clanId) return message.reply('Failed to create clan. Make sure you are not already in one.');
+    inv.saveInventory(inventory);
+
     const embed = new EmbedBuilder()
-      .setColor(0xF1C40F)
-      .setTitle(`💰 ${target.username}'s Balance`)
-      .addFields(
-        { name: '💴 Yen',          value: `¥${yen.toLocaleString()}`,         inline: true },
-        { name: '⭐ Stars',        value: `${stars.toLocaleString()}`,         inline: true },
-        { name: '🍬 Candy Tokens', value: `${candyTokens.toLocaleString()}`,   inline: true },
+      .setColor(0xFF6B35)
+      .setTitle(`🏛️ Clan Created — ${name}`)
+      .setDescription(
+        `You are now the owner of **${name}**!\n` +
+        `Invite members with \`ZP clanadd @user\`.\n` +
+        `Clan ID: \`${clanId}\``
       )
-      .setFooter({ text: 'Use ZP trade to exchange currencies with other players' });
+      .setFooter({ text: 'Build the strongest clan!' });
     return message.reply({ embeds: [embed] });
   }
 
-  // ── Admin-only commands ───────────────────────────────────
-  if (isAdmin(userId)) {
-    if (command === 'setrarity') {
-      const target = args[0]?.toUpperCase();
-      if (!target) {
-        const current = adminRarityOverride
-          ? `Currently locked to **${rarityMeta(adminRarityOverride).label}**`
-          : 'Currently using normal rates';
-        return message.reply(`Usage: \`ZP setrarity <${Object.keys(config.RARITY_META).join(' | ')} | reset>\`\n${current}`);
+  // ── clan ─────────────────────────────────────────────────
+  if (command === 'clan') {
+    const target    = message.mentions.users.first() ?? message.author;
+    const inventory = inv.loadInventory();
+    const clan      = inv.getUserClan(inventory, target.id);
+
+    if (!clan) {
+      if (target.id === userId) {
+        return message.reply(`You are not in a clan. Create one with \`ZP clancreate <name>\`.`);
       }
-      if (target === 'RESET') {
-        adminRarityOverride = null;
-        return message.reply('🔧 Rarity override cleared — back to normal pull rates.');
-      }
-      if (!config.RARITY_META[target]) {
-        return message.reply(`❌ Unknown rarity. Valid options: ${Object.keys(config.RARITY_META).join(', ')}`);
-      }
-      adminRarityOverride = target;
-      return message.reply(`🔧 Rarity locked to **${rarityMeta(target).emoji} ${rarityMeta(target).label}** — use \`ZP setrarity reset\` to clear.`);
+      return message.reply(`**${target.username}** is not in a clan.`);
     }
 
-    if (command === 'setplating') {
-      const input = args[0]?.toLowerCase();
-      if (!input) {
-        const current = adminPlatingOverride
-          ? `Currently forcing **${adminPlatingOverride.emoji} ${adminPlatingOverride.label}** platings`
-          : 'Currently using normal 0.1% plating odds';
-        const tierIds = config.PLATING_TIERS.map(t => t.id).join(' | ');
-        return message.reply(`Usage: \`ZP setplating <${tierIds} | reset>\`\n${current}`);
-      }
-      if (input === 'reset') {
-        adminPlatingOverride = null;
-        return message.reply('🔧 Plating override cleared — back to normal 0.1% drop rate.');
-      }
-      const tier = platingById(input);
-      if (!tier) {
-        return message.reply(`❌ Unknown plating tier \`${input}\`. Valid tiers: ${config.PLATING_TIERS.map(t => t.id).join(', ')}`);
-      }
-      adminPlatingOverride = tier;
-      return message.reply(`🔧 Plating override set to **${tier.emoji} ${tier.label}** — every pull will now drop this plating. Use \`ZP setplating reset\` to clear.`);
-    }
+    const memberMentions = clan.members.map(id => `<@${id}>${id === clan.ownerId ? ' 👑' : ''}`).join('\n') || 'None';
 
-    if (command === 'giveyen') {
-      const target = message.mentions.users.first() ?? message.author;
-      const amount = parseInt(args.find(a => !a.startsWith('<@')), 10);
-      if (isNaN(amount) || amount <= 0) return message.reply('Usage: `ZP giveyen <amount>` or `ZP giveyen @user <amount>`');
-      const inventory = inv.loadInventory();
-      inv.addYen(inventory, target.id, amount);
-      inv.saveInventory(inventory);
-      return message.reply(`🔧 Added **¥${amount.toLocaleString()} Yen** to **${target.username}**. New balance: ¥${inv.getYen(inventory, target.id).toLocaleString()}`);
-    }
-
-    if (command === 'givestars') {
-      const target = message.mentions.users.first() ?? message.author;
-      const amount = parseInt(args.find(a => !a.startsWith('<@')), 10);
-      if (isNaN(amount) || amount <= 0) return message.reply('Usage: `ZP givestars <amount>` or `ZP givestars @user <amount>`');
-      const inventory = inv.loadInventory();
-      inv.addStars(inventory, target.id, amount);
-      inv.saveInventory(inventory);
-      return message.reply(`🔧 Added **⭐ ${amount.toLocaleString()} Stars** to **${target.username}**. New balance: ${inv.getStars(inventory, target.id).toLocaleString()}`);
-    }
-
-    if (command === 'givecandytokens' || command === 'givecandy') {
-      const target = message.mentions.users.first() ?? message.author;
-      const amount = parseInt(args.find(a => !a.startsWith('<@')), 10);
-      if (isNaN(amount) || amount <= 0) return message.reply('Usage: `ZP givecandytokens <amount>` or `ZP givecandytokens @user <amount>`');
-      const inventory = inv.loadInventory();
-      inv.addCandyTokens(inventory, target.id, amount);
-      inv.saveInventory(inventory);
-      return message.reply(`🔧 Given **🍬 ×${amount.toLocaleString()} Candy Token${amount === 1 ? '' : 's'}** to **${target.username}**. They now have ${inv.getCandyTokens(inventory, target.id).toLocaleString()}.`);
-    }
-
-    if (command === 'giveitem') {
-      const target = message.mentions.users.first() ?? message.author;
-      const itemId = args.find(a => !a.startsWith('<@'))?.toLowerCase();
-      if (!itemId) return message.reply(`Usage: \`ZP giveitem @user <itemId>\`\nAvailable items: ${config.ITEMS.map(i => `\`${i.id}\``).join(', ')}`);
-      const item = config.ITEMS.find(i => i.id === itemId);
-      if (!item) return message.reply(`❌ Unknown item \`${itemId}\`. Valid items: ${config.ITEMS.map(i => `\`${i.id}\``).join(', ')}`);
-      const inventory = inv.loadInventory();
-      inv.addItem(inventory, target.id, itemId);
-      inv.saveInventory(inventory);
-      return message.reply(`🔧 Gave **${item.emoji} ${item.name}** to **${target.username}**. They can use it with \`ZP use ${itemId}\`.`);
-    }
-
-    if (command === 'resetcooldown') {
-      setCharges(userId, config.MAX_PULL_CHARGES, Date.now());
-      return message.reply(`🔧 Pull charges restored to **${config.MAX_PULL_CHARGES}**.`);
-    }
+    const embed = new EmbedBuilder()
+      .setColor(0xFF6B35)
+      .setTitle(`🏛️ ${clan.name}`)
+      .addFields(
+        { name: '👑 Owner',      value: `<@${clan.ownerId}>`,                   inline: true },
+        { name: '👥 Members',   value: `${clan.members.length}`,                 inline: true },
+        { name: '💰 Clan Fund', value: `¥${clan.fund.toLocaleString()}`,         inline: true },
+        { name: 'Member List',  value: memberMentions,                            inline: false },
+      )
+      .setFooter({ text: `Clan ID: ${clan.id}` });
+    return message.reply({ embeds: [embed] });
   }
 
-  // ── Unknown command ───────────────────────────────────────
-  return message.reply(`❓ Unknown command. Use \`ZP help\` or \`ZP h\` to see all commands.`);
+  // ── clanadd ───────────────────────────────────────────────
+  if (command === 'clanadd') {
+    const target = message.mentions.users.first();
+    if (!target) return message.reply('Usage: `ZP clanadd @user`');
+    if (target.id === userId) return message.reply('You cannot add yourself.');
+    if (target.bot) return message.reply('You cannot add bots to your clan.');
+
+    const inventory = inv.loadInventory();
+    const clan      = inv.getUserClan(inventory, userId);
+    if (!clan) return message.reply(`You are not in a clan. Create one with \`ZP clancreate <name>\`.`);
+    if (clan.ownerId !== userId) return message.reply(`Only the clan owner (**<@${clan.ownerId}>**) can add members.`);
+
+    const targetClan = inv.getUserClan(inventory, target.id);
+    if (targetClan) return message.reply(`**${target.username}** is already in a clan (**${targetClan.name}**).`);
+
+    const success = inv.addToClan(inventory, clan.id, target.id);
+    if (!success) return message.reply('Could not add this user to the clan.');
+    inv.saveInventory(inventory);
+
+    return message.reply(`**${target.username}** has been added to **${clan.name}**!`);
+  }
+
+  // ── clanremove ────────────────────────────────────────────
+  if (command === 'clanremove') {
+    const target = message.mentions.users.first();
+    if (!target) return message.reply('Usage: `ZP clanremove @user`');
+    if (target.id === userId) return message.reply(`You can't remove yourself. Use \`ZP clanleave\` to leave or \`ZP clandelete\` to delete.`);
+
+    const inventory = inv.loadInventory();
+    const clan      = inv.getUserClan(inventory, userId);
+    if (!clan) return message.reply(`You are not in a clan.`);
+    if (clan.ownerId !== userId) return message.reply(`Only the clan owner can remove members.`);
+    if (!clan.members.includes(target.id)) return message.reply(`**${target.username}** is not in your clan.`);
+
+    inv.removeFromClan(inventory, clan.id, target.id);
+    inv.saveInventory(inventory);
+
+    return message.reply(`**${target.username}** has been removed from **${clan.name}**.`);
+  }
+
+  // ── clanleave ─────────────────────────────────────────────
+  if (command === 'clanleave') {
+    const inventory = inv.loadInventory();
+    const clan      = inv.getUserClan(inventory, userId);
+    if (!clan) return message.reply(`You are not in a clan.`);
+    if (clan.ownerId === userId) return message.reply(`As the clan owner, you cannot leave. Use \`ZP clandelete\` to disband the clan.`);
+
+    inv.removeFromClan(inventory, clan.id, userId);
+    inv.saveInventory(inventory);
+
+    return message.reply(`You have left **${clan.name}**.`);
+  }
+
+  // ── clandelete ────────────────────────────────────────────
+  if (command === 'clandelete') {
+    const inventory = inv.loadInventory();
+    const clan      = inv.getUserClan(inventory, userId);
+    if (!clan) return message.reply(`You are not in a clan.`);
+    if (clan.ownerId !== userId) return message.reply(`Only the clan owner can delete the clan.`);
+
+    const clanName = clan.name;
+    inv.deleteClan(inventory, clan.id);
+    inv.saveInventory(inventory);
+
+    return message.reply(`**${clanName}** has been permanently deleted.`);
+  }
+
+  // ── clanfundadd ───────────────────────────────────────────
+  if (command === 'clanfundadd') {
+    const amount = parseInt(args[0], 10);
+    if (isNaN(amount) || amount < 1) return message.reply('Usage: `ZP clanfundadd <amount>` — donate yen to your clan fund.');
+
+    const inventory = inv.loadInventory();
+    const clan      = inv.getUserClan(inventory, userId);
+    if (!clan) return message.reply(`You are not in a clan.`);
+
+    if (!inv.removeYen(inventory, userId, amount)) {
+      return message.reply(`You don't have enough yen. You have ¥${inv.getYen(inventory, userId).toLocaleString()}.`);
+    }
+
+    clan.fund = (clan.fund ?? 0) + amount;
+    inv.saveInventory(inventory);
+
+    return message.reply(`Donated **¥${amount.toLocaleString()}** to **${clan.name}**! Clan fund: **¥${clan.fund.toLocaleString()}**`);
+  }
+
+  // ── clanfundtake ──────────────────────────────────────────
+  if (command === 'clanfundtake') {
+    const amount = parseInt(args[0], 10);
+    if (isNaN(amount) || amount < 1) return message.reply('Usage: `ZP clanfundtake <amount>` — withdraw yen from your clan fund (owner only).');
+
+    const inventory = inv.loadInventory();
+    const clan      = inv.getUserClan(inventory, userId);
+    if (!clan) return message.reply(`You are not in a clan.`);
+    if (clan.ownerId !== userId) return message.reply(`Only the clan owner can withdraw from the clan fund.`);
+
+    if ((clan.fund ?? 0) < amount) {
+      return message.reply(`The clan fund only has **¥${(clan.fund ?? 0).toLocaleString()}**. You cannot withdraw that much.`);
+    }
+
+    clan.fund -= amount;
+    inv.addYen(inventory, userId, amount);
+    inv.saveInventory(inventory);
+
+    return message.reply(`Withdrew **¥${amount.toLocaleString()}** from **${clan.name}**'s fund! Fund remaining: **¥${clan.fund.toLocaleString()}**`);
+  }
+
+  // ── Duo commands ──────────────────────────────────────────
+
+  // ── duocreate ─────────────────────────────────────────────
+  if (command === 'duocreate') {
+    const target = message.mentions.users.first();
+    if (!target) return message.reply('Usage: `ZP duocreate @user`');
+    if (target.id === userId) return message.reply('You cannot create a duo with yourself.');
+    if (target.bot) return message.reply('You cannot duo with a bot.');
+
+    const inventory = inv.loadInventory();
+
+    if (inv.getUserDuo(inventory, userId)) {
+      return message.reply(`You already have a duo partner! Use \`ZP duoremove\` to disband first.`);
+    }
+    if (inv.getUserDuo(inventory, target.id)) {
+      return message.reply(`**${target.username}** already has a duo partner.`);
+    }
+
+    // Create duo directly (no confirmation needed for simplicity)
+    const duoId = inv.createDuo(inventory, userId, target.id);
+    if (!duoId) return message.reply('Failed to create duo.');
+    inv.saveInventory(inventory);
+
+    const embed = new EmbedBuilder()
+      .setColor(0x9B59B6)
+      .setTitle('🤝 Duo Created!')
+      .setDescription(
+        `**${message.author.username}** and **${target.username}** are now duo partners!\n\n` +
+        `Use \`ZP duofight @opponent\` to fight together.`
+      )
+      .setFooter({ text: 'Use ZP duoremove to disband your duo' });
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── duo ───────────────────────────────────────────────────
+  if (command === 'duo') {
+    const target    = message.mentions.users.first() ?? message.author;
+    const inventory = inv.loadInventory();
+    const duo       = inv.getUserDuo(inventory, target.id);
+
+    if (!duo) {
+      if (target.id === userId) {
+        return message.reply(`You don't have a duo partner. Create one with \`ZP duocreate @user\`.`);
+      }
+      return message.reply(`**${target.username}** doesn't have a duo partner.`);
+    }
+
+    const partnerIds = duo.members.filter(id => id !== target.id);
+    const partnerMentions = partnerIds.map(id => `<@${id}>`).join(', ') || 'Unknown';
+
+    const embed = new EmbedBuilder()
+      .setColor(0x9B59B6)
+      .setTitle(`🤝 ${target.username}'s Duo`)
+      .addFields(
+        { name: '👥 Partners', value: [target.id, ...partnerIds].map(id => `<@${id}>`).join(', '), inline: false },
+      )
+      .setFooter({ text: `Duo ID: ${duo.id} • Use ZP duofight @opponent to fight together!` });
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── duoadd ────────────────────────────────────────────────
+  if (command === 'duoadd') {
+    return message.reply('Duos are 2-person partnerships. Use `ZP duoremove` to disband your current duo, then `ZP duocreate @user` to create a new one with a different partner.');
+  }
+
+  // ── duoremove ─────────────────────────────────────────────
+  if (command === 'duoremove') {
+    const inventory = inv.loadInventory();
+    const duo       = inv.getUserDuo(inventory, userId);
+    if (!duo) return message.reply(`You don't have a duo partner.`);
+
+    inv.disbandDuo(inventory, duo.id);
+    inv.saveInventory(inventory);
+
+    return message.reply(`Your duo partnership has been disbanded.`);
+  }
+
+  // ── Server Admin commands ─────────────────────────────────
+
+  // ── setup ─────────────────────────────────────────────────
+  if (command === 'setup') {
+    if (!isServerAdmin(message.member)) {
+      return message.reply('Only server administrators can use this command.');
+    }
+
+    const inventory = inv.loadInventory();
+    inv.addAllowedChannel(inventory, guildId, message.channel.id);
+    inv.saveInventory(inventory);
+
+    return message.reply(`This channel has been set up as an allowed bot channel. Use \`ZP limit #channel\` to restrict to a specific channel.`);
+  }
+
+  // ── limit ─────────────────────────────────────────────────
+  if (command === 'limit') {
+    if (!isServerAdmin(message.member)) {
+      return message.reply('Only server administrators can use this command.');
+    }
+
+    const channel = message.mentions.channels.first();
+    if (!channel) return message.reply('Usage: `ZP limit #channel` — restrict bot usage to a specific channel.');
+
+    const inventory = inv.loadInventory();
+    inv.clearAllowedChannels(inventory, guildId);
+    inv.addAllowedChannel(inventory, guildId, channel.id);
+    inv.saveInventory(inventory);
+
+    return message.reply(`Bot usage has been restricted to <#${channel.id}>. Only commands sent there will be processed.`);
+  }
+
+  // ── limitremove ───────────────────────────────────────────
+  if (command === 'limitremove') {
+    if (!isServerAdmin(message.member)) {
+      return message.reply('Only server administrators can use this command.');
+    }
+
+    const inventory = inv.loadInventory();
+    inv.clearAllowedChannels(inventory, guildId);
+    inv.saveInventory(inventory);
+
+    return message.reply('Channel restriction removed. The bot can now be used in any channel.');
+  }
+
+  // ── allow ─────────────────────────────────────────────────
+  if (command === 'allow') {
+    if (!isServerAdmin(message.member)) {
+      return message.reply('Only server administrators can use this command.');
+    }
+
+    const cmd = args[0]?.toLowerCase();
+    if (!cmd) return message.reply('Usage: `ZP allow <command>` — re-enable a previously disallowed command.');
+
+    const inventory = inv.loadInventory();
+    inv.allowCommand(inventory, guildId, cmd);
+    inv.saveInventory(inventory);
+
+    return message.reply(`Command \`${config.PREFIX} ${cmd}\` is now allowed in this server.`);
+  }
+
+  // ── disallow ──────────────────────────────────────────────
+  if (command === 'disallow') {
+    if (!isServerAdmin(message.member)) {
+      return message.reply('Only server administrators can use this command.');
+    }
+
+    const cmd = args[0]?.toLowerCase();
+    if (!cmd) return message.reply('Usage: `ZP disallow <command>` — block a command from being used in this server.');
+    if (['disallow', 'allow', 'setup', 'limit', 'limitremove'].includes(cmd)) {
+      return message.reply(`You cannot disallow admin configuration commands.`);
+    }
+
+    const inventory = inv.loadInventory();
+    inv.disallowCommand(inventory, guildId, cmd);
+    inv.saveInventory(inventory);
+
+    return message.reply(`Command \`${config.PREFIX} ${cmd}\` is now disabled in this server.`);
+  }
+
+  // ── Bot Admin commands ─────────────────────────────────────
+  if (!isAdmin(userId)) return;
+
+  // ── setrarity ─────────────────────────────────────────────
+  if (command === 'setrarity') {
+    const val = args[0]?.toUpperCase();
+    if (!val) return message.reply(`Usage: \`ZP setrarity <${Object.keys(config.RARITY_META).join('|')}|reset>\``);
+    if (val === 'RESET') {
+      adminRarityOverride = null;
+      return message.reply('Rarity override cleared. Pulls are back to normal rates.');
+    }
+    if (!config.RARITY_META[val]) return message.reply(`Unknown rarity \`${val}\`.`);
+    adminRarityOverride = val;
+    return message.reply(`All future pulls will be forced to **${rarityMeta(val).label}**. Use \`ZP setrarity reset\` to clear.`);
+  }
+
+  // ── setplating ────────────────────────────────────────────
+  if (command === 'setplating') {
+    const val = args[0]?.toLowerCase();
+    if (!val) return message.reply(`Usage: \`ZP setplating <${config.PLATING_TIERS.map(t => t.id).join('|')}|reset>\``);
+    if (val === 'reset') {
+      adminPlatingOverride = null;
+      return message.reply('Plating override cleared.');
+    }
+    const tier = platingById(val);
+    if (!tier) return message.reply(`Unknown plating tier \`${val}\`.`);
+    adminPlatingOverride = tier;
+    return message.reply(`Every pull will now drop a **${tier.label} Plating**. Use \`ZP setplating reset\` to clear.`);
+  }
+
+  // ── resetcooldown ─────────────────────────────────────────
+  if (command === 'resetcooldown') {
+    setCharges(userId, config.MAX_PULL_CHARGES, Date.now());
+    return message.reply(`Pull charges reset to **${config.MAX_PULL_CHARGES}**.`);
+  }
+
+  // ── giveyen ───────────────────────────────────────────────
+  if (command === 'giveyen') {
+    const target = message.mentions.users.first() ?? message.author;
+    const amount = parseInt(args.find(a => !a.startsWith('<@')), 10);
+    if (isNaN(amount) || amount <= 0) return message.reply('Usage: `ZP giveyen [@user] <amount>`');
+    const inventory = inv.loadInventory();
+    inv.addYen(inventory, target.id, amount);
+    inv.saveInventory(inventory);
+    return message.reply(`Added **¥${amount.toLocaleString()}** to **${target.username}**'s wallet.`);
+  }
+
+  // ── givestars ─────────────────────────────────────────────
+  if (command === 'givestars') {
+    const target = message.mentions.users.first() ?? message.author;
+    const amount = parseInt(args.find(a => !a.startsWith('<@')), 10);
+    if (isNaN(amount) || amount <= 0) return message.reply('Usage: `ZP givestars [@user] <amount>`');
+    const inventory = inv.loadInventory();
+    inv.addStars(inventory, target.id, amount);
+    inv.saveInventory(inventory);
+    return message.reply(`Added **${amount.toLocaleString()} Stars** to **${target.username}**.`);
+  }
+
+  // ── givecandytokens ───────────────────────────────────────
+  if (command === 'givecandytokens') {
+    const target = message.mentions.users.first() ?? message.author;
+    const amount = parseInt(args.find(a => !a.startsWith('<@')), 10);
+    if (isNaN(amount) || amount <= 0) return message.reply('Usage: `ZP givecandytokens [@user] <amount>`');
+    const inventory = inv.loadInventory();
+    inv.addCandyTokens(inventory, target.id, amount);
+    inv.saveInventory(inventory);
+    return message.reply(`Gave **${amount}** Candy Token${amount === 1 ? '' : 's'} to **${target.username}**.`);
+  }
+
+  // ── giveitem ──────────────────────────────────────────────
+  if (command === 'giveitem') {
+    const target = message.mentions.users.first();
+    const itemId = args.find(a => !a.startsWith('<@'))?.toLowerCase();
+    if (!target || !itemId) return message.reply(`Usage: \`ZP giveitem @user <itemId>\` — available: ${config.ITEMS.map(i => `\`${i.id}\``).join(', ')}`);
+
+    const item = config.ITEMS.find(i => i.id === itemId);
+    if (!item) return message.reply(`Unknown item \`${itemId}\`. Available: ${config.ITEMS.map(i => `\`${i.id}\``).join(', ')}`);
+
+    const inventory = inv.loadInventory();
+    inv.addItem(inventory, target.id, itemId);
+    inv.saveInventory(inventory);
+    return message.reply(`Gave **${item.emoji} ${item.name}** to **${target.username}**.`);
+  }
 });
 
 // ── Login ─────────────────────────────────────────────────
-const token = process.env.DISCORD_TOKEN;
-if (!token) {
-  console.error('❌ DISCORD_TOKEN not set in environment!');
-  process.exit(1);
-}
-client.login(token);
+
+client.login(process.env.DISCORD_TOKEN);
