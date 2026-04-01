@@ -2,16 +2,27 @@
 //  test BOT — MAIN
 //  Commands:
 //    ZP pull  (p)                           – pull a random card
-//    ZP allpull  (ap)                       – pull all available charges at once
+//    ZP allpull  (ap)                       – pull all charges at once
 //    ZP collection  (col)                   – browse your card collection
 //    ZP collection [filter]                 – filter by rarity or name
 //    ZP collection @user [filter]           – view someone else's cards
 //    ZP inventory  (inv)                    – view character shards & platings
 //    ZP card <id>  (c <id>)                 – inspect a card
+//    ZP trade @user <offer> for <ask>       – offer a trade
+//    ZP accept <tradeId>  (a)               – accept a trade offer
+//    ZP decline <tradeId>  (dec)            – decline / cancel a trade
+//    ZP trades                              – view trade offers sent to you
 //    ZP help  (h)                           – show all commands
 //  Admin-only (user 833025999897755689):
-//    ZP setrarity <rarity|reset>            – force pulls to a rarity
-//    ZP resetcooldown                       – reset pull charges to max
+//    ZP setrarity <rarity|reset>
+//    ZP resetcooldown
+// ============================================================
+//
+//  TRADE ITEM FORMAT
+//    shard:<cardId>:<amount>      e.g.  shard:naruto_r:3
+//    plating:<tierId>:<amount>    e.g.  plating:gold:1
+//  FULL EXAMPLE
+//    ZP trade @Alice shard:naruto_r:3 for plating:gold:1
 // ============================================================
 
 require('dotenv').config();
@@ -23,6 +34,7 @@ const {
 const config    = require('./config');
 const { CARDS, pullCard } = require('./cards');
 const inv       = require('./inventory');
+const trades    = require('./trades');
 
 const client = new Client({
   intents: [
@@ -83,10 +95,6 @@ function setCharges(userId, charges, lastRefill) {
 
 // ── Plating ───────────────────────────────────────────────
 
-/**
- * Roll for a plating drop. Returns the tier object or null.
- * 0.1% total chance per pull; tier determined by weighted roll.
- */
 function rollPlating() {
   if (Math.random() >= config.PLATING_CHANCE) return null;
   const roll = Math.random() * 100;
@@ -102,7 +110,78 @@ function platingById(id) {
   return config.PLATING_TIERS.find(t => t.id === id) ?? null;
 }
 
-// ── Helpers ───────────────────────────────────────────────
+// ── Trade item helpers ────────────────────────────────────
+
+/**
+ * Parse "shard:naruto_r:3" or "plating:gold:1"
+ * Returns { type, id, amount } or null on bad input.
+ */
+function parseTradeItem(str) {
+  const parts = str.split(':');
+  if (parts.length !== 3) return null;
+  const [type, id, amountStr] = parts;
+  const amount = parseInt(amountStr, 10);
+  if (!['shard', 'plating'].includes(type)) return null;
+  if (isNaN(amount) || amount <= 0 || !Number.isInteger(amount)) return null;
+  return { type, id: id.toLowerCase(), amount };
+}
+
+/**
+ * Validate that type + id actually refer to something real.
+ */
+function validateTradeItem(item) {
+  if (item.type === 'shard')   return !!lookupCard(item.id);
+  if (item.type === 'plating') return !!platingById(item.id);
+  return false;
+}
+
+/**
+ * Human-readable label for a trade item.
+ */
+function describeItem(item) {
+  if (item.type === 'shard') {
+    const card = lookupCard(item.id);
+    const name = card?.name ?? item.id;
+    return `🔮 **×${item.amount}** ${name} shard${item.amount === 1 ? '' : 's'}`;
+  }
+  if (item.type === 'plating') {
+    const tier = platingById(item.id);
+    return `${tier?.emoji ?? '🪙'} **×${item.amount}** ${tier?.label ?? item.id} plating${item.amount === 1 ? '' : 's'}`;
+  }
+  return '?';
+}
+
+/**
+ * Check whether a user currently holds enough of a trade item.
+ */
+function userHasItem(inventory, userId, item) {
+  if (item.type === 'shard') {
+    return (inv.getCharacterShards(inventory, userId)[item.id] ?? 0) >= item.amount;
+  }
+  if (item.type === 'plating') {
+    return (inv.getPlatings(inventory, userId)[item.id] ?? 0) >= item.amount;
+  }
+  return false;
+}
+
+/**
+ * Remove items from a user (returns false if insufficient).
+ */
+function removeItems(inventory, userId, item) {
+  if (item.type === 'shard')   return inv.removeCharacterShards(inventory, userId, item.id, item.amount);
+  if (item.type === 'plating') return inv.removePlating(inventory, userId, item.id, item.amount);
+  return false;
+}
+
+/**
+ * Add items to a user.
+ */
+function addItems(inventory, userId, item) {
+  if (item.type === 'shard')   inv.addCharacterShards(inventory, userId, item.id, item.amount);
+  if (item.type === 'plating') inv.addPlatings(inventory, userId, item.id, item.amount);
+}
+
+// ── Misc helpers ──────────────────────────────────────────
 
 function rarityMeta(rarity) {
   return config.RARITY_META[rarity] ?? { label: rarity, emoji: '❔', color: 0xffffff, stars: '' };
@@ -246,42 +325,53 @@ client.on('messageCreate', async (message) => {
 
   // ── help | h ─────────────────────────────────────────────
   if (!command || command === 'help' || command === 'h') {
+    const rarityList = Object.entries(config.RARITY_META)
+      .map(([k, v]) => `${v.emoji} **${v.label}** (${k})`)
+      .join('  •  ');
+    const platingList = config.PLATING_TIERS.map(t => `${t.emoji} **${t.label}**`).join('  •  ');
+
     const embed = new EmbedBuilder()
       .setColor(0x00FFD1)
       .setTitle('📖 test Bot — Commands')
-      .setDescription('Pull anime & game character cards, collect them, and show off your platings!')
+      .setDescription('Pull anime & game character cards, collect them, and trade shards & platings!')
       .addFields(
-        { name: '`ZP pull` / `ZP p`',                        value: `Pull a random card (${config.MAX_PULL_CHARGES} charges, +1 every ${config.PULL_COOLDOWN_SECONDS}s)`, inline: false },
-        { name: '`ZP allpull` / `ZP ap`',                    value: 'Spend all your pull charges at once and see a full summary',                   inline: false },
-        { name: '`ZP collection` / `ZP col`',                value: 'Browse your card collection one card at a time',                               inline: false },
-        { name: '`ZP col [rarity or name]`',                 value: 'Filter by rarity (e.g. `LT`) or name/series keyword',                          inline: false },
-        { name: '`ZP col @user [filter]`',                   value: "Browse another player's collection",                                            inline: false },
-        { name: '`ZP inventory` / `ZP inv`',                 value: 'View your character shards and platings',                                       inline: false },
-        { name: '`ZP card <cardId>` / `ZP c <cardId>`',      value: 'Inspect a specific card by ID',                                                 inline: false },
+        { name: '`ZP pull` / `ZP p`',                          value: `Pull a random card (${config.MAX_PULL_CHARGES} charges, +1 every ${config.PULL_COOLDOWN_SECONDS}s)`, inline: false },
+        { name: '`ZP allpull` / `ZP ap`',                      value: 'Spend all pull charges at once and see a full summary',                          inline: false },
+        { name: '`ZP collection` / `ZP col`',                  value: 'Browse your card collection one card at a time',                                 inline: false },
+        { name: '`ZP col [rarity or name]`',                   value: 'Filter by rarity code (e.g. `LT`) or name/series keyword',                       inline: false },
+        { name: '`ZP col @user [filter]`',                     value: "Browse another player's collection",                                              inline: false },
+        { name: '`ZP inventory` / `ZP inv`',                   value: 'View your character shards and platings',                                         inline: false },
+        { name: '`ZP card <cardId>` / `ZP c <cardId>`',        value: 'Inspect a specific card by ID',                                                   inline: false },
+        {
+          name: '`ZP trade @user <offer> for <ask>`',
+          value: [
+            'Offer character shards or platings in exchange for the same.',
+            '**Item format:** `shard:<cardId>:<amount>` or `plating:<tier>:<amount>`',
+            '**Tiers:** `bronze` `silver` `gold` `diamond`',
+            '**Examples:**',
+            '`ZP trade @Alice shard:naruto_r:3 for plating:gold:1`',
+            '`ZP trade @Bob plating:bronze:2 for shard:goku_r:5`',
+            '`ZP trade @Eve shard:sasuke_e:1 for shard:zoro_e:1`',
+          ].join('\n'),
+          inline: false,
+        },
+        { name: '`ZP accept <tradeId>` / `ZP a <tradeId>`',    value: 'Accept a trade offer sent to you',                                               inline: false },
+        { name: '`ZP decline <tradeId>` / `ZP dec <tradeId>`', value: 'Decline or cancel a trade',                                                      inline: false },
+        { name: '`ZP trades`',                                  value: 'View pending trade offers sent to you',                                           inline: false },
       )
-      .addFields({
-        name: '✨ Rarities',
-        value: Object.entries(config.RARITY_META)
-          .map(([k, v]) => `${v.emoji} **${v.label}** (${k})`)
-          .join('  •  '),
-        inline: false,
-      })
-      .addFields({
-        name: '🪙 Platings',
-        value: config.PLATING_TIERS.map(t => `${t.emoji} **${t.label}**`).join('  •  ') +
-          `\n0.1% chance per pull • Dupes give character shards`,
-        inline: false,
-      })
-      .setFooter({ text: 'Dupes earn character shards stored in your inventory.' });
+      .addFields(
+        { name: '✨ Rarities',  value: rarityList,                                                                        inline: false },
+        { name: '🪙 Platings', value: platingList + `\n0.1% chance per pull • Dupes give character shards`,              inline: false },
+      )
+      .setFooter({ text: 'Dupes earn character shards. Trades expire after 5 minutes.' });
 
     if (isAdmin(userId)) {
-      const rarityKeys = Object.keys(config.RARITY_META).join(' | ');
       embed.addFields({
         name: '🔧 Admin Commands',
         value: [
-          `\`ZP setrarity <${rarityKeys}>\` — Force your pulls to a specific rarity`,
+          `\`ZP setrarity <${Object.keys(config.RARITY_META).join(' | ')}>\` — Force pulls to a rarity`,
           `\`ZP setrarity reset\` — Clear rarity override`,
-          `\`ZP resetcooldown\` — Restore your pull charges to max`,
+          `\`ZP resetcooldown\` — Restore pull charges to max`,
         ].join('\n'),
         inline: false,
       });
@@ -292,10 +382,6 @@ client.on('messageCreate', async (message) => {
 
   // ── Shared pull logic ────────────────────────────────────
 
-  /**
-   * Execute a single pull for userId.
-   * Returns { card, isDupe, plating } — does NOT save inventory (caller must).
-   */
   function executeSinglePull(inventory, userId) {
     const card    = (isAdmin(userId) && adminRarityOverride)
       ? pullCardForced(adminRarityOverride)
@@ -317,26 +403,24 @@ client.on('messageCreate', async (message) => {
 
     setCharges(userId, charges - 1, lastRefill);
 
-    const inventory             = inv.loadInventory();
+    const inventory                 = inv.loadInventory();
     const { card, isDupe, plating } = executeSinglePull(inventory, userId);
     inv.saveInventory(inventory);
 
-    const meta       = rarityMeta(card.rarity);
-    const remaining  = charges - 1;
-    const chargeInfo = remaining > 0
+    const meta        = rarityMeta(card.rarity);
+    const remaining   = charges - 1;
+    const chargeInfo  = remaining > 0
       ? `${remaining} pull${remaining === 1 ? '' : 's'} remaining`
       : `No pulls left — next charge in ${config.PULL_COOLDOWN_SECONDS}s`;
-    const overrideNote = (isAdmin(userId) && adminRarityOverride)
-      ? ` • 🔧 Rarity locked to ${meta.label}` : '';
+    const overrideNote = (isAdmin(userId) && adminRarityOverride) ? ` • 🔧 Rarity locked to ${meta.label}` : '';
     const platingNote  = plating ? ` • ${plating.emoji} **${plating.label} Plating** obtained!` : '';
 
     if (isDupe) {
       const embed = cardEmbed(card,
         `♻️ Duplicate — ${card.name}`,
-        `Already in your collection! +1 ${card.name} Shard added to inventory • ${chargeInfo}${overrideNote}${platingNote}`
+        `Already in your collection! +1 ${card.name} Shard • ${chargeInfo}${overrideNote}${platingNote}`
       );
-      embed.setColor(0x888888);
-      if (plating) embed.setColor(plating.color);
+      embed.setColor(plating ? plating.color : 0x888888);
       return message.reply({ embeds: [embed] });
     }
 
@@ -357,7 +441,6 @@ client.on('messageCreate', async (message) => {
       return message.reply(`⏳ No pulls left! Next charge in **${secsUntilNext}s**. Charges refill 1 every **${config.PULL_COOLDOWN_SECONDS}s** (max **${config.MAX_PULL_CHARGES}**).`);
     }
 
-    // Spend all charges
     setCharges(userId, 0, lastRefill);
 
     const inventory = inv.loadInventory();
@@ -387,14 +470,11 @@ client.on('messageCreate', async (message) => {
         const m = rarityMeta(c.rarity);
         return `${m.emoji} **${c.name}** *(${m.label})*`;
       });
-      // Split into chunks of 1024 chars to stay within field limits
-      let chunk = '';
-      let fieldCount = 0;
+      let chunk = '', fieldCount = 0;
       for (const line of lines) {
         if ((chunk + '\n' + line).length > 1000) {
           embed.addFields({ name: fieldCount === 0 ? `✨ New Cards (${newCards.length})` : '​', value: chunk.trim(), inline: false });
-          chunk = line;
-          fieldCount++;
+          chunk = line; fieldCount++;
         } else {
           chunk = chunk ? chunk + '\n' + line : line;
         }
@@ -405,21 +485,19 @@ client.on('messageCreate', async (message) => {
     // Dupes
     if (dupes.length > 0) {
       const grouped = {};
-      for (const c of dupes) grouped[c.id] = (grouped[c.id] || { card: c, count: 0 });
-      for (const c of dupes) grouped[c.id].count++;
-
+      for (const c of dupes) {
+        if (!grouped[c.id]) grouped[c.id] = { card: c, count: 0 };
+        grouped[c.id].count++;
+      }
       const lines = Object.values(grouped).map(({ card: c, count }) => {
         const m = rarityMeta(c.rarity);
         return `${m.emoji} ${c.name}${count > 1 ? ` ×${count}` : ''} → +${count} 🔮 shard${count === 1 ? '' : 's'}`;
       });
-
-      let chunk = '';
-      let fieldCount = 0;
+      let chunk = '', fieldCount = 0;
       for (const line of lines) {
         if ((chunk + '\n' + line).length > 1000) {
           embed.addFields({ name: fieldCount === 0 ? `♻️ Duplicates (${dupes.length})` : '​', value: chunk.trim(), inline: false });
-          chunk = line;
-          fieldCount++;
+          chunk = line; fieldCount++;
         } else {
           chunk = chunk ? chunk + '\n' + line : line;
         }
@@ -430,8 +508,10 @@ client.on('messageCreate', async (message) => {
     // Platings
     if (platings.length > 0) {
       const grouped = {};
-      for (const p of platings) grouped[p.id] = (grouped[p.id] || { tier: p, count: 0 });
-      for (const p of platings) grouped[p.id].count++;
+      for (const p of platings) {
+        if (!grouped[p.id]) grouped[p.id] = { tier: p, count: 0 };
+        grouped[p.id].count++;
+      }
       embed.addFields({
         name: '🪙 Platings Obtained!',
         value: Object.values(grouped)
@@ -439,7 +519,6 @@ client.on('messageCreate', async (message) => {
           .join('\n'),
         inline: false,
       });
-      // Colour embed with the rarest plating obtained
       const rarityOrder = ['diamond', 'gold', 'silver', 'bronze'];
       for (const id of rarityOrder) {
         if (grouped[id]) { embed.setColor(grouped[id].tier.color); break; }
@@ -471,12 +550,9 @@ client.on('messageCreate', async (message) => {
     const target    = message.mentions.users.first() ?? message.author;
     const inventory = inv.loadInventory();
 
-    // ─ Character shards ─
-    const charShards = inv.getCharacterShards(inventory, target.id);
-    const shardEntries = Object.entries(charShards).filter(([, n]) => n > 0);
-
-    // ─ Platings ─
-    const platingsObj   = inv.getPlatings(inventory, target.id);
+    const charShards     = inv.getCharacterShards(inventory, target.id);
+    const shardEntries   = Object.entries(charShards).filter(([, n]) => n > 0);
+    const platingsObj    = inv.getPlatings(inventory, target.id);
     const platingEntries = Object.entries(platingsObj).filter(([, n]) => n > 0);
 
     if (shardEntries.length === 0 && platingEntries.length === 0) {
@@ -489,7 +565,6 @@ client.on('messageCreate', async (message) => {
       .setColor(0x9B59B6)
       .setTitle(`🎒 ${target.username}'s Inventory`);
 
-    // Platings section
     if (platingEntries.length > 0) {
       const totalPlatings = platingEntries.reduce((s, [, n]) => s + n, 0);
       embed.addFields({
@@ -502,7 +577,6 @@ client.on('messageCreate', async (message) => {
       });
     }
 
-    // Character shards section (grouped by rarity)
     if (shardEntries.length > 0) {
       const grouped = {};
       for (const [key] of Object.entries(config.RARITY_META)) grouped[key] = [];
@@ -550,6 +624,160 @@ client.on('messageCreate', async (message) => {
     return message.reply({ embeds: [embed] });
   }
 
+  // ── trade ─────────────────────────────────────────────────
+  if (command === 'trade') {
+    const toUser = message.mentions.users.first();
+    if (!toUser) {
+      return message.reply(
+        '❌ You must mention a user.\nUsage: `ZP trade @user <offer> for <ask>`\n' +
+        'Item format: `shard:<cardId>:<amount>` or `plating:<tier>:<amount>`\n' +
+        'Example: `ZP trade @Alice shard:naruto_r:3 for plating:gold:1`'
+      );
+    }
+    if (toUser.id === userId) return message.reply('❌ You cannot trade with yourself.');
+    if (toUser.bot)           return message.reply('❌ You cannot trade with a bot.');
+
+    // Strip mention tokens and find "for" separator
+    const tradeArgs  = args.filter(a => !a.startsWith('<@'));
+    const forIndex   = tradeArgs.findIndex(a => a.toLowerCase() === 'for');
+
+    if (forIndex === -1 || forIndex === 0 || forIndex === tradeArgs.length - 1) {
+      return message.reply(
+        '❌ Invalid format. Use: `ZP trade @user <offer> for <ask>`\n' +
+        'Item format: `shard:<cardId>:<amount>` or `plating:<tier>:<amount>`\n' +
+        'Example: `ZP trade @Alice shard:naruto_r:3 for plating:gold:1`'
+      );
+    }
+
+    const offerStr = tradeArgs.slice(0, forIndex).join('');
+    const askStr   = tradeArgs.slice(forIndex + 1).join('');
+
+    const offer = parseTradeItem(offerStr);
+    const ask   = parseTradeItem(askStr);
+
+    if (!offer) return message.reply(`❌ Couldn't parse your offer \`${offerStr}\`.\nFormat: \`shard:<cardId>:<amount>\` or \`plating:<tier>:<amount>\``);
+    if (!ask)   return message.reply(`❌ Couldn't parse your ask \`${askStr}\`.\nFormat: \`shard:<cardId>:<amount>\` or \`plating:<tier>:<amount>\``);
+
+    if (!validateTradeItem(offer)) {
+      return message.reply(offer.type === 'shard'
+        ? `❌ Unknown card ID \`${offer.id}\`. Check \`ZP col\` for valid IDs.`
+        : `❌ Unknown plating tier \`${offer.id}\`. Valid tiers: ${config.PLATING_TIERS.map(t => t.id).join(', ')}`
+      );
+    }
+    if (!validateTradeItem(ask)) {
+      return message.reply(ask.type === 'shard'
+        ? `❌ Unknown card ID \`${ask.id}\`. Check \`ZP col\` for valid IDs.`
+        : `❌ Unknown plating tier \`${ask.id}\`. Valid tiers: ${config.PLATING_TIERS.map(t => t.id).join(', ')}`
+      );
+    }
+
+    const inventory = inv.loadInventory();
+
+    if (!userHasItem(inventory, userId, offer)) {
+      return message.reply(`❌ You don't have enough to offer. You need ${describeItem(offer)}.`);
+    }
+
+    const tradeId = trades.createTrade({ fromUserId: userId, toUserId: toUser.id, offer, ask });
+
+    const embed = new EmbedBuilder()
+      .setColor(0x4A90D9)
+      .setTitle('🤝 Trade Offer Sent')
+      .setDescription(`**${message.author.username}** → **${toUser.username}**`)
+      .addFields(
+        { name: 'Offering',  value: describeItem(offer), inline: true },
+        { name: 'Asking for', value: describeItem(ask),  inline: true },
+        { name: 'Trade ID',  value: `\`${tradeId}\``,    inline: true },
+      )
+      .setFooter({ text: `${toUser.username}: use  ZP a ${tradeId}  or  ZP dec ${tradeId}  • Expires in 5 min` });
+
+    return message.reply({ content: `${toUser}`, embeds: [embed] });
+  }
+
+  // ── accept | a ────────────────────────────────────────────
+  if (command === 'accept' || command === 'a') {
+    const tradeId = args[0];
+    if (!tradeId) return message.reply('Usage: `ZP accept <tradeId>` or `ZP a <tradeId>`');
+
+    const trade = trades.getTrade(tradeId);
+    if (!trade) return message.reply(`❌ Trade \`${tradeId}\` not found or has expired.`);
+    if (trade.toUserId !== userId) return message.reply('❌ That trade is not addressed to you.');
+
+    const inventory = inv.loadInventory();
+
+    // Check sender still has what they offered
+    if (!userHasItem(inventory, trade.fromUserId, trade.offer)) {
+      trades.cancelTrade(tradeId);
+      return message.reply(`❌ The sender no longer has ${describeItem(trade.offer)}. Trade cancelled.`);
+    }
+
+    // Check receiver has what's being asked
+    if (!userHasItem(inventory, userId, trade.ask)) {
+      return message.reply(`❌ You don't have enough: you need ${describeItem(trade.ask)} to accept this trade.`);
+    }
+
+    // Execute the swap
+    removeItems(inventory, trade.fromUserId, trade.offer);
+    removeItems(inventory, userId,           trade.ask);
+    addItems(inventory,    userId,           trade.offer);
+    addItems(inventory,    trade.fromUserId, trade.ask);
+    inv.saveInventory(inventory);
+    trades.cancelTrade(tradeId);
+
+    const fromUser = await client.users.fetch(trade.fromUserId).catch(() => ({ username: trade.fromUserId }));
+    const embed = new EmbedBuilder()
+      .setColor(0x2ecc71)
+      .setTitle('✅ Trade Complete!')
+      .setDescription(`**${fromUser.username}** ↔ **${message.author.username}**`)
+      .addFields(
+        { name: `${message.author.username} received`, value: describeItem(trade.offer), inline: true },
+        { name: `${fromUser.username} received`,       value: describeItem(trade.ask),   inline: true },
+      );
+
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── decline | dec ─────────────────────────────────────────
+  if (command === 'decline' || command === 'dec') {
+    const tradeId = args[0];
+    if (!tradeId) return message.reply('Usage: `ZP decline <tradeId>` or `ZP dec <tradeId>`');
+
+    const trade = trades.getTrade(tradeId);
+    if (!trade) return message.reply(`❌ Trade \`${tradeId}\` not found or already expired.`);
+    if (trade.toUserId !== userId && trade.fromUserId !== userId) {
+      return message.reply('❌ You are not part of that trade.');
+    }
+
+    trades.cancelTrade(tradeId);
+    return message.reply(`🚫 Trade \`${tradeId}\` has been cancelled.`);
+  }
+
+  // ── trades ────────────────────────────────────────────────
+  if (command === 'trades') {
+    const pending = trades.getTradesForUser(userId);
+    if (pending.length === 0) {
+      return message.reply('📭 You have no pending trade offers.');
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor(0xF1C40F)
+      .setTitle('📬 Pending Trade Offers');
+
+    for (const trade of pending) {
+      const fromUser = await client.users.fetch(trade.fromUserId).catch(() => ({ username: trade.fromUserId }));
+      embed.addFields({
+        name:  `Trade \`${trade.tradeId}\` — from ${fromUser.username}`,
+        value: [
+          `They offer: ${describeItem(trade.offer)}`,
+          `They want:  ${describeItem(trade.ask)}`,
+          `\`ZP a ${trade.tradeId}\`  •  \`ZP dec ${trade.tradeId}\``,
+        ].join('\n'),
+        inline: false,
+      });
+    }
+
+    return message.reply({ embeds: [embed] });
+  }
+
   // ── Admin-only commands ───────────────────────────────────
   if (isAdmin(userId)) {
     if (command === 'setrarity') {
@@ -568,8 +796,7 @@ client.on('messageCreate', async (message) => {
         return message.reply(`❌ Unknown rarity. Valid options: ${Object.keys(config.RARITY_META).join(', ')}`);
       }
       adminRarityOverride = target;
-      const meta = rarityMeta(target);
-      return message.reply(`🔧 Rarity locked to **${meta.emoji} ${meta.label}** — use \`ZP setrarity reset\` to clear.`);
+      return message.reply(`🔧 Rarity locked to **${rarityMeta(target).emoji} ${rarityMeta(target).label}** — use \`ZP setrarity reset\` to clear.`);
     }
 
     if (command === 'resetcooldown') {

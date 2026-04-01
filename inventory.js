@@ -28,21 +28,14 @@ function ensureUser(inventory, userId) {
   if (!inventory.users[userId]) {
     inventory.users[userId] = { cards: [], characterShards: {}, platings: {} };
   }
-  // Migration: add missing fields to older records
   const u = inventory.users[userId];
   if (!u.characterShards) u.characterShards = {};
   if (!u.platings)        u.platings        = {};
-  // Drop legacy trade shards field if present
-  if ('shards' in u) delete u.shards;
+  if ('shards' in u)      delete u.shards;
 }
 
 // ── Card Operations ───────────────────────────────────────
 
-/**
- * Add a card to a user's inventory.
- * Duplicates award +1 character shard for that specific card.
- * Returns { isDupe, cardName }
- */
 function addCardToInventory(inventory, userId, card) {
   ensureUser(inventory, userId);
   const user = inventory.users[userId];
@@ -88,6 +81,22 @@ function getCharacterShards(inventory, userId) {
   return inventory.users[userId].characterShards;
 }
 
+function addCharacterShards(inventory, userId, cardId, amount) {
+  ensureUser(inventory, userId);
+  const s = inventory.users[userId].characterShards;
+  s[cardId] = (s[cardId] || 0) + amount;
+}
+
+function removeCharacterShards(inventory, userId, cardId, amount) {
+  ensureUser(inventory, userId);
+  const s       = inventory.users[userId].characterShards;
+  const current = s[cardId] || 0;
+  if (current < amount) return false;
+  s[cardId] = current - amount;
+  if (s[cardId] === 0) delete s[cardId];
+  return true;
+}
+
 // ── Plating Operations ────────────────────────────────────
 
 function getPlatings(inventory, userId) {
@@ -101,7 +110,23 @@ function addPlating(inventory, userId, tierId) {
   p[tierId] = (p[tierId] || 0) + 1;
 }
 
-// ── Pull Charge Helpers (used by bot.js in-memory Map) ────
+function addPlatings(inventory, userId, tierId, amount) {
+  ensureUser(inventory, userId);
+  const p = inventory.users[userId].platings;
+  p[tierId] = (p[tierId] || 0) + amount;
+}
+
+function removePlating(inventory, userId, tierId, amount) {
+  ensureUser(inventory, userId);
+  const p       = inventory.users[userId].platings;
+  const current = p[tierId] || 0;
+  if (current < amount) return false;
+  p[tierId] = current - amount;
+  if (p[tierId] === 0) delete p[tierId];
+  return true;
+}
+
+// ── Pull Charge Helpers ───────────────────────────────────
 
 function loadPullCharges(inventory, userId) {
   return inventory.pullCharges[userId] ?? null;
@@ -116,6 +141,6 @@ module.exports = {
   loadInventory, saveInventory,
   loadPullCharges, savePullCharges,
   addCardToInventory, removeCardFromInventory, hasCard, getCards,
-  getCharacterShards,
-  getPlatings, addPlating,
+  getCharacterShards, addCharacterShards, removeCharacterShards,
+  getPlatings, addPlating, addPlatings, removePlating,
 };
