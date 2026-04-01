@@ -1089,6 +1089,14 @@
           "rarity": "L",
           "level": 1,
           "obtainedAt": "2026-04-01T15:04:37.982Z"
+        },
+        {
+          "id": "eli",
+          "name": "Eli Jang",
+          "series": "Lookism",
+          "rarity": "MY",
+          "level": 1,
+          "obtainedAt": "2026-04-01T17:50:42.562Z"
         }
       ],
       "characterShards": {
@@ -1104,7 +1112,7 @@
         "deku": 51,
         "pikachu": 40,
         "ichigo": 47,
-        "naruto": 40,
+        "naruto": 41,
         "vegeta": 14,
         "levi": 12,
         "kaguya": 4,
@@ -1115,7 +1123,7 @@
         "sasuke": 16,
         "zoro": 14,
         "shanks": 4,
-        "goku_ssj4": 2,
+        "goku_ssj4": 3,
         "arceus": 3,
         "hisoka": 6,
         "allmight": 5,
@@ -1124,32 +1132,32 @@
         "sephiroth": 13,
         "itachi": 1,
         "natsu": 7,
-        "itadori": 13,
+        "itadori": 14,
         "uryu": 20,
-        "rukia": 9,
+        "rukia": 11,
         "inuyasha": 10,
         "noriaki": 10,
         "denji": 8,
         "law": 2,
         "chopper": 18,
-        "winry": 12,
+        "winry": 13,
         "sanji": 4,
         "light": 5,
         "sukuna_fp": 2,
         "usopp": 10,
         "nobara": 10,
-        "kirito": 8,
-        "caesar": 10,
-        "anya": 10,
+        "kirito": 9,
+        "caesar": 11,
+        "anya": 11,
         "yuno": 9,
-        "power": 8,
+        "power": 9,
         "chad": 8,
         "tanjiro": 5,
         "gray": 12,
         "robin": 12,
-        "noelle": 6,
-        "asuna": 6,
-        "kurama": 1,
+        "noelle": 7,
+        "asuna": 8,
+        "kurama": 2,
         "nami": 8,
         "mob": 3,
         "edward": 4,
@@ -1161,12 +1169,12 @@
         "joseph": 8,
         "reigen": 17,
         "gintoki": 7,
-        "renji": 15,
+        "renji": 16,
         "ulquiorra": 3,
         "asta": 6,
         "l": 7,
-        "orihime": 4,
-        "zenitsu": 11,
+        "orihime": 5,
+        "zenitsu": 12,
         "inosuke": 8,
         "alphonse": 4,
         "lelouch": 3,
@@ -1196,9 +1204,9 @@
         "yuta": 1,
         "sagiri": 5,
         "ichigo_bankai": 1,
-        "jay": 7,
+        "jay": 8,
         "crystal": 2,
-        "zack": 3,
+        "zack": 4,
         "daniel": 6,
         "madara": 1,
         "sakura": 2,
@@ -1215,8 +1223,25 @@
       },
       "yen": 100331,
       "stars": 133,
-      "candyTokens": 46,
-      "team": [],
+      "candyTokens": 45,
+      "team": [
+        {
+          "cardId": "gear5_luffy",
+          "plating": null
+        },
+        {
+          "cardId": "anya",
+          "plating": null
+        },
+        {
+          "cardId": "asta",
+          "plating": null
+        },
+        {
+          "cardId": "alphonse",
+          "plating": null
+        }
+      ],
       "items": {},
       "wish": null,
       "levelCaps": {},
@@ -1224,10 +1249,13 @@
       "privacy": false,
       "clanId": null,
       "duoId": null,
-      "totalPulls": 514,
+      "totalPulls": 534,
       "totalKills": 0,
       "limitBreakers": 0,
-      "conquest": null
+      "conquest": {
+        "cardId": "goku",
+        "sentAt": 1775065880717
+      }
     },
     "1488543846257262712": {
       "cards": [],
@@ -2002,9 +2030,20 @@
       },
       "platings": {},
       "team": [],
-      "yen": 0,
+      "yen": 1000000,
       "stars": 0,
-      "candyTokens": 6
+      "candyTokens": 6,
+      "items": {},
+      "limitBreakers": 0,
+      "wish": null,
+      "levelCaps": {},
+      "prestigePoints": {},
+      "privacy": false,
+      "clanId": null,
+      "duoId": null,
+      "totalPulls": 0,
+      "totalKills": 0,
+      "conquest": null
     },
     "893911945374203994": {
       "cards": [
@@ -3342,6 +3381,14 @@
           "rarity": "E",
           "level": 1,
           "obtainedAt": "2026-04-01T16:12:32.348Z"
+        },
+        {
+          "id": "daniel_park_ui_lt",
+          "name": "Daniel Park (Ultra Instinct)",
+          "series": "Lookism",
+          "rarity": "LT",
+          "level": 1,
+          "obtainedAt": "2026-04-01T18:46:30.785Z"
         }
       ],
       "characterShards": {
@@ -3475,6 +3522,18 @@
         {
           "cardId": "daniel",
           "plating": "silver"
+        },
+        {
+          "cardId": "eli",
+          "plating": null
+        },
+        {
+          "cardId": "gun",
+          "plating": null
+        },
+        {
+          "cardId": "daniel_park_ui_lt",
+          "plating": null
         }
       ],
       "yen": 267,
@@ -3491,9 +3550,7 @@
       "duoId": null,
       "totalPulls": 2168,
       "totalKills": 58,
-      "items": {
-        "drugs": 1
-      },
+      "items": {},
       "limitBreakers": 0,
       "conquest": {
         "cardId": "joyboy",
@@ -3504,7 +3561,7 @@
   "pullCharges": {
     "833025999897755689": {
       "charges": 20,
-      "lastRefill": 1775063470271
+      "lastRefill": 1775065842564
     },
     "921838182927040602": {
       "charges": 0,

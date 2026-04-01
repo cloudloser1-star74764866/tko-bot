@@ -53,6 +53,7 @@
 //    ZP givestars [@user] <amount>
 //    ZP givecandytokens [@user] <amount>
 //    ZP giveitem @user <itemId>
+//    ZP giveshards @user <cardId> <amount>
 //    ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]
 //    ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]
 //    ZP deletecode <name>
@@ -986,6 +987,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
             value: [
               '`ZP refresh` – Delete all server emojis and re-sync from scratch',
               '`ZP giveitem @user <itemId>` – Give a limited item to a player',
+              '`ZP giveshards @user <cardId> <amount>` – Give character shards to a player',
               '`ZP givelimitbreaker [@user] <amount>` – Give Limit Breakers to a player',
               '`ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]` – Create a redeemable code',
               '`ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]` – Edit a code\'s rewards',
@@ -3311,6 +3313,29 @@ client.on('messageCreate', async (message) => {
     inv.addItem(inventory, target.id, itemId);
     inv.saveInventory(inventory);
     return message.reply(`Gave **${item.emoji} ${item.name}** to **${target.username}**.`);
+  }
+
+  // ── giveshards ────────────────────────────────────────────
+  if (command === 'giveshards') {
+    if (!isAdmin(userId)) return;
+
+    const target = message.mentions.users.first();
+    const nonMentionArgs = args.filter(a => !a.startsWith('<@'));
+    const cardId = nonMentionArgs[0]?.toLowerCase();
+    const amount = parseInt(nonMentionArgs[1], 10);
+
+    if (!target || !cardId || isNaN(amount) || amount <= 0)
+      return message.reply('Usage: `ZP giveshards @user <cardId> <amount>`');
+
+    const card = lookupCard(cardId);
+    if (!card) return message.reply(`❌ No card found with ID \`${cardId}\`.`);
+
+    const inventory = inv.loadInventory();
+    inv.addCharacterShards(inventory, target.id, cardId, amount);
+    inv.saveInventory(inventory);
+
+    const emoji = emojiCache.getEmoji(cardId) ?? '';
+    return message.reply(`Gave **${amount}x ${emoji}${card.name} shard${amount === 1 ? '' : 's'}** to **${target.username}**.`);
   }
 
   // ── createcode ────────────────────────────────────────────
