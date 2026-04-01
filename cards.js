@@ -15,10 +15,10 @@ const CARDS = [
   { id: 'goku',           name: 'Goku',                    series: 'Dragon Ball Z',                     rarity: 'R',  desc: 'A pure-hearted Saiyan warrior.' },
   { id: 'luffy',          name: 'Monkey D. Luffy',         series: 'One Piece',                         rarity: 'R',  desc: 'Future King of the Pirates.' },
   { id: 'ichigo',         name: 'Ichigo Kurosaki',         series: 'Bleach',                            rarity: 'R',  desc: 'A Soul Reaper protecting the living world.' },
-  { id: 'deku',           name: 'Izuku Midoriya',          series: 'My Hero Academia',                  rarity: 'R',  desc: 'The successor of One For All.' },
+  { id: 'deku',           name: 'Izuku Midoriya',          series: 'My Hero Academia',                  rarity: 'E',  desc: 'The successor of One For All.' },
   { id: 'link',           name: 'Link',                    series: 'The Legend of Zelda',               rarity: 'R',  desc: 'The Hero of Time, chosen by the Triforce.' },
   { id: 'cloud',          name: 'Cloud Strife',            series: 'Final Fantasy VII',                 rarity: 'R',  desc: 'Ex-SOLDIER turned mercenary.' },
-  { id: 'eren',           name: 'Eren Yeager',             series: 'Attack on Titan',                   rarity: 'R',  desc: 'A boy who swore to destroy the Titans.' },
+  { id: 'eren',           name: 'Eren Yeager',             series: 'Attack on Titan',                   rarity: 'E',  desc: 'A boy who swore to destroy the Titans — and became the Titans.' },
   { id: 'pikachu',        name: 'Pikachu',                 series: 'Pokémon',                           rarity: 'R',  desc: 'The iconic Electric-type partner.' },
   { id: 'spike',          name: 'Spike Spiegel',           series: 'Cowboy Bebop',                      rarity: 'R',  desc: 'A bounty hunter drifting through space.' },
   // Bleach
@@ -35,42 +35,42 @@ const CARDS = [
   { id: 'nami',           name: 'Nami',                    series: 'One Piece',                         rarity: 'R',  desc: 'Navigator of the Straw Hats, lover of treasure.' },
   { id: 'usopp',          name: 'Usopp',                   series: 'One Piece',                         rarity: 'R',  desc: 'Brave warrior of the sea — when he needs to be.' },
   { id: 'chopper',        name: 'Tony Tony Chopper',       series: 'One Piece',                         rarity: 'R',  desc: 'A reindeer doctor with a Devil Fruit of many forms.' },
-  { id: 'sanji',          name: 'Sanji',                   series: 'One Piece',                         rarity: 'R',  desc: 'A chef whose kicks blaze like a black flame.' },
+  { id: 'sanji',          name: 'Sanji',                   series: 'One Piece',                         rarity: 'E',  desc: 'A chef whose kicks blaze like a black flame.' },
   { id: 'robin',          name: 'Nico Robin',              series: 'One Piece',                         rarity: 'R',  desc: 'Archaeologist who can read the Poneglyphs.' },
   // Black Clover
-  { id: 'asta',           name: 'Asta',                    series: 'Black Clover',                      rarity: 'R',  desc: 'A boy born without magic who never gives up.' },
+  { id: 'asta',           name: 'Asta',                    series: 'Black Clover',                      rarity: 'E',  desc: 'A boy born without magic who never gives up.' },
   { id: 'noelle',         name: 'Noelle Silva',            series: 'Black Clover',                      rarity: 'R',  desc: 'Royal mage of the Black Bulls with water magic.' },
   { id: 'yuno',           name: 'Yuno',                    series: 'Black Clover',                      rarity: 'R',  desc: 'Asta\'s rival, wielder of wind and star magic.' },
   // Demon Slayer
-  { id: 'tanjiro',        name: 'Tanjiro Kamado',          series: 'Demon Slayer',                      rarity: 'R',  desc: 'A kind-hearted demon slayer with the Hinokami Kagura.' },
+  { id: 'tanjiro',        name: 'Tanjiro Kamado',          series: 'Demon Slayer',                      rarity: 'E',  desc: 'A kind-hearted demon slayer with the Hinokami Kagura.' },
   { id: 'nezuko',         name: 'Nezuko Kamado',           series: 'Demon Slayer',                      rarity: 'R',  desc: 'A demon who still protects humans with fierce love.' },
   { id: 'zenitsu',        name: 'Zenitsu Agatsuma',        series: 'Demon Slayer',                      rarity: 'R',  desc: 'Terrified of everything — until he falls asleep.' },
   { id: 'inosuke',        name: 'Inosuke Hashibira',       series: 'Demon Slayer',                      rarity: 'R',  desc: 'Wild boar-masked warrior raised in the mountains.' },
   // Fullmetal Alchemist: Brotherhood
-  { id: 'edward',         name: 'Edward Elric',            series: 'Fullmetal Alchemist: Brotherhood',  rarity: 'R',  desc: 'The Fullmetal Alchemist, short in stature, towering in will.' },
+  { id: 'edward',         name: 'Edward Elric',            series: 'Fullmetal Alchemist: Brotherhood',  rarity: 'E',  desc: 'The Fullmetal Alchemist, short in stature, towering in will.' },
   { id: 'alphonse',       name: 'Alphonse Elric',          series: 'Fullmetal Alchemist: Brotherhood',  rarity: 'R',  desc: 'A gentle soul sealed inside a suit of armour.' },
   { id: 'winry',          name: 'Winry Rockbell',          series: 'Fullmetal Alchemist: Brotherhood',  rarity: 'R',  desc: 'Mechanic genius and the heart of the Elric brothers.' },
   // Sword Art Online
   { id: 'kirito',         name: 'Kirito',                  series: 'Sword Art Online',                  rarity: 'R',  desc: 'The Black Swordsman of Aincrad.' },
   { id: 'asuna',          name: 'Asuna',                   series: 'Sword Art Online',                  rarity: 'R',  desc: 'Lightning Flash, the fastest blade in SAO.' },
   // Jujutsu Kaisen
-  { id: 'itadori',        name: 'Yuji Itadori',            series: 'Jujutsu Kaisen',                    rarity: 'R',  desc: 'Host of Ryomen Sukuna, fighting for a proper death.' },
+  { id: 'itadori',        name: 'Yuji Itadori',            series: 'Jujutsu Kaisen',                    rarity: 'E',  desc: 'Host of Ryomen Sukuna, fighting for a proper death.' },
   { id: 'nobara',         name: 'Nobara Kugisaki',         series: 'Jujutsu Kaisen',                    rarity: 'R',  desc: 'Straw doll technique — don\'t underestimate her.' },
   // Fairy Tail
-  { id: 'natsu',          name: 'Natsu Dragneel',          series: 'Fairy Tail',                        rarity: 'R',  desc: 'The Fire Dragon Slayer of Fairy Tail.' },
+  { id: 'natsu',          name: 'Natsu Dragneel',          series: 'Fairy Tail',                        rarity: 'E',  desc: 'The Fire Dragon Slayer of Fairy Tail.' },
   { id: 'gray',           name: 'Gray Fullbuster',         series: 'Fairy Tail',                        rarity: 'R',  desc: 'An ice mage who keeps losing his clothes.' },
-  { id: 'erza',           name: 'Erza Scarlet',            series: 'Fairy Tail',                        rarity: 'R',  desc: 'Titania the Fairy Queen, requipping armour mid-battle.' },
+  { id: 'erza',           name: 'Erza Scarlet',            series: 'Fairy Tail',                        rarity: 'E',  desc: 'Titania the Fairy Queen, requipping armour mid-battle.' },
   // Death Note
-  { id: 'light',          name: 'Light Yagami',            series: 'Death Note',                        rarity: 'R',  desc: 'I am justice. I am the god of the new world.' },
-  { id: 'l',              name: 'L Lawliet',               series: 'Death Note',                        rarity: 'R',  desc: 'The world\'s greatest detective — sitting oddly.' },
+  { id: 'light',          name: 'Light Yagami',            series: 'Death Note',                        rarity: 'L',  desc: 'I am justice. I am the god of the new world.' },
+  { id: 'l',              name: 'L Lawliet',               series: 'Death Note',                        rarity: 'L',  desc: 'The world\'s greatest detective — sitting oddly.' },
   // Mob Psycho 100
-  { id: 'mob',            name: 'Shigeo Kageyama',         series: 'Mob Psycho 100',                    rarity: 'R',  desc: 'A boy suppressing psychic power that shakes the earth.' },
+  { id: 'mob',            name: 'Shigeo Kageyama',         series: 'Mob Psycho 100',                    rarity: 'L',  desc: 'A boy suppressing psychic power that shakes the earth.' },
   { id: 'reigen',         name: 'Reigen Arataka',          series: 'Mob Psycho 100',                    rarity: 'R',  desc: 'Greatest psychic of the century — citation needed.' },
   // Hunter x Hunter
-  { id: 'gon',            name: 'Gon Freecss',             series: 'Hunter x Hunter',                   rarity: 'R',  desc: 'An innocent boy with limitless hidden potential.' },
-  { id: 'kurapika',       name: 'Kurapika',                series: 'Hunter x Hunter',                   rarity: 'R',  desc: 'A Kurta survivor driven by vengeance.' },
+  { id: 'gon',            name: 'Gon Freecss',             series: 'Hunter x Hunter',                   rarity: 'E',  desc: 'An innocent boy with limitless hidden potential.' },
+  { id: 'kurapika',       name: 'Kurapika',                series: 'Hunter x Hunter',                   rarity: 'E',  desc: 'A Kurta survivor driven by vengeance.' },
   // Chainsaw Man
-  { id: 'denji',          name: 'Denji',                   series: 'Chainsaw Man',                      rarity: 'R',  desc: 'A devil hunter with a chainsaw heart.' },
+  { id: 'denji',          name: 'Denji',                   series: 'Chainsaw Man',                      rarity: 'E',  desc: 'A devil hunter with a chainsaw heart.' },
   { id: 'power',          name: 'Power',                   series: 'Chainsaw Man',                      rarity: 'R',  desc: 'Blood Fiend and certified chaotic ally.' },
   // Spy x Family
   { id: 'loid',           name: 'Loid Forger',             series: 'Spy x Family',                      rarity: 'R',  desc: 'Spy Twilight, master of disguise and fake fatherhood.' },
@@ -80,13 +80,13 @@ const CARDS = [
   { id: 'subaru',         name: 'Subaru Natsuki',          series: 'Re:Zero',                           rarity: 'R',  desc: 'An ordinary teen who dies repeatedly to save others.' },
   { id: 'emilia',         name: 'Emilia',                  series: 'Re:Zero',                           rarity: 'R',  desc: 'A half-elf candidate for the royal throne.' },
   // Gintama
-  { id: 'gintoki',        name: 'Gintoki Sakata',          series: 'Gintama',                           rarity: 'R',  desc: 'The White Demon, now running an odd-jobs business.' },
+  { id: 'gintoki',        name: 'Gintoki Sakata',          series: 'Gintama',                           rarity: 'E',  desc: 'The White Demon, now running an odd-jobs business.' },
   // Inuyasha
   { id: 'inuyasha',       name: 'Inuyasha',                series: 'Inuyasha',                          rarity: 'R',  desc: 'Half-demon with the Tessaiga, caught between two worlds.' },
   // Steins;Gate
   { id: 'okabe',          name: 'Rintaro Okabe',           series: 'Steins;Gate',                       rarity: 'R',  desc: 'Mad scientist — El Psy Kongroo.' },
   // Yu Yu Hakusho
-  { id: 'yusuke',         name: 'Yusuke Urameshi',         series: 'Yu Yu Hakusho',                     rarity: 'R',  desc: 'A delinquent who died saving a kid and became a Spirit Detective.' },
+  { id: 'yusuke',         name: 'Yusuke Urameshi',         series: 'Yu Yu Hakusho',                     rarity: 'E',  desc: 'A delinquent who died saving a kid and became a Spirit Detective.' },
   // Naruto
   { id: 'sakura',         name: 'Sakura Haruno',           series: 'Naruto',                            rarity: 'R',  desc: 'A kunoichi whose strength and healing rival any shinobi.' },
   // Hajime no Ippo
@@ -227,7 +227,7 @@ const CARDS = [
   { id: 'eli',         name: 'Eli Jang',         series: 'Lookism', rarity: 'MY', desc: 'One of the most dangerous men alive, feared even by the underground\'s elite.' },
 
   // ── Baki ──────────────────────────────────────────────────
-  { id: 'baki',        name: 'Baki Hanma',       series: 'Baki',    rarity: 'R',  desc: 'Training since childhood to surpass the strongest creature on Earth — his own father.' },
+  { id: 'baki',        name: 'Baki Hanma',       series: 'Baki',    rarity: 'E',  desc: 'Training since childhood to surpass the strongest creature on Earth — his own father.' },
   { id: 'hanayama',    name: 'Kaoru Hanayama',   series: 'Baki',    rarity: 'E',  desc: 'Yakuza boss with a grip that crushes bedrock — brute strength incarnate.' },
   { id: 'doppo',       name: 'Doppo Orochi',     series: 'Baki',    rarity: 'E',  desc: 'Karate grandmaster whose shuto can split a bull\'s horn.' },
   { id: 'retsu',       name: 'Retsu Kaioh',      series: 'Baki',    rarity: 'E',  desc: 'Chinese kenpo master — two thousand years of technique in his strikes.' },
