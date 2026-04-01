@@ -232,7 +232,64 @@
       "stars": 0
     },
     "921838182927040602": {
-      "cards": [],
+      "cards": [
+        {
+          "id": "itachi_l",
+          "name": "Itachi Uchiha",
+          "series": "Naruto",
+          "rarity": "L",
+          "obtainedAt": "2026-04-01T00:41:49.295Z"
+        },
+        {
+          "id": "vegeta_e",
+          "name": "Vegeta",
+          "series": "Dragon Ball Z",
+          "rarity": "E",
+          "obtainedAt": "2026-04-01T00:41:59.178Z"
+        },
+        {
+          "id": "zoro_e",
+          "name": "Roronoa Zoro",
+          "series": "One Piece",
+          "rarity": "E",
+          "obtainedAt": "2026-04-01T00:42:00.442Z"
+        },
+        {
+          "id": "pikachu_r",
+          "name": "Pikachu",
+          "series": "Pokémon",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T00:42:01.679Z"
+        },
+        {
+          "id": "kratos_e",
+          "name": "Kratos",
+          "series": "God of War",
+          "rarity": "E",
+          "obtainedAt": "2026-04-01T00:42:02.333Z"
+        },
+        {
+          "id": "sephiroth_e",
+          "name": "Sephiroth",
+          "series": "Final Fantasy VII",
+          "rarity": "E",
+          "obtainedAt": "2026-04-01T00:42:03.040Z"
+        },
+        {
+          "id": "spike_r",
+          "name": "Spike Spiegel",
+          "series": "Cowboy Bebop",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T00:42:03.671Z"
+        },
+        {
+          "id": "ichigo_r",
+          "name": "Ichigo Kurosaki",
+          "series": "Bleach",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T00:42:04.290Z"
+        }
+      ],
       "characterShards": {},
       "platings": {},
       "yen": 1,
@@ -243,6 +300,10 @@
     "833025999897755689": {
       "charges": 11,
       "lastRefill": 1775003115083
+    },
+    "921838182927040602": {
+      "charges": 12,
+      "lastRefill": 1775004109294
     }
   }
 }
