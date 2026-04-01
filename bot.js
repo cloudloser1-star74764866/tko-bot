@@ -1240,10 +1240,12 @@ client.on('messageCreate', async (message) => {
 
       for (const [rarity, group] of Object.entries(grouped)) {
         if (group.length === 0) continue;
-        const meta = rarityMeta(rarity);
+        const meta  = rarityMeta(rarity);
+        let value   = group.map(s => `${s.emoji ? s.emoji + ' ' : ''}${s.name} — ×${s.count}`).join('\n');
+        if (value.length > 1024) value = value.slice(0, 1020) + '\n…';
         embed.addFields({
           name:  `${meta.emoji} ${meta.label}`,
-          value: group.map(s => `${s.emoji ? s.emoji + ' ' : ''}${s.name} — ×${s.count}`).join('\n'),
+          value,
           inline: true,
         });
       }
