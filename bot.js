@@ -2960,7 +2960,7 @@ client.on('messageCreate', async (message) => {
     if (r.stars > 0) { inv.addStars(inventory, userId, r.stars);       lines.push(`⭐ **${r.stars.toLocaleString()} Stars**`); }
     if (r.candyTokens > 0) { inv.addCandyTokens(inventory, userId, r.candyTokens); lines.push(`🍬 **${r.candyTokens} Candy Token${r.candyTokens === 1 ? '' : 's'}**`); }
     if (r.pulls > 0) {
-      const { charges } = getChargeInfo(userId);
+      const { charges } = getCharges(userId);
       const newCharges = Math.min(charges + r.pulls, config.MAX_PULL_CHARGES);
       setCharges(userId, newCharges, Date.now());
       lines.push(`🎴 **${r.pulls} Pull Charge${r.pulls === 1 ? '' : 's'}**`);

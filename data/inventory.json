@@ -3235,5 +3235,21 @@
   },
   "clans": {},
   "duos": {},
-  "guilds": {}
+  "guilds": {},
+  "redeemCodes": {
+    "1": {
+      "name": "1",
+      "code": "TESTINGPURPOSES",
+      "rewards": {
+        "yen": 100000,
+        "stars": 0,
+        "candyTokens": 0,
+        "pulls": 100,
+        "platings": {
+          "bronze": 1
+        }
+      },
+      "redeemedBy": []
+    }
+  }
 }
