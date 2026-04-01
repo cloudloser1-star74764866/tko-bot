@@ -47,6 +47,26 @@ const SEED = {
   ichigo_bankai_ur:'https://s4.anilist.co/file/anilistcdn/character/large/b5-a7bkJgjhhigE.png',
   // Attack on Titan
   levi_e:          'https://static.wikia.nocookie.net/shingekinokyojin/images/9/94/Levi_Ackerman_character_image.png/revision/latest',
+  // Black Clover
+  asta_r:          'https://s4.anilist.co/file/anilistcdn/character/large/b123285-tKijiuQErDS0.png',
+  noelle_r:        'https://s4.anilist.co/file/anilistcdn/character/large/b123283-7nJHtKha0LSm.png',
+  yuno_r:          'https://s4.anilist.co/file/anilistcdn/character/large/b4963-7ZMcCtXW5hkY.png',
+  yami_e:          'https://s4.anilist.co/file/anilistcdn/character/large/b124440-Lpdo6y8cljV6.png',
+  licht_l:         'https://s4.anilist.co/file/anilistcdn/character/large/b141532-2AXEveTbFfPU.jpg',
+  // Yu Yu Hakusho
+  hiei_e:          'https://s4.anilist.co/file/anilistcdn/character/large/b732-rg4H7yyv3LRo.png',
+  kurama_e:        'https://s4.anilist.co/file/anilistcdn/character/large/b731-cv0jfjVrD09V.jpg',
+  // Jujutsu Kaisen
+  itadori_r:       'https://s4.anilist.co/file/anilistcdn/character/large/b127212-FVm2tD0erQ5B.png',
+  // Dragon Ball Super
+  zeno_ur:         'https://s4.anilist.co/file/anilistcdn/character/large/b67753-QzWNHsalPyWu.jpg',
+  // Final Fantasy VII
+  cloud_r:         'https://static.wikia.nocookie.net/finalfantasy/images/e/ec/Cloud_Strife_from_FFVII_Rebirth_promo_render.png/revision/latest',
+  sephiroth_e:     'https://static.wikia.nocookie.net/finalfantasy/images/a/af/Sephiroth_from_FFVII_Rebirth_promo_render.png/revision/latest',
+  // God of War
+  kratos_e:        'https://static.wikia.nocookie.net/godofwar/images/e/e9/Kratos-_GOW_Ragnarok.png/revision/latest',
+  // The Legend of Zelda
+  link_r:          'https://static.wikia.nocookie.net/zelda_gamepedia_en/images/4/47/TLoZ_Series_Link_Render.png/revision/latest',
 };
 
 // ── AniList search terms for remaining cards ─────────────────
