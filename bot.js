@@ -299,6 +299,7 @@ function buildCollectionPage(authorId, targetUser, cards, page, filter, inventor
       { name: 'Stars',       value: meta.stars || '—',              inline: true },
       { name: '❤️ Health',   value: `${stats.hp}`,                 inline: true },
       { name: '⚔️ Damage',   value: `${stats.dmg}`,                inline: true },
+      { name: '🪪 Card ID',  value: `\`${card.id}\``,              inline: true },
     )
     .setFooter({ text: `Card ${page + 1} of ${filtered.length}${filterTag}${shardTag}` });
 
