@@ -288,9 +288,64 @@
           "series": "Bleach",
           "rarity": "R",
           "obtainedAt": "2026-04-01T00:42:04.290Z"
+        },
+        {
+          "id": "killua_e",
+          "name": "Killua Zoldyck",
+          "series": "Hunter x Hunter",
+          "rarity": "E",
+          "obtainedAt": "2026-04-01T00:42:15.514Z"
+        },
+        {
+          "id": "levi_e",
+          "name": "Levi Ackerman",
+          "series": "Attack on Titan",
+          "rarity": "E",
+          "obtainedAt": "2026-04-01T00:42:16.999Z"
+        },
+        {
+          "id": "hisoka_l",
+          "name": "Hisoka Morow",
+          "series": "Hunter x Hunter",
+          "rarity": "L",
+          "obtainedAt": "2026-04-01T00:42:17.760Z"
+        },
+        {
+          "id": "goku_r",
+          "name": "Goku",
+          "series": "Dragon Ball Z",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T00:42:20.479Z"
+        },
+        {
+          "id": "link_r",
+          "name": "Link",
+          "series": "The Legend of Zelda",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T00:42:21.323Z"
+        },
+        {
+          "id": "cloud_r",
+          "name": "Cloud Strife",
+          "series": "Final Fantasy VII",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T00:42:23.206Z"
+        },
+        {
+          "id": "sasuke_e",
+          "name": "Sasuke Uchiha",
+          "series": "Naruto",
+          "rarity": "E",
+          "obtainedAt": "2026-04-01T00:42:26.610Z"
         }
       ],
-      "characterShards": {},
+      "characterShards": {
+        "itachi_l": 1,
+        "goku_r": 3,
+        "sephiroth_e": 1,
+        "link_r": 1,
+        "hisoka_l": 1
+      },
       "platings": {},
       "yen": 1,
       "stars": 0
@@ -302,8 +357,8 @@
       "lastRefill": 1775003115083
     },
     "921838182927040602": {
-      "charges": 12,
-      "lastRefill": 1775004109294
+      "charges": 0,
+      "lastRefill": 1775004169294
     }
   }
 }
