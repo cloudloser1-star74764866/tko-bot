@@ -6,6 +6,8 @@
 //    ZP collection  (col)                   – browse your card collection
 //    ZP collection [filter]                 – filter by rarity or name
 //    ZP collection @user [filter]           – view someone else's cards
+//    ZP all                                 – browse every card in the game
+//    ZP all [filter]                        – filter all cards by rarity or name
 //    ZP inventory  (inv)                    – view character shards & platings
 //    ZP card <id>  (c <id>)                 – inspect a card
 //    ZP trade @user <offer> for <ask>       – offer a trade
@@ -309,6 +311,77 @@ function applyFilter(cards, filter) {
 // Expiry is a ms Unix timestamp; filter may contain | so it is always last.
 const COLLECTION_TIMEOUT_MS = 60_000;
 
+// ── All Cards page builder ────────────────────────────────
+
+// Rarity display order for ZP all
+const RARITY_ORDER = ['R', 'E', 'L', 'MY', 'UR', 'LT'];
+
+function getSortedAllCards() {
+  return [...CARDS].sort((a, b) => {
+    const ra = RARITY_ORDER.indexOf(a.rarity);
+    const rb = RARITY_ORDER.indexOf(b.rarity);
+    if (ra !== rb) return ra - rb;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+// customId format: zpa|authorId|expiry|page|filter
+function buildAllCardsPage(authorId, allCards, page, filter, expiry) {
+  const filtered = applyFilter(allCards, filter);
+
+  if (filtered.length === 0) {
+    const embed = new EmbedBuilder()
+      .setColor(0x888888)
+      .setTitle('📋 All Cards')
+      .setDescription(filter
+        ? `No cards matching **"${filter}"**.`
+        : 'No cards found.');
+    return { embed, components: [] };
+  }
+
+  page = Math.max(0, Math.min(page, filtered.length - 1));
+  const card      = filtered[page];
+  const meta      = rarityMeta(card.rarity);
+  const stats     = getCardStats(card);
+  const filterTag = filter ? ` • Filter: "${filter}"` : '';
+
+  const embed = new EmbedBuilder()
+    .setColor(meta.color)
+    .setTitle(`${meta.emoji} ${card.name}`)
+    .setDescription('📋 **All Cards**')
+    .addFields(
+      { name: 'Series',      value: card.series,                    inline: true },
+      { name: 'Rarity',      value: `${meta.emoji} ${meta.label}`, inline: true },
+      { name: 'Stars',       value: meta.stars || '—',              inline: true },
+      { name: '❤️ Health',   value: `${stats.hp}`,                 inline: true },
+      { name: '⚔️ Damage',   value: `${stats.dmg}`,                inline: true },
+      { name: '🪪 Card ID',  value: `\`${card.id}\``,              inline: true },
+    )
+    .setFooter({ text: `Card ${page + 1} of ${filtered.length}${filterTag}` });
+
+  if (card.image) embed.setThumbnail(card.image);
+
+  const base = `zpa|${authorId}|${expiry}|%page%|${filter}`;
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(base.replace('%page%', page - 1))
+      .setLabel('◀ Prev')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page === 0),
+    new ButtonBuilder()
+      .setCustomId(`zpa|${authorId}|${expiry}|close|${filter}`)
+      .setLabel('✕ Close')
+      .setStyle(ButtonStyle.Danger),
+    new ButtonBuilder()
+      .setCustomId(base.replace('%page%', page + 1))
+      .setLabel('Next ▶')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page === filtered.length - 1),
+  );
+
+  return { embed, components: [row] };
+}
+
 function buildCollectionPage(authorId, targetUser, cards, page, filter, inventory, expiry) {
   const filtered = applyFilter(cards, filter);
 
@@ -382,6 +455,36 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isButton()) return;
 
   const parts = interaction.customId.split('|');
+
+  // ── ZP all button handler ─────────────────────────────────
+  if (parts[0] === 'zpa') {
+    // Format: zpa|authorId|expiry|page|...filter
+    const [, authorId, expiryStr, pageStr, ...filterParts] = parts;
+    const filter = filterParts.join('|');
+    const expiry = parseInt(expiryStr, 10);
+
+    if (interaction.user.id !== authorId) {
+      return interaction.reply({ content: '❌ These buttons are not for you.', ephemeral: true });
+    }
+
+    if (Date.now() > expiry) {
+      return interaction.update({
+        components: [],
+        embeds: interaction.message.embeds,
+        content: interaction.message.content || null,
+      });
+    }
+
+    if (pageStr === 'close') {
+      return interaction.update({ components: [] });
+    }
+
+    const page     = parseInt(pageStr, 10);
+    const allCards = getSortedAllCards();
+    const { embed, components } = buildAllCardsPage(authorId, allCards, page, filter, expiry);
+    return interaction.update({ embeds: [embed], components });
+  }
+
   if (parts[0] !== 'col') return;
 
   // Format: col|authorId|targetId|expiry|page|...filter
@@ -448,6 +551,7 @@ client.on('messageCreate', async (message) => {
         { name: '`ZP collection` / `ZP col`',                  value: 'Browse your card collection one card at a time',                                 inline: false },
         { name: '`ZP col [rarity or name]`',                   value: 'Filter by rarity code (e.g. `LT`) or name/series keyword',                       inline: false },
         { name: '`ZP col @user [filter]`',                     value: "Browse another player's collection",                                              inline: false },
+        { name: '`ZP all` / `ZP all [filter]`',               value: 'Browse every card in the game (sorted by rarity, then name). Filter by rarity code or name/series keyword', inline: false },
         { name: '`ZP inventory` / `ZP inv`',                   value: 'View your character shards, platings, Yen and Stars',                             inline: false },
         { name: '`ZP balance` / `ZP bal`',                     value: 'Check your 💴 Yen and ⭐ Stars balance (add @user to check theirs)',              inline: false },
         { name: '`ZP card <cardId>` / `ZP c <cardId>`',        value: 'Inspect a specific card by ID',                                                   inline: false },
@@ -689,6 +793,15 @@ client.on('messageCreate', async (message) => {
 
     const expiry = Date.now() + COLLECTION_TIMEOUT_MS;
     const { embed, components } = buildCollectionPage(userId, target, cards, 0, filter, inventory, expiry);
+    return message.reply({ embeds: [embed], components });
+  }
+
+  // ── all ──────────────────────────────────────────────────
+  if (command === 'all') {
+    const filter   = args.join(' ').trim();
+    const allCards = getSortedAllCards();
+    const expiry   = Date.now() + COLLECTION_TIMEOUT_MS;
+    const { embed, components } = buildAllCardsPage(userId, allCards, 0, filter, expiry);
     return message.reply({ embeds: [embed], components });
   }
 
