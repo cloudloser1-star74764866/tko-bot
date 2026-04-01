@@ -53,12 +53,15 @@
 //    ZP givestars [@user] <amount>
 //    ZP givecandytokens [@user] <amount>
 //    ZP giveitem @user <itemId>
-//    ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>]
-//    ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>]
+//    ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]
+//    ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]
 //    ZP deletecode <name>
 //    ZP listcodes
+//    ZP givelimitbreaker [@user] <amount>
 //  User:
 //    ZP redeem <code>
+//    ZP conquestsend <cardId>
+//    ZP conquestrecall
 // ============================================================
 
 require('dotenv').config();
@@ -93,7 +96,7 @@ let adminPlatingOverride = null;
 function isAdmin(userId) { return userId === ADMIN_ID; }
 
 function parseRewardArgs(argList) {
-  const rewards = { yen: 0, stars: 0, candyTokens: 0, platings: {} };
+  const rewards = { yen: 0, stars: 0, candyTokens: 0, platings: {}, cardRarity: null };
   for (const arg of argList) {
     const lower = arg.toLowerCase();
     if (lower.startsWith('yen:'))          { rewards.yen          = Math.max(0, parseInt(arg.slice(4), 10)  || 0); }
@@ -105,18 +108,22 @@ function parseRewardArgs(argList) {
       const amount = Math.max(0, parseInt(parts[1], 10) || 0);
       if (tier && amount > 0) rewards.platings[tier] = amount;
     }
+    else if (lower.startsWith('card:')) {
+      rewards.cardRarity = arg.slice(5).toUpperCase();
+    }
   }
   return rewards;
 }
 
 function formatRewards(r) {
   const parts = [];
-  if (r.yen          > 0) parts.push(`💴 ¥${r.yen.toLocaleString()} Yen`);
-  if (r.stars        > 0) parts.push(`⭐ ${r.stars.toLocaleString()} Stars`);
-  if (r.candyTokens  > 0) parts.push(`🍬 ${r.candyTokens} Candy Token${r.candyTokens === 1 ? '' : 's'}`);
+  if (r.yen          > 0) parts.push(`¥${r.yen.toLocaleString()} Yen`);
+  if (r.stars        > 0) parts.push(`${r.stars.toLocaleString()} Stars`);
+  if (r.candyTokens  > 0) parts.push(`${r.candyTokens} Candy Token${r.candyTokens === 1 ? '' : 's'}`);
+  if (r.cardRarity)       parts.push(`1 Random ${rarityMeta(r.cardRarity)?.label ?? r.cardRarity} Card`);
   if (r.platings) {
     for (const [tier, amount] of Object.entries(r.platings)) {
-      if (amount > 0) parts.push(`🪙 ${amount}x ${tier} Plating`);
+      if (amount > 0) parts.push(`${amount}x ${tier} Plating`);
     }
   }
   return parts.length ? parts.join(', ') : 'None';
@@ -491,7 +498,7 @@ function singlePullEmbed(card, isDupe, plating, chargeInfo, authorUsername) {
     const cardEmoji = emojiCache.getEmoji(card.id) ?? '';
     descLines.push(`Already owned — **+1 ${cardEmoji ? cardEmoji + ' ' : ''}${card.name} Shard** obtained`);
   }
-  if (plating) descLines.push(`${plating.emoji} **${plating.label} Plating** dropped!`);
+  if (plating) descLines.push(`**${plating.label} Plating** dropped!`);
 
   const embed = new EmbedBuilder()
     .setColor(plating?.color ?? (isDupe ? 0x888888 : meta.color))
@@ -530,7 +537,7 @@ function allPullEmbed(results, charges, withReset, authorUsername, overrideNote)
     if (g.dupeCount > 0)  outcomeParts.push(`${cardEmoji ? cardEmoji + ' ' : ''}${g.dupeCount} Shard${g.dupeCount === 1 ? '' : 's'}`);
     const outcomeLine = outcomeParts.join(' • ');
 
-    const platingStr  = g.platings.map(p => `${p.emoji} ${p.label} Plating!`).join('  ');
+    const platingStr  = g.platings.map(p => `${p.label} Plating!`).join('  ');
     const platingPart = platingStr ? `  ${platingStr}` : '';
 
     lines.push(`**${lineNum}** ${m.emoji} x${total} **${g.card.name}**${cardEmoji ? ' ' + cardEmoji : ''}\n${outcomeLine}${platingPart}`);
@@ -548,8 +555,8 @@ function allPullEmbed(results, charges, withReset, authorUsername, overrideNote)
     `Total Pulls: ${charges}/${charges}`,
     newCount  ? `✨ ${newCount} new` : null,
     dupeCount ? `${dupeCount} shard${dupeCount === 1 ? '' : 's'}` : null,
-    platings.length ? `🪙 ${platings.length} plating${platings.length === 1 ? '' : 's'}` : null,
-    withReset ? `🍬 Pulls reset to ${charges}` : null,
+    platings.length ? `${platings.length} plating${platings.length === 1 ? '' : 's'}` : null,
+    withReset ? `Pulls reset to ${charges}` : null,
     overrideNote || null,
   ].filter(Boolean).join('  •  ');
 
@@ -774,8 +781,8 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
       .addFields(
         { name: '`ZP pull` / `ZP p` / `ZP pu`',      value: `Pull a random card. You have up to **${config.MAX_PULL_CHARGES}** charges; +1 regenerates every **${config.PULL_COOLDOWN_SECONDS}s**.`, inline: false },
         { name: '`ZP allpull` / `ZP ap`',             value: 'Spend **all** your current pull charges at once.', inline: false },
-        { name: '`ZP allpull reset` / `ZP ap reset`', value: '🍬 Spend all charges then instantly refill back to max. Costs **1 Candy Token**.', inline: false },
-        { name: '`ZP reset` / `ZP rs`',               value: '🍬 Use a Candy Token to instantly refill your pulls to max.', inline: false },
+        { name: '`ZP allpull reset` / `ZP ap reset`', value: 'Spend all charges then instantly refill back to max. Costs **1 Candy Token**.', inline: false },
+        { name: '`ZP reset` / `ZP rs`',               value: 'Use a Candy Token to instantly refill your pulls to max.', inline: false },
         { name: '`ZP wish <cardId>` / `ZP wi <cardId>`', value: `Set a card as your wish. After **${inv.WISH_THRESHOLD} pulls**, you are guaranteed to receive that card!`, inline: false },
       )
       .setFooter({ text: 'Page 1 of 7 • ZP help' }),
@@ -794,7 +801,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         { name: '`ZP mycard <id>` / `ZP mc <id>` / `ZP mci <id>`', value: 'Inspect your own card with prestige points.', inline: false },
         { name: '`ZP cardinfo <id>` / `ZP ci <id>`',  value: 'View base game info for any card.', inline: false },
         { name: '`ZP absorb shard:<id>:<count>` / `ZP ab ...`', value: 'Spend character shards to level up a card. **1 shard = 1 level**. Each level gives **+2% stats**.', inline: false },
-        { name: '`ZP increaselevelcap <id> <count>` / `ZP ilc <id> <count>`', value: 'Spend shards of a card to increase its personal level cap beyond 100. **1 shard = +1 cap**.', inline: false },
+        { name: '`ZP increaselevelcap <id> <count>` / `ZP ilc <id> <count>`', value: 'Break a card\'s level cap beyond 100. Each level costs **1 Limit Breaker** + **100 Prestige Points** on that card.', inline: false },
         { name: '`ZP kill <cardId> <shardId>:<count>` / `ZP ki ...`', value: 'Use a card to kill shards — earn **yen** and **prestige points** on the card used. 1 prestige point per shard.', inline: false },
       )
       .setFooter({ text: 'Page 2 of 7 • ZP help' }),
@@ -805,7 +812,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
       .setTitle('📖 Help — 💰 Economy & Profile (3/7)')
       .setDescription('Manage your currencies and player profile.')
       .addFields(
-        { name: '`ZP wallet` / `ZP balance` / `ZP bal`', value: 'Check your 💴 Yen, ⭐ Stars, and 🍬 Candy Tokens. Add `@user` to check someone else.', inline: false },
+        { name: '`ZP wallet` / `ZP balance` / `ZP bal`', value: 'Check your Yen, Stars, Candy Tokens, and Limit Breakers. Add `@user` to check someone else.', inline: false },
         { name: '`ZP shop` / `ZP sh`',                    value: 'Browse the shop — see all buyable items and their costs.', inline: false },
         { name: '`ZP buy candy stars <amount>` / `ZP bu ...`', value: 'Buy candy tokens with stars. **1,000 stars** per token.', inline: false },
         { name: '`ZP buy candy yen <amount>`',             value: 'Buy candy tokens with yen. **¥10,000** per token.', inline: false },
@@ -817,6 +824,8 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         { name: '`ZP profile @user`',                     value: "View another player's profile (if they haven't set it to private).", inline: false },
         { name: '`ZP vote` / `ZP vo`',                    value: 'Get the link to vote for the bot and earn extra pull charges!', inline: false },
         { name: '`ZP privacy` / `ZP pv`',                 value: 'Toggle your profile and collection privacy on/off.', inline: false },
+        { name: '`ZP conquestsend <cardId>` / `ZP cs <cardId>`', value: 'Send a card on a 2-hour conquest mission. Only one card at a time.', inline: false },
+        { name: '`ZP conquestrecall` / `ZP cr`',          value: 'Recall your card after 2 hours to earn **1 Limit Breaker** + **1–10 Candy Tokens**.', inline: false },
       )
       .setFooter({ text: 'Page 3 of 7 • ZP help' }),
 
@@ -890,16 +899,17 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
       .addFields(
         { name: '✨ Rarities', value: rarityList, inline: false },
         {
-          name: '🪙 Platings',
-          value: config.PLATING_TIERS.map(t => `${t.emoji} **${t.label}** — 0.1% pull drop`).join('\n'),
+          name: 'Platings',
+          value: config.PLATING_TIERS.map(t => `**${t.label}** — 0.1% pull drop`).join('\n'),
           inline: false,
         },
         {
-          name: '💰 Currencies',
+          name: 'Currencies & Resources',
           value: [
-            '💴 **Yen** — earned from fights & kills. Traded between players.',
-            '⭐ **Stars** — earned from fights. Traded between players.',
-            '🍬 **Candy Tokens** — given by admins. Resets pull charges.',
+            '**Yen** — earned from fights & kills. Traded between players.',
+            '**Stars** — earned from fights. Traded between players.',
+            '**Candy Tokens** — bought in shop or given by admins. Resets pull charges.',
+            '**Limit Breakers** — earned from `ZP conquestsend`. Used to break level cap past 100.',
           ].join('\n'),
           inline: false,
         },
@@ -939,8 +949,9 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
               `\`ZP givecandytokens [@user] <amount>\` — Give Candy Tokens to a user`,
               `\`ZP refresh\` — Delete all server emojis and re-sync from scratch`,
               `\`ZP giveitem @user <itemId>\` — Give a limited item to a player`,
-              `\`ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>]\` — Create a redeemable code`,
-              `\`ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>]\` — Edit a code's rewards`,
+              `\`ZP givelimitbreaker [@user] <amount>\` — Give Limit Breakers to a player`,
+              `\`ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]\` — Create a redeemable code`,
+              `\`ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]\` — Edit a code's rewards`,
               `\`ZP deletecode <name>\` — Delete a code`,
               `\`ZP listcodes\` — List all active codes`,
             ].join('\n'),
@@ -1042,7 +1053,7 @@ client.on('interactionCreate', async (interaction) => {
       inv.addYen(inventory, state.attackerId, yenEarned);
       inv.addStars(inventory, state.attackerId, starsEarned);
       inv.saveInventory(inventory);
-      log += `\n\n🏆 **${state.attackerName}** wins!\n💴 +¥${yenEarned.toLocaleString()} Yen  ⭐ +${starsEarned.toLocaleString()} Stars`;
+      log += `\n\n🏆 **${state.attackerName}** wins!\n+¥${yenEarned.toLocaleString()} Yen  +${starsEarned.toLocaleString()} Stars`;
       const embed = buildBattleEmbed(state, log);
       return interaction.update({ embeds: [embed], components: [] });
     }
@@ -1332,7 +1343,7 @@ client.on('messageCreate', async (message) => {
     if (withReset) {
       const inventory = inv.loadInventory();
       if (!inv.removeCandyTokens(inventory, userId, 1)) {
-        return message.reply(`You need a 🍬 **Candy Token** to use \`ZP ap reset\`. You currently have none.`);
+        return message.reply(`You need a **Candy Token** to use \`ZP ap reset\`. You currently have none.`);
       }
       inv.saveInventory(inventory);
     }
@@ -1383,12 +1394,12 @@ client.on('messageCreate', async (message) => {
     const inventory = inv.loadInventory();
     const tokens = inv.getCandyTokens(inventory, userId);
     if (tokens <= 0) {
-      return message.reply(`You have no 🍬 **Candy Tokens**. Ask an admin to give you one!`);
+      return message.reply(`You have no **Candy Tokens**. Ask an admin to give you one!`);
     }
     inv.removeCandyTokens(inventory, userId, 1);
     inv.saveInventory(inventory);
     setCharges(userId, config.MAX_PULL_CHARGES, Date.now());
-    return message.reply(`🍬 **Candy Token** used! Your pulls have been reset to **${config.MAX_PULL_CHARGES}**. You have **${tokens - 1}** token${tokens - 1 === 1 ? '' : 's'} remaining.`);
+    return message.reply(`**Candy Token** used! Your pulls have been reset to **${config.MAX_PULL_CHARGES}**. You have **${tokens - 1}** token${tokens - 1 === 1 ? '' : 's'} remaining.`);
   }
 
   // ── wish ─────────────────────────────────────────────────
@@ -1498,15 +1509,17 @@ client.on('messageCreate', async (message) => {
     const stars     = inv.getStars(inventory, target.id);
     const candy     = inv.getCandyTokens(inventory, target.id);
 
+    const lbs = inv.getLimitBreakers(inventory, target.id);
     const embed = new EmbedBuilder()
       .setColor(0xF1C40F)
-      .setTitle(`💰 ${target.username}'s Wallet`)
+      .setTitle(`${target.username}'s Wallet`)
       .addFields(
-        { name: '💴 Yen',           value: `¥${yen.toLocaleString()}`,   inline: true },
-        { name: '⭐ Stars',          value: stars.toLocaleString(),       inline: true },
-        { name: '🍬 Candy Tokens',  value: candy.toLocaleString(),       inline: true },
+        { name: 'Yen',            value: `¥${yen.toLocaleString()}`,   inline: true },
+        { name: 'Stars',          value: stars.toLocaleString(),       inline: true },
+        { name: 'Candy Tokens',   value: candy.toLocaleString(),       inline: true },
+        { name: 'Limit Breakers', value: lbs.toLocaleString(),         inline: true },
       )
-      .setFooter({ text: 'Earn yen from fights and kills • Stars from fights' });
+      .setFooter({ text: 'Earn yen from fights and kills • Stars from fights • Limit Breakers from conquest' });
     return message.reply({ embeds: [embed] });
   }
 
@@ -1597,18 +1610,18 @@ client.on('messageCreate', async (message) => {
     const candy     = inv.getCandyTokens(inventory, userId);
 
     const platingLines = config.PLATING_TIERS.map(t =>
-      `${t.emoji} **${t.label}** — ${t.statMult}x stat multiplier *(drop from pulls)*`
+      `**${t.label}** — ${t.statMult}x stat multiplier *(drop from pulls)*`
     ).join('\n');
 
     const embed = new EmbedBuilder()
       .setColor(0xF1C40F)
-      .setTitle('🛒 ZP Shop')
+      .setTitle('ZP Shop')
       .setDescription(
-        `Your wallet: **¥${yen.toLocaleString()}** Yen  •  **${stars.toLocaleString()}** Stars  •  **${candy}** 🍬 Candy Tokens`
+        `Your wallet: **¥${yen.toLocaleString()}** Yen  •  **${stars.toLocaleString()}** Stars  •  **${candy}** Candy Tokens`
       )
       .addFields(
         {
-          name: '🍬 Candy Tokens',
+          name: 'Candy Tokens',
           value: [
             `Buy candy tokens to use in future shop features.`,
             `> \`ZP buy candy stars <amount>\` — **${STARS_PER_TOKEN.toLocaleString()} stars** each`,
@@ -1617,16 +1630,17 @@ client.on('messageCreate', async (message) => {
           inline: false,
         },
         {
-          name: '🪙 Platings *(from pulls only)*',
+          name: 'Platings *(from pulls only)*',
           value: platingLines,
           inline: false,
         },
         {
-          name: '⭐ How to Earn',
+          name: 'How to Earn',
           value: [
-            `> 💴 **Yen** — win fights, kill shards`,
-            `> ⭐ **Stars** — win fights`,
-            `> 🍬 **Candy Tokens** — buy with Yen or Stars above`,
+            `> **Yen** — win fights, kill shards`,
+            `> **Stars** — win fights`,
+            `> **Candy Tokens** — buy with Yen or Stars above`,
+            `> **Limit Breakers** — send cards on conquest (\`ZP conquestsend\`)`,
           ].join('\n'),
           inline: false,
         },
@@ -1653,12 +1667,12 @@ client.on('messageCreate', async (message) => {
     const totalPlatings = platingEntries.reduce((s, [, n]) => s + n, 0);
     const embed = new EmbedBuilder()
       .setColor(0x9B59B6)
-      .setTitle(`🎒 ${target.username}'s Inventory`)
+      .setTitle(`${target.username}'s Inventory`)
       .addFields({
-        name: `🪙 Platings (${totalPlatings} total)`,
+        name: `Platings (${totalPlatings} total)`,
         value: config.PLATING_TIERS
           .filter(t => platingsObj[t.id] > 0)
-          .map(t => `${t.emoji} **${t.label}** — x${platingsObj[t.id]}`)
+          .map(t => `**${t.label}** — x${platingsObj[t.id]}`)
           .join('\n'),
         inline: false,
       })
@@ -1793,7 +1807,7 @@ client.on('messageCreate', async (message) => {
         const platedHp   = Math.round(base.hp  * tierData.statMult);
         const platedDmg  = Math.round(base.dmg * tierData.statMult);
         embed.addFields({
-          name: `${tierData.emoji} ${tierData.label} Plating (in battle)`,
+          name: `${tierData.label} Plating (in battle)`,
           value: `❤️ **${platedHp}** HP  ⚔️ **${platedDmg}** DMG  *(x${tierData.statMult} boost)*`,
           inline: false,
         });
@@ -1852,7 +1866,7 @@ client.on('messageCreate', async (message) => {
         { name: '⚔️ Damage',        value: `${stats.dmg}`,                inline: true },
         { name: '✨ Prestige Points', value: `${pp}`,                      inline: true },
         { name: '🔮 Shards',        value: `${shards}`,                   inline: true },
-        { name: '🪙 Plating',       value: tierData ? `${tierData.emoji} ${tierData.label}` : 'None', inline: true },
+        { name: 'Plating',           value: tierData ? tierData.label : 'None',                  inline: true },
       );
 
     if (tierData) {
@@ -1860,7 +1874,7 @@ client.on('messageCreate', async (message) => {
       const platedHp   = Math.round(base.hp  * tierData.statMult);
       const platedDmg  = Math.round(base.dmg * tierData.statMult);
       embed.addFields({
-        name: `${tierData.emoji} Battle Stats (with plating)`,
+        name: `Battle Stats (with ${tierData.label} Plating)`,
         value: `❤️ **${platedHp}** HP  ⚔️ **${platedDmg}** DMG  *(x${tierData.statMult} boost)*`,
         inline: false,
       });
@@ -2003,8 +2017,9 @@ client.on('messageCreate', async (message) => {
     if (!cardId || isNaN(count) || count < 1) {
       return message.reply(
         'Usage: `ZP increaselevelcap <cardId> <amount>` or `ZP ilc <cardId> <amount>`\n' +
-        'Spend **1 shard** of the card to raise its level cap by **1**.\n' +
-        'Example: `ZP ilc naruto_r 10` — spend 10 Naruto R shards to raise cap to 110.'
+        'Each level above 100 costs **1 Limit Breaker** + **100 Prestige Points** on that card.\n' +
+        'Earn Limit Breakers from `ZP conquest`. Earn prestige points from `ZP kill`.\n' +
+        'Example: `ZP ilc naruto_r 2` — raise Naruto R\'s cap from 100 to 102 (costs 2 LBs + 200 PP).'
       );
     }
 
@@ -2017,14 +2032,28 @@ client.on('messageCreate', async (message) => {
       return message.reply(`You don't own **${card.name}**. Collect it first!`);
     }
 
-    const shards = inv.getCharacterShards(inventory, userId)[card.id] ?? 0;
-    if (shards < count) {
-      return message.reply(`You only have **${shards}** ${card.name} shard${shards === 1 ? '' : 's'} but tried to use **${count}**.`);
+    const lbHave = inv.getLimitBreakers(inventory, userId);
+    const ppHave = inv.getPrestigePoints(inventory, userId)[card.id] ?? 0;
+    const lbCost = count;
+    const ppCost = count * 100;
+
+    if (lbHave < lbCost) {
+      return message.reply(
+        `You need **${lbCost} Limit Breaker${lbCost === 1 ? '' : 's'}** but only have **${lbHave}**.\n` +
+        `Earn Limit Breakers by sending cards on conquest with \`ZP conquestsend\`.`
+      );
+    }
+    if (ppHave < ppCost) {
+      return message.reply(
+        `You need **${ppCost} Prestige Points** on **${card.name}** but only have **${ppHave}**.\n` +
+        `Earn prestige points by using \`ZP kill ${card.id} <shardId>:<count>\`.`
+      );
     }
 
     const currentCap = inv.getPersonalLevelCap(inventory, userId, card.id);
 
-    inv.removeCharacterShards(inventory, userId, card.id, count);
+    inv.removeLimitBreaker(inventory, userId, lbCost);
+    inv.removePrestigePoints(inventory, userId, card.id, ppCost);
     inv.increaseLevelCap(inventory, userId, card.id, count);
     inv.saveInventory(inventory);
 
@@ -2034,16 +2063,17 @@ client.on('messageCreate', async (message) => {
 
     const embed = new EmbedBuilder()
       .setColor(meta.color)
-      .setTitle(`📊 ${card.name} — Level Cap Increased!`)
+      .setTitle(`${card.name} — Level Cap Increased!`)
       .setDescription(
-        `Level cap raised from **${currentCap}** → **${newCap}**!\n` +
-        `Used **${count}** ${card.name} shard${count === 1 ? '' : 's'}.\n\n` +
+        `Level cap raised from **${currentCap}** → **${newCap}**!\n\n` +
         `You can now level **${card.name}** up to **Lv. ${newCap}** using \`ZP absorb\`!`
       )
       .addFields(
-        { name: 'Shards Used',  value: `${count}`,         inline: true },
-        { name: 'Shards Left',  value: `${shards - count}`, inline: true },
-        { name: 'New Cap',      value: `Lv. ${newCap}`,    inline: true },
+        { name: 'Limit Breakers Used',  value: `${lbCost}`,                          inline: true },
+        { name: 'Prestige Points Used', value: `${ppCost}`,                          inline: true },
+        { name: 'New Cap',              value: `Lv. ${newCap}`,                      inline: true },
+        { name: 'Limit Breakers Left',  value: `${lbHave - lbCost}`,                inline: true },
+        { name: 'Prestige Points Left', value: `${ppHave - ppCost} on ${card.name}`, inline: true },
       )
       .setFooter({ text: `Card: ${card.id}` });
     if (img) embed.setThumbnail(img);
@@ -2115,7 +2145,7 @@ client.on('messageCreate', async (message) => {
         `${killerMeta.emoji} **${killerCard.name}** destroyed **${count}** ${targetEmoji} ${targetMeta.emoji} **${targetCard.name}** shard${count === 1 ? '' : 's'}!`
       )
       .addFields(
-        { name: '💴 Yen Earned',        value: `¥${totalYen.toLocaleString()} (¥${yenPerShard} per shard)`, inline: true },
+        { name: 'Yen Earned',           value: `¥${totalYen.toLocaleString()} (¥${yenPerShard} per shard)`, inline: true },
         { name: '✨ Prestige Points',   value: `+${count} → **${newPP}** total on ${killerCard.name}`,       inline: true },
         { name: `${targetEmoji} Shards Left`, value: `${shards - count}`,                                 inline: true },
       )
@@ -2179,8 +2209,8 @@ client.on('messageCreate', async (message) => {
         { name: '🃏 Cards Collected',    value: `${cards.length}`,              inline: true },
         { name: '🔮 Total Shards',       value: `${totalShards}`,               inline: true },
         { name: '⚔️ Team Size',          value: `${team.length} / ${inv.TEAM_SIZE}`, inline: true },
-        { name: '💴 Yen',                value: `¥${yen.toLocaleString()}`,      inline: true },
-        { name: '⭐ Stars',              value: stars.toLocaleString(),           inline: true },
+        { name: 'Yen',                    value: `¥${yen.toLocaleString()}`,      inline: true },
+        { name: 'Stars',                value: stars.toLocaleString(),           inline: true },
         { name: '🎴 Total Pulls',        value: totalPulls.toLocaleString(),      inline: true },
         { name: '💀 Total Kills',        value: totalKills.toLocaleString(),      inline: true },
         { name: '✨ Rarity Breakdown',   value: rarityStr,                        inline: false },
@@ -2259,7 +2289,7 @@ client.on('messageCreate', async (message) => {
           const power   = slotPower(slot);
           totalPower   += power;
           const plating = slot.plating ? config.PLATING_TIERS.find(t => t.id === slot.plating) : null;
-          const platStr = plating ? ` ${plating.emoji}` : '';
+          const platStr = plating ? ` [${plating.label}]` : '';
           const cap     = inv.getPersonalLevelCap(inventory, target.id, slot.cardId);
           return `${i + 1}. ${meta.emoji} **${slot.card.name}**${platStr} — Lv.${slot.level}/${cap} • ⚡ ${Math.round(power).toLocaleString()} power`;
         });
@@ -2310,7 +2340,7 @@ client.on('messageCreate', async (message) => {
         inv.addPlating(inventory, userId, slot.plating);
         const tier = config.PLATING_TIERS.find(t => t.id === slot.plating);
         inv.saveInventory(inventory);
-        return message.reply(`**${card.name}** removed from your team. **${tier?.emoji} ${tier?.label} Plating** returned to inventory.`);
+        return message.reply(`**${card.name}** removed from your team. **${tier?.label} Plating** returned to inventory.`);
       }
 
       inv.saveInventory(inventory);
@@ -2333,7 +2363,7 @@ client.on('messageCreate', async (message) => {
       const result    = inv.equipPlatingToTeam(inventory, userId, card.id, tier.id);
       inv.saveInventory(inventory);
 
-      if (result === 'equipped')        return message.reply(`${tier.emoji} **${tier.label} Plating** equipped to **${card.name}**!`);
+      if (result === 'equipped')        return message.reply(`**${tier.label} Plating** equipped to **${card.name}**!`);
       if (result === 'not_on_team')     return message.reply(`**${card.name}** is not on your team.`);
       if (result === 'no_plating')      return message.reply(`You don't have a **${tier.label} Plating** in your inventory.`);
       if (result === 'already_equipped') return message.reply(`**${card.name}** already has a plating equipped. Unequip it first.`);
@@ -2353,7 +2383,7 @@ client.on('messageCreate', async (message) => {
 
       if (!tier) return message.reply(`**${card.name}** doesn't have a plating equipped.`);
       const tierData = config.PLATING_TIERS.find(t => t.id === tier);
-      return message.reply(`${tierData?.emoji} **${tierData?.label} Plating** unequipped from **${card.name}** and returned to your inventory.`);
+      return message.reply(`**${tierData?.label} Plating** unequipped from **${card.name}** and returned to your inventory.`);
     }
   }
 
@@ -2394,7 +2424,7 @@ client.on('messageCreate', async (message) => {
       inv.addPlating(inventory, userId, slot.plating);
       const tier = config.PLATING_TIERS.find(t => t.id === slot.plating);
       inv.saveInventory(inventory);
-      return message.reply(`**${card.name}** removed from your team. **${tier?.emoji} ${tier?.label} Plating** returned to inventory.`);
+      return message.reply(`**${card.name}** removed from your team. **${tier?.label} Plating** returned to inventory.`);
     }
 
     inv.saveInventory(inventory);
@@ -2938,6 +2968,92 @@ client.on('messageCreate', async (message) => {
     return message.reply(`Your duo partnership has been disbanded.`);
   }
 
+  // ── conquestsend ──────────────────────────────────────────
+  if (command === 'conquestsend' || command === 'cs') {
+    const cardId = args[0]?.toLowerCase();
+    if (!cardId) {
+      return message.reply(
+        'Usage: `ZP conquestsend <cardId>`\n' +
+        'Send a card on a 2-hour conquest. Recall it with `ZP conquestrecall` to earn **1 Limit Breaker** and **1–10 Candy Tokens**.'
+      );
+    }
+
+    const card = lookupCard(cardId);
+    if (!card) return message.reply(`No card found with id \`${cardId}\`.`);
+
+    const inventory = inv.loadInventory();
+    if (!inv.hasCard(inventory, userId, card.id)) {
+      return message.reply(`You don't own **${card.name}**.`);
+    }
+
+    const existing = inv.getConquest(inventory, userId);
+    if (existing) {
+      const existingCard = lookupCard(existing.cardId);
+      const elapsed = Math.floor((Date.now() - existing.sentAt) / 60000);
+      return message.reply(
+        `**${existingCard?.name ?? existing.cardId}** is already on conquest (${elapsed} min ago). ` +
+        `Use \`ZP conquestrecall\` after 2 hours to claim your rewards.`
+      );
+    }
+
+    inv.setConquest(inventory, userId, card.id);
+    inv.saveInventory(inventory);
+
+    const meta = rarityMeta(card.rarity);
+    const embed = new EmbedBuilder()
+      .setColor(meta.color)
+      .setTitle(`${card.name} Sent on Conquest!`)
+      .setDescription(
+        `**${card.name}** has been dispatched on a conquest mission.\n\n` +
+        `Come back in **2 hours** and use \`ZP conquestrecall\` to claim:\n` +
+        `> **1 Limit Breaker** + **1–10 Candy Tokens**`
+      )
+      .setFooter({ text: 'Only one card can be on conquest at a time' });
+    const img = imgCache.getImage(card.id) ?? card.image ?? null;
+    if (img) embed.setThumbnail(img);
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── conquestrecall ────────────────────────────────────────
+  if (command === 'conquestrecall' || command === 'cr') {
+    const inventory = inv.loadInventory();
+    const conquest  = inv.getConquest(inventory, userId);
+
+    if (!conquest) {
+      return message.reply(`You don't have a card on conquest. Send one with \`ZP conquestsend <cardId>\`.`);
+    }
+
+    const elapsedMs  = Date.now() - conquest.sentAt;
+    const TWO_HOURS  = 2 * 60 * 60 * 1000;
+    if (elapsedMs < TWO_HOURS) {
+      const remaining = Math.ceil((TWO_HOURS - elapsedMs) / 60000);
+      return message.reply(`**${lookupCard(conquest.cardId)?.name ?? conquest.cardId}** is still on conquest. Come back in **${remaining} more minute${remaining === 1 ? '' : 's'}**.`);
+    }
+
+    const card        = lookupCard(conquest.cardId);
+    const candyEarned = Math.floor(1 + Math.random() * 10);
+
+    inv.addLimitBreakers(inventory, userId, 1);
+    inv.addCandyTokens(inventory, userId, candyEarned);
+    inv.clearConquest(inventory, userId);
+    inv.saveInventory(inventory);
+
+    const meta = card ? rarityMeta(card.rarity) : { color: 0x00FFD1 };
+    const embed = new EmbedBuilder()
+      .setColor(meta.color)
+      .setTitle(`Conquest Complete!`)
+      .setDescription(
+        `**${card?.name ?? conquest.cardId}** has returned from conquest!\n\n` +
+        `**Rewards earned:**\n` +
+        `> **1 Limit Breaker**\n` +
+        `> **${candyEarned} Candy Token${candyEarned === 1 ? '' : 's'}**`
+      )
+      .setFooter({ text: 'Use ZP ilc <cardId> to break a card\'s level cap with Limit Breakers' });
+    const img = card ? (imgCache.getImage(card.id) ?? card.image ?? null) : null;
+    if (img) embed.setThumbnail(img);
+    return message.reply({ embeds: [embed] });
+  }
+
   // ── redeem ────────────────────────────────────────────────
   if (command === 'redeem') {
     const codeInput = args[0];
@@ -2954,15 +3070,25 @@ client.on('messageCreate', async (message) => {
     const r = entry.rewards;
     const lines = [];
 
-    if (r.yen   > 0) { inv.addYen(inventory, userId, r.yen);           lines.push(`💴 **¥${r.yen.toLocaleString()} Yen**`); }
-    if (r.stars > 0) { inv.addStars(inventory, userId, r.stars);       lines.push(`⭐ **${r.stars.toLocaleString()} Stars**`); }
-    if (r.candyTokens > 0) { inv.addCandyTokens(inventory, userId, r.candyTokens); lines.push(`🍬 **${r.candyTokens} Candy Token${r.candyTokens === 1 ? '' : 's'}**`); }
+    if (r.yen   > 0) { inv.addYen(inventory, userId, r.yen);           lines.push(`**¥${r.yen.toLocaleString()} Yen**`); }
+    if (r.stars > 0) { inv.addStars(inventory, userId, r.stars);       lines.push(`**${r.stars.toLocaleString()} Stars**`); }
+    if (r.candyTokens > 0) { inv.addCandyTokens(inventory, userId, r.candyTokens); lines.push(`**${r.candyTokens} Candy Token${r.candyTokens === 1 ? '' : 's'}**`); }
+    if (r.cardRarity) {
+      const randomCard = pullCardForced(r.cardRarity);
+      if (randomCard) {
+        const result = inv.addCardToInventory(inventory, userId, randomCard);
+        const meta = rarityMeta(r.cardRarity);
+        lines.push(result.isDupe
+          ? `**${meta?.label ?? r.cardRarity} Card:** ${randomCard.name} (already owned — shard added)`
+          : `**${meta?.label ?? r.cardRarity} Card:** ${randomCard.name} (new!)`);
+      }
+    }
     if (r.platings) {
       for (const [tier, amount] of Object.entries(r.platings)) {
         if (amount > 0) {
           inv.addPlatings(inventory, userId, tier, amount);
           const tierInfo = platingById(tier);
-          lines.push(`${tierInfo ? tierInfo.emoji : '🪙'} **${amount}x ${tierInfo ? tierInfo.label : tier} Plating**`);
+          lines.push(`**${amount}x ${tierInfo ? tierInfo.label : tier} Plating**`);
         }
       }
     }
@@ -3060,6 +3186,17 @@ client.on('messageCreate', async (message) => {
     return message.reply('Emoji refresh complete.');
   }
 
+  // ── givelimitbreaker ──────────────────────────────────────
+  if (command === 'givelimitbreaker' || command === 'glb') {
+    const target = message.mentions.users.first() ?? message.author;
+    const amount = parseInt(args.find(a => !a.startsWith('<@')), 10);
+    if (isNaN(amount) || amount <= 0) return message.reply('Usage: `ZP givelimitbreaker [@user] <amount>`');
+    const inventory = inv.loadInventory();
+    inv.addLimitBreakers(inventory, target.id, amount);
+    inv.saveInventory(inventory);
+    return message.reply(`Gave **${amount} Limit Breaker${amount === 1 ? '' : 's'}** to **${target.username}**.`);
+  }
+
   // ── giveitem ──────────────────────────────────────────────
   if (command === 'giveitem') {
     const target = message.mentions.users.first();
@@ -3080,7 +3217,7 @@ client.on('messageCreate', async (message) => {
     const name     = args[0];
     const code     = args[1];
     const rewardArgs = args.slice(2);
-    if (!name || !code) return message.reply('Usage: `ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>]`');
+    if (!name || !code) return message.reply('Usage: `ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]`');
 
     const rewards  = parseRewardArgs(rewardArgs);
     const inventory = inv.loadInventory();
@@ -3096,7 +3233,7 @@ client.on('messageCreate', async (message) => {
   if (command === 'editcode') {
     const name       = args[0];
     const rewardArgs = args.slice(1);
-    if (!name) return message.reply('Usage: `ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>]`');
+    if (!name) return message.reply('Usage: `ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]`');
 
     const rewards   = parseRewardArgs(rewardArgs);
     const inventory = inv.loadInventory();

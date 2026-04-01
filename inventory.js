@@ -46,6 +46,7 @@ function ensureUser(inventory, userId) {
   if (typeof u.yen          !== 'number') u.yen          = 0;
   if (typeof u.stars        !== 'number') u.stars        = 0;
   if (typeof u.candyTokens  !== 'number') u.candyTokens  = 0;
+  if (typeof u.limitBreakers !== 'number') u.limitBreakers = 0;
   if (!u.wish)                          u.wish           = null;
   if (!u.levelCaps)                     u.levelCaps      = {};
   if (!u.prestigePoints)                u.prestigePoints = {};
@@ -54,6 +55,7 @@ function ensureUser(inventory, userId) {
   if (u.duoId === undefined)            u.duoId          = null;
   if (typeof u.totalPulls   !== 'number') u.totalPulls  = 0;
   if (typeof u.totalKills   !== 'number') u.totalKills  = 0;
+  if (u.conquest === undefined)         u.conquest       = null;
   if ('shards' in u)                    delete u.shards;
   for (const card of u.cards) {
     if (typeof card.level !== 'number') card.level = 1;
@@ -144,6 +146,52 @@ function addPrestigePoints(inventory, userId, cardId, amount) {
   ensureUser(inventory, userId);
   const pp = inventory.users[userId].prestigePoints;
   pp[cardId] = (pp[cardId] ?? 0) + amount;
+}
+
+function removePrestigePoints(inventory, userId, cardId, amount) {
+  ensureUser(inventory, userId);
+  const pp = inventory.users[userId].prestigePoints;
+  const current = pp[cardId] ?? 0;
+  if (current < amount) return false;
+  pp[cardId] = current - amount;
+  if (pp[cardId] === 0) delete pp[cardId];
+  return true;
+}
+
+// ── Limit Breaker Operations ──────────────────────────────
+
+function getLimitBreakers(inventory, userId) {
+  ensureUser(inventory, userId);
+  return inventory.users[userId].limitBreakers;
+}
+
+function addLimitBreakers(inventory, userId, amount) {
+  ensureUser(inventory, userId);
+  inventory.users[userId].limitBreakers += amount;
+}
+
+function removeLimitBreaker(inventory, userId, amount = 1) {
+  ensureUser(inventory, userId);
+  if (inventory.users[userId].limitBreakers < amount) return false;
+  inventory.users[userId].limitBreakers -= amount;
+  return true;
+}
+
+// ── Conquest Operations ───────────────────────────────────
+
+function getConquest(inventory, userId) {
+  ensureUser(inventory, userId);
+  return inventory.users[userId].conquest;
+}
+
+function setConquest(inventory, userId, cardId) {
+  ensureUser(inventory, userId);
+  inventory.users[userId].conquest = { cardId, sentAt: Date.now() };
+}
+
+function clearConquest(inventory, userId) {
+  ensureUser(inventory, userId);
+  inventory.users[userId].conquest = null;
 }
 
 // ── Wish System ───────────────────────────────────────────
@@ -618,7 +666,9 @@ module.exports = {
   MAX_CARD_LEVEL,
   getCardLevel, setCardLevel,
   getPersonalLevelCap, increaseLevelCap,
-  getPrestigePoints, addPrestigePoints,
+  getPrestigePoints, addPrestigePoints, removePrestigePoints,
+  getLimitBreakers, addLimitBreakers, removeLimitBreaker,
+  getConquest, setConquest, clearConquest,
   getWish, setWish, clearWish, incrementWishPulls, WISH_THRESHOLD,
   getTotalPulls, incrementTotalPulls, incrementTotalKills,
   getPrivacy, setPrivacy,
