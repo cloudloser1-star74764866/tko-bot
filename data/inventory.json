@@ -203,7 +203,7 @@
         "bakugo_e": 3,
         "link_r": 6,
         "zeno_ur": 1,
-        "goku_r": 1,
+        "goku_r": 2,
         "gear5_luffy_lt": 5,
         "ultra_goku_lt": 7,
         "sage_naruto_lt": 7,
@@ -220,13 +220,15 @@
         "killua_e": 1,
         "genos_l": 1
       },
-      "platings": {}
+      "platings": {
+        "diamond": 1
+      }
     }
   },
   "pullCharges": {
     "833025999897755689": {
-      "charges": 0,
-      "lastRefill": 1775002755083
+      "charges": 11,
+      "lastRefill": 1775003115083
     }
   }
 }

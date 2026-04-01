@@ -26,12 +26,14 @@ function saveInventory(data) {
 
 function ensureUser(inventory, userId) {
   if (!inventory.users[userId]) {
-    inventory.users[userId] = { cards: [], characterShards: {}, platings: {} };
+    inventory.users[userId] = { cards: [], characterShards: {}, platings: {}, yen: 0, stars: 0 };
   }
   const u = inventory.users[userId];
-  if (!u.characterShards) u.characterShards = {};
-  if (!u.platings)        u.platings        = {};
-  if ('shards' in u)      delete u.shards;
+  if (!u.characterShards)      u.characterShards = {};
+  if (!u.platings)             u.platings        = {};
+  if (typeof u.yen   !== 'number') u.yen   = 0;
+  if (typeof u.stars !== 'number') u.stars = 0;
+  if ('shards' in u)           delete u.shards;
 }
 
 // ── Card Operations ───────────────────────────────────────
@@ -126,6 +128,44 @@ function removePlating(inventory, userId, tierId, amount) {
   return true;
 }
 
+// ── Yen Operations ────────────────────────────────────────
+
+function getYen(inventory, userId) {
+  ensureUser(inventory, userId);
+  return inventory.users[userId].yen;
+}
+
+function addYen(inventory, userId, amount) {
+  ensureUser(inventory, userId);
+  inventory.users[userId].yen += amount;
+}
+
+function removeYen(inventory, userId, amount) {
+  ensureUser(inventory, userId);
+  if (inventory.users[userId].yen < amount) return false;
+  inventory.users[userId].yen -= amount;
+  return true;
+}
+
+// ── Stars Operations ──────────────────────────────────────
+
+function getStars(inventory, userId) {
+  ensureUser(inventory, userId);
+  return inventory.users[userId].stars;
+}
+
+function addStars(inventory, userId, amount) {
+  ensureUser(inventory, userId);
+  inventory.users[userId].stars += amount;
+}
+
+function removeStars(inventory, userId, amount) {
+  ensureUser(inventory, userId);
+  if (inventory.users[userId].stars < amount) return false;
+  inventory.users[userId].stars -= amount;
+  return true;
+}
+
 // ── Pull Charge Helpers ───────────────────────────────────
 
 function loadPullCharges(inventory, userId) {
@@ -143,4 +183,6 @@ module.exports = {
   addCardToInventory, removeCardFromInventory, hasCard, getCards,
   getCharacterShards, addCharacterShards, removeCharacterShards,
   getPlatings, addPlating, addPlatings, removePlating,
+  getYen, addYen, removeYen,
+  getStars, addStars, removeStars,
 };
