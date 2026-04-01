@@ -454,6 +454,91 @@ function cardEmbed(card, title, footer, level = 1) {
   return embed;
 }
 
+/**
+ * Big-art pull embed for a single pull.
+ * Uses setImage (full-width) so the card artwork dominates the embed.
+ */
+function singlePullEmbed(card, isDupe, plating, chargeInfo, authorUsername) {
+  const meta  = rarityMeta(card.rarity);
+  const stats = getCardStats(card, 1);
+  const img   = imgCache.getImage(card.id) ?? card.image ?? null;
+
+  const titlePrefix = isDupe ? '♻️' : meta.emoji;
+  const titleSuffix = isDupe ? ` (Duplicate)` : '!';
+
+  const descLines = [
+    `${meta.emoji} **${meta.label}**  •  ${card.series}`,
+  ];
+  if (isDupe) descLines.push(`Already owned — **+1 ${card.name} Shard** obtained`);
+  if (plating) descLines.push(`${plating.emoji} **${plating.label} Plating** dropped!`);
+
+  const embed = new EmbedBuilder()
+    .setColor(plating?.color ?? (isDupe ? 0x888888 : meta.color))
+    .setTitle(`${titlePrefix} ${card.name}${titleSuffix}`)
+    .setDescription(descLines.join('\n'))
+    .addFields(
+      { name: '❤️ Health', value: `${stats.hp}`,  inline: true },
+      { name: '⚔️ Damage', value: `${stats.dmg}`, inline: true },
+    )
+    .setFooter({ text: `Pulled by ${authorUsername} • ${chargeInfo}` });
+
+  if (img) embed.setImage(img);
+  return embed;
+}
+
+/**
+ * Summary embed for allpull — numbered list in pull order.
+ */
+function allPullEmbed(results, charges, withReset, authorUsername, overrideNote) {
+  const RARITY_RANK = { LT: 0, UR: 1, MY: 2, L: 3, E: 4, R: 5 };
+
+  // Numbered list lines
+  const lines = results.map((r, idx) => {
+    const m       = rarityMeta(r.card.rarity);
+    const outcome = r.isDupe ? '🔮 Shard Obtained' : '✨ New!';
+    const plt     = r.plating ? `  ${r.plating.emoji} ${r.plating.label} Plating!` : '';
+    return `**${idx + 1}** ${m.emoji} x1 **${r.card.name}**\n${outcome}${plt}`;
+  });
+
+  // Thumbnail: highest-rarity new card, then highest-rarity dupe
+  const best = [...results].sort((a, b) => {
+    const ra = RARITY_RANK[a.card.rarity] ?? 99;
+    const rb = RARITY_RANK[b.card.rarity] ?? 99;
+    if (ra !== rb) return ra - rb;
+    return a.isDupe ? 1 : -1; // prefer new cards on tie
+  })[0];
+  const thumbImg = best ? (imgCache.getImage(best.card.id) ?? best.card.image ?? null) : null;
+
+  // Color: highest plating dropped, or teal
+  const platings = results.map(r => r.plating).filter(Boolean);
+  const rarityOrder = ['diamond', 'gold', 'silver', 'bronze'];
+  const topPlating  = rarityOrder.map(id => platings.find(p => p.id === id)).find(Boolean);
+  const color       = topPlating?.color ?? 0x00FFD1;
+
+  const newCount  = results.filter(r => !r.isDupe).length;
+  const dupeCount = results.filter(r =>  r.isDupe).length;
+  const footerParts = [
+    `Total Pulls: ${charges}/${charges}`,
+    newCount  ? `✨ ${newCount} new` : null,
+    dupeCount ? `🔮 ${dupeCount} shard${dupeCount === 1 ? '' : 's'}` : null,
+    platings.length ? `🪙 ${platings.length} plating${platings.length === 1 ? '' : 's'}` : null,
+    withReset ? `🍬 Pulls reset to ${charges}` : null,
+    overrideNote || null,
+  ].filter(Boolean).join('  •  ');
+
+  // Split description into chunks if needed (4096 char limit)
+  const fullDesc = lines.join('\n\n');
+
+  const embed = new EmbedBuilder()
+    .setColor(color)
+    .setTitle(`🎴 ${authorUsername} Has Pulled ${charges} Card${charges === 1 ? '' : 's'}!`)
+    .setDescription(fullDesc.length <= 4000 ? fullDesc : fullDesc.slice(0, 3990) + '\n…')
+    .setFooter({ text: footerParts });
+
+  if (thumbImg) embed.setThumbnail(thumbImg);
+  return embed;
+}
+
 function lookupCard(cardId) {
   return CARDS.find(c => c.id.toLowerCase() === cardId.toLowerCase()) ?? null;
 }
@@ -1008,28 +1093,13 @@ client.on('messageCreate', async (message) => {
     const { card, isDupe, plating } = executeSinglePull(inventory, userId);
     inv.saveInventory(inventory);
 
-    const meta        = rarityMeta(card.rarity);
-    const remaining   = charges - 1;
-    const chargeInfo  = remaining > 0
+    const meta       = rarityMeta(card.rarity);
+    const remaining  = charges - 1;
+    const chargeInfo = remaining > 0
       ? `${remaining} pull${remaining === 1 ? '' : 's'} remaining`
       : `No pulls left — next charge in ${config.PULL_COOLDOWN_SECONDS}s`;
-    const overrideNote = (isAdmin(userId) && adminRarityOverride) ? ` • 🔧 Rarity locked to ${meta.label}` : '';
-    const platingNote  = plating ? ` • ${plating.emoji} **${plating.label} Plating** obtained!` : '';
 
-    if (isDupe) {
-      const embed = cardEmbed(card,
-        `♻️ Duplicate — ${card.name}`,
-        `Already in your collection! +1 ${card.name} Shard • ${chargeInfo}${overrideNote}${platingNote}`
-      );
-      embed.setColor(plating ? plating.color : 0x888888);
-      return message.reply({ embeds: [embed] });
-    }
-
-    const embed = cardEmbed(card,
-      `${meta.emoji} You pulled — ${card.name}!`,
-      `Added to your collection! • ${meta.label} • ${chargeInfo}${overrideNote}${platingNote}`
-    );
-    if (plating) embed.setColor(plating.color);
+    const embed = singlePullEmbed(card, isDupe, plating, chargeInfo, message.author.username);
     return message.reply({ embeds: [embed] });
   }
 
@@ -1055,94 +1125,22 @@ client.on('messageCreate', async (message) => {
     setCharges(userId, 0, lastRefill);
 
     const inventory = inv.loadInventory();
-    const newCards  = [];
-    const dupes     = [];
-    const platings  = [];
+    const results   = [];
 
     for (let i = 0; i < charges; i++) {
-      const { card, isDupe, plating } = executeSinglePull(inventory, userId);
-      if (isDupe) dupes.push(card);
-      else        newCards.push(card);
-      if (plating) platings.push(plating);
+      results.push(executeSinglePull(inventory, userId));
     }
 
     inv.saveInventory(inventory);
 
-    const overrideNote = (isAdmin(userId) && adminRarityOverride)
-      ? ` • 🔧 Rarity locked to ${rarityMeta(adminRarityOverride).label}` : '';
-
-    const embed = new EmbedBuilder()
-      .setColor(0x00FFD1)
-      .setTitle(`🎴 All Pull — ${charges} card${charges === 1 ? '' : 's'} pulled${overrideNote}`);
-
-    // New cards
-    if (newCards.length > 0) {
-      const lines = newCards.map(c => {
-        const m = rarityMeta(c.rarity);
-        return `${m.emoji} **${c.name}** *(${m.label})*`;
-      });
-      let chunk = '', fieldCount = 0;
-      for (const line of lines) {
-        if ((chunk + '\n' + line).length > 1000) {
-          embed.addFields({ name: fieldCount === 0 ? `✨ New Cards (${newCards.length})` : '​', value: chunk.trim(), inline: false });
-          chunk = line; fieldCount++;
-        } else {
-          chunk = chunk ? chunk + '\n' + line : line;
-        }
-      }
-      if (chunk) embed.addFields({ name: fieldCount === 0 ? `✨ New Cards (${newCards.length})` : '​', value: chunk.trim(), inline: false });
-    }
-
-    // Dupes
-    if (dupes.length > 0) {
-      const grouped = {};
-      for (const c of dupes) {
-        if (!grouped[c.id]) grouped[c.id] = { card: c, count: 0 };
-        grouped[c.id].count++;
-      }
-      const lines = Object.values(grouped).map(({ card: c, count }) => {
-        const m = rarityMeta(c.rarity);
-        return `${m.emoji} ${c.name}${count > 1 ? ` ×${count}` : ''} → +${count} 🔮 shard${count === 1 ? '' : 's'}`;
-      });
-      let chunk = '', fieldCount = 0;
-      for (const line of lines) {
-        if ((chunk + '\n' + line).length > 1000) {
-          embed.addFields({ name: fieldCount === 0 ? `♻️ Duplicates (${dupes.length})` : '​', value: chunk.trim(), inline: false });
-          chunk = line; fieldCount++;
-        } else {
-          chunk = chunk ? chunk + '\n' + line : line;
-        }
-      }
-      if (chunk) embed.addFields({ name: fieldCount === 0 ? `♻️ Duplicates (${dupes.length})` : '​', value: chunk.trim(), inline: false });
-    }
-
-    // Platings
-    if (platings.length > 0) {
-      const grouped = {};
-      for (const p of platings) {
-        if (!grouped[p.id]) grouped[p.id] = { tier: p, count: 0 };
-        grouped[p.id].count++;
-      }
-      embed.addFields({
-        name: '🪙 Platings Obtained!',
-        value: Object.values(grouped)
-          .map(({ tier, count }) => `${tier.emoji} **${tier.label}**${count > 1 ? ` ×${count}` : ''}`)
-          .join('\n'),
-        inline: false,
-      });
-      const rarityOrder = ['diamond', 'gold', 'silver', 'bronze'];
-      for (const id of rarityOrder) {
-        if (grouped[id]) { embed.setColor(grouped[id].tier.color); break; }
-      }
-    }
-
     if (withReset) {
       setCharges(userId, config.MAX_PULL_CHARGES, Date.now());
-      embed.addFields({ name: '🍬 Candy Token Used', value: `Pulls reset to **${config.MAX_PULL_CHARGES}**!`, inline: false });
-      embed.setFooter({ text: `Charges spent: ${charges} • Pulls instantly reset to ${config.MAX_PULL_CHARGES} via Candy Token` });
-    } else {
-      embed.setFooter({ text: `Charges spent: ${charges} • Next charge in ${config.PULL_COOLDOWN_SECONDS}s` });
     }
+
+    const overrideNote = (isAdmin(userId) && adminRarityOverride)
+      ? `🔧 Rarity locked to ${rarityMeta(adminRarityOverride).label}` : '';
+
+    const embed = allPullEmbed(results, charges, withReset, message.author.username, overrideNote);
     return message.reply({ embeds: [embed] });
   }
 
