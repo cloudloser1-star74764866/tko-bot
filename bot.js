@@ -70,6 +70,9 @@ const {
   ActionRowBuilder, ButtonBuilder, ButtonStyle,
 } = require('discord.js');
 
+const keep_alive  = require('./keep_alive');
+keep_alive();
+
 const config      = require('./config');
 const { CARDS, pullCard } = require('./cards');
 const inv         = require('./inventory');
