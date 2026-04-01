@@ -87,6 +87,12 @@ const CARDS = [
   { id: 'okabe',          name: 'Rintaro Okabe',           series: 'Steins;Gate',                       rarity: 'R',  desc: 'Mad scientist — El Psy Kongroo.' },
   // Yu Yu Hakusho
   { id: 'yusuke',         name: 'Yusuke Urameshi',         series: 'Yu Yu Hakusho',                     rarity: 'R',  desc: 'A delinquent who died saving a kid and became a Spirit Detective.' },
+  // Naruto
+  { id: 'sakura',         name: 'Sakura Haruno',           series: 'Naruto',                            rarity: 'R',  desc: 'A kunoichi whose strength and healing rival any shinobi.' },
+  // Hajime no Ippo
+  { id: 'ippo',           name: 'Makunouchi Ippo',         series: 'Hajime no Ippo',                    rarity: 'R',  desc: 'A kind-hearted boxer whose Dempsey Roll shakes the ring.' },
+  // Eromanga-sensei
+  { id: 'sagiri',         name: 'Sagiri Izumi',            series: 'Eromanga-sensei',                   rarity: 'R',  desc: 'A reclusive illustrator who draws from behind a locked door.' },
   // Overlord
   { id: 'albedo',         name: 'Albedo',                  series: 'Overlord',                          rarity: 'E',  desc: 'Guardian Overseer of Nazarick, devoted to Ainz without question.' },
   // Death Note

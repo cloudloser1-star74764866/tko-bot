@@ -74,6 +74,8 @@ const SEED = {
   rengoku_e:       'https://myanimelist.net/images/characters/10/423443.jpg',
   // Death Note — Near (cached MAL URL was for a different character 'Nir'; fixed)
   near_l:          'https://myanimelist.net/images/characters/13/77339.jpg',
+  // Gurren Lagann — Simon (override wrong cached entry for unsuffixed key)
+  simon:           'https://s4.anilist.co/file/anilistcdn/character/large/b2257-jnalsdnIX1vN.jpg',
   // Bleach — AniList search misses; seeded directly
   uryu_r:          'https://s4.anilist.co/file/anilistcdn/character/large/b7-wlGHiMpTJyOe.png',
   aizen_l:         'https://s4.anilist.co/file/anilistcdn/character/large/b59-P4IUZA4bE5SL.png',

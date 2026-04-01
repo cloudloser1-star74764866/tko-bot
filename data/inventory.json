@@ -2061,18 +2061,51 @@
           "rarity": "R",
           "level": 1,
           "obtainedAt": "2026-04-01T11:01:49.297Z"
+        },
+        {
+          "id": "sebastian",
+          "name": "Sebastian Michaelis",
+          "series": "Black Butler",
+          "rarity": "E",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:01:56.797Z"
+        },
+        {
+          "id": "loid",
+          "name": "Loid Forger",
+          "series": "Spy x Family",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:04:16.960Z"
+        },
+        {
+          "id": "asuna",
+          "name": "Asuna",
+          "series": "Sword Art Online",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:04:24.565Z"
+        },
+        {
+          "id": "uryu",
+          "name": "Uryu Ishida",
+          "series": "Bleach",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:04:28.777Z"
         }
       ],
       "characterShards": {
         "usopp": 1,
-        "gray": 1,
+        "gray": 2,
         "edward": 1,
         "zenitsu": 1,
-        "rukia": 1
+        "rukia": 2,
+        "spike": 1
       },
       "platings": {},
       "team": [],
-      "yen": 0,
+      "yen": 676767,
       "stars": 0,
       "candyTokens": 0,
       "wish": null,
@@ -2081,7 +2114,7 @@
       "privacy": false,
       "clanId": null,
       "duoId": null,
-      "totalPulls": 31,
+      "totalPulls": 38,
       "totalKills": 0,
       "items": {}
     }
@@ -2104,8 +2137,8 @@
       "lastRefill": 1775036465086
     },
     "689152429341933780": {
-      "charges": 2,
-      "lastRefill": 1775041299960
+      "charges": 0,
+      "lastRefill": 1775041449960
     }
   },
   "clans": {},
