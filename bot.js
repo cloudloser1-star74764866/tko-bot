@@ -204,8 +204,9 @@ function validateTradeItem(item) {
  */
 function describeItem(item) {
   if (item.type === 'shard') {
-    const card = lookupCard(item.id);
-    return `🔮 **×${item.amount}** ${card?.name ?? item.id} shard${item.amount === 1 ? '' : 's'}`;
+    const card      = lookupCard(item.id);
+    const cardEmoji = emojiCache.getEmoji(item.id) ?? '';
+    return `${cardEmoji ? cardEmoji + ' ' : ''}**×${item.amount}** ${card?.name ?? item.id} shard${item.amount === 1 ? '' : 's'}`;
   }
   if (item.type === 'plating') {
     const tier = platingById(item.id);
@@ -470,7 +471,10 @@ function singlePullEmbed(card, isDupe, plating, chargeInfo, authorUsername) {
   const descLines = [
     `${meta.emoji} **${meta.label}**  •  ${card.series}`,
   ];
-  if (isDupe) descLines.push(`Already owned — **+1 ${card.name} Shard** obtained`);
+  if (isDupe) {
+    const cardEmoji = emojiCache.getEmoji(card.id) ?? '';
+    descLines.push(`Already owned — **+1 ${cardEmoji ? cardEmoji + ' ' : ''}${card.name} Shard** obtained`);
+  }
   if (plating) descLines.push(`${plating.emoji} **${plating.label} Plating** dropped!`);
 
   const embed = new EmbedBuilder()
@@ -494,10 +498,10 @@ function allPullEmbed(results, charges, withReset, authorUsername, overrideNote)
   // Numbered list lines
   const lines = results.map((r, idx) => {
     const m         = rarityMeta(r.card.rarity);
-    const outcome   = r.isDupe ? '🔮 Shard Obtained' : '✨ New!';
-    const plt       = r.plating ? `  ${r.plating.emoji} ${r.plating.label} Plating!` : '';
     const cardEmoji = emojiCache.getEmoji(r.card.id) ?? '';
     const emojiSuffix = cardEmoji ? ` ${cardEmoji}` : '';
+    const outcome   = r.isDupe ? `${cardEmoji ? cardEmoji + ' ' : ''}Shard Obtained` : '✨ New!';
+    const plt       = r.plating ? `  ${r.plating.emoji} ${r.plating.label} Plating!` : '';
     return `**${idx + 1}** ${m.emoji} x1 **${r.card.name}**${emojiSuffix}\n${outcome}${plt}`;
   });
 
@@ -512,7 +516,7 @@ function allPullEmbed(results, charges, withReset, authorUsername, overrideNote)
   const footerParts = [
     `Total Pulls: ${charges}/${charges}`,
     newCount  ? `✨ ${newCount} new` : null,
-    dupeCount ? `🔮 ${dupeCount} shard${dupeCount === 1 ? '' : 's'}` : null,
+    dupeCount ? `${dupeCount} shard${dupeCount === 1 ? '' : 's'}` : null,
     platings.length ? `🪙 ${platings.length} plating${platings.length === 1 ? '' : 's'}` : null,
     withReset ? `🍬 Pulls reset to ${charges}` : null,
     overrideNote || null,
@@ -643,7 +647,8 @@ function buildCollectionPage(authorId, targetUser, cards, page, filter, inventor
   const stats     = getCardStats(card, cardLevel);
   const shards    = inv.getCharacterShards(inventory, targetUser.id)[card.id] ?? 0;
   const filterTag = filter ? ` • Filter: "${filter}"` : '';
-  const shardTag  = shards > 0 ? ` • 🔮 ×${shards} shard${shards === 1 ? '' : 's'}` : '';
+  const cardEmojiTag = emojiCache.getEmoji(card.id) ?? '';
+  const shardTag  = shards > 0 ? ` • ${cardEmojiTag ? cardEmojiTag + ' ' : ''}×${shards} shard${shards === 1 ? '' : 's'}` : '';
   const levelLabel = cardLevel >= inv.MAX_CARD_LEVEL ? `✨ MAX (${cardLevel})` : `Lv. ${cardLevel}`;
 
   const embed = new EmbedBuilder()
@@ -1223,21 +1228,22 @@ client.on('messageCreate', async (message) => {
       const grouped = {};
       for (const [key] of Object.entries(config.RARITY_META)) grouped[key] = [];
       for (const [cardId, count] of shardEntries) {
-        const card   = lookupCard(cardId);
-        const rarity = card?.rarity ?? 'R';
+        const card      = lookupCard(cardId);
+        const rarity    = card?.rarity ?? 'R';
+        const emoji     = emojiCache.getEmoji(cardId) ?? '';
         if (!grouped[rarity]) grouped[rarity] = [];
-        grouped[rarity].push({ name: card?.name ?? cardId, count });
+        grouped[rarity].push({ name: card?.name ?? cardId, count, emoji });
       }
 
       const totalShards = shardEntries.reduce((s, [, n]) => s + n, 0);
-      embed.addFields({ name: `🔮 Character Shards (${totalShards} total)`, value: '​', inline: false });
+      embed.addFields({ name: `Character Shards (${totalShards} total)`, value: '​', inline: false });
 
       for (const [rarity, group] of Object.entries(grouped)) {
         if (group.length === 0) continue;
         const meta = rarityMeta(rarity);
         embed.addFields({
           name:  `${meta.emoji} ${meta.label}`,
-          value: group.map(s => `${s.name} — ×${s.count}`).join('\n'),
+          value: group.map(s => `${s.emoji ? s.emoji + ' ' : ''}${s.name} — ×${s.count}`).join('\n'),
           inline: true,
         });
       }
@@ -1278,7 +1284,8 @@ client.on('messageCreate', async (message) => {
       }
     }
 
-    const shardInfo = shards > 0 ? ` • 🔮 ×${shards} shard${shards === 1 ? '' : 's'}` : '';
+    const shardEmoji = emojiCache.getEmoji(card.id) ?? '';
+    const shardInfo = shards > 0 ? ` • ${shardEmoji ? shardEmoji + ' ' : ''}×${shards} shard${shards === 1 ? '' : 's'}` : '';
     const lvlInfo   = owned ? ` • 📊 Lv. ${level}` : '';
     const absorbHint = owned && shards > 0 && level < inv.MAX_CARD_LEVEL
       ? ` • Use \`ZP absorb shard:${card.id}:${shards}\` to level up!`
@@ -1353,8 +1360,8 @@ client.on('messageCreate', async (message) => {
         `**${currentLevel}** → **${newLevel}** *(+${levelsGained} level${levelsGained === 1 ? '' : 's'})*${maxNote}`
       )
       .addFields(
-        { name: '🔮 Shards Spent',  value: `${shardsSpent}`,                                              inline: true },
-        { name: '🔮 Shards Left',   value: `${shards - shardsSpent}`,                                     inline: true },
+        { name: 'Shards Spent',  value: `${shardsSpent}`,                                              inline: true },
+        { name: 'Shards Left',   value: `${shards - shardsSpent}`,                                     inline: true },
         { name: '\u200b',           value: '\u200b',                                                      inline: true },
         { name: '❤️ HP',            value: `${oldStats.hp} → **${newStats.hp}**`,                        inline: true },
         { name: '⚔️ Damage',        value: `${oldStats.dmg} → **${newStats.dmg}**`,                      inline: true },
