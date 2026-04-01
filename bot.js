@@ -540,7 +540,7 @@ function allPullEmbed(results, charges, withReset, authorUsername, overrideNote)
     const platingStr  = g.platings.map(p => `${p.label} Plating!`).join('  ');
     const platingPart = platingStr ? `  ${platingStr}` : '';
 
-    lines.push(`**${lineNum}** ${m.emoji} x${total} **${g.card.name}**${cardEmoji ? ' ' + cardEmoji : ''}\n${outcomeLine}${platingPart}`);
+    lines.push(`**${lineNum}** [${m.label}] x${total} **${g.card.name}**${cardEmoji ? ' ' + cardEmoji : ''}\n${outcomeLine}${platingPart}`);
     lineNum++;
   }
 
