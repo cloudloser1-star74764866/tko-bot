@@ -17,16 +17,16 @@ const SEED = {
   itachi_l:        'https://s4.anilist.co/file/anilistcdn/character/large/b14-9Kb1E5oel1ke.png',
   madara_my:       'https://s4.anilist.co/file/anilistcdn/character/large/b53901-HnRKSoHMG5Vg.png',
   kaguya_ur:       'https://static.wikia.nocookie.net/naruto/images/6/6c/Kaguya_%C5%8Ctsutsuki.png/revision/latest',
-  sage_naruto_lt:  'https://s4.anilist.co/file/anilistcdn/character/large/b17-phjcWCkRuIhu.png',
+  sage_naruto_lt:  'https://static.wikia.nocookie.net/naruto/images/e/e4/Six_Paths_Senjutsu.png/revision/latest?cb=20210721223950',
   // Dragon Ball
   goku_r:          'https://s4.anilist.co/file/anilistcdn/character/large/246-wsRRr6z1kii8.png',
   goku_ssj4_l:     'https://s4.anilist.co/file/anilistcdn/character/large/246-wsRRr6z1kii8.png',
-  ultra_goku_lt:   'https://s4.anilist.co/file/anilistcdn/character/large/246-wsRRr6z1kii8.png',
+  ultra_goku_lt:   'https://static.wikia.nocookie.net/dragonball/images/b/b9/Ultra_Instinct_Goku.png/revision/latest?cb=20180930060236',
   vegeta_e:        'https://s4.anilist.co/file/anilistcdn/character/large/b913-NIFkKazWM8VO.png',
   beerus_my:       'https://s4.anilist.co/file/anilistcdn/character/large/b76348-pGWrznfxgPIV.png',
   // One Piece
   luffy_r:         'https://s4.anilist.co/file/anilistcdn/character/large/b40-MNypXsxSRb1R.png',
-  gear5_luffy_lt:  'https://s4.anilist.co/file/anilistcdn/character/large/b40-MNypXsxSRb1R.png',
+  gear5_luffy_lt:  'https://static.wikia.nocookie.net/onepiece/images/0/06/Nika_Anime_Infobox.png/revision/latest?cb=20240407020958',
   zoro_e:          'https://s4.anilist.co/file/anilistcdn/character/large/b62-S7oAeA9WInjV.png',
   nami_r:          'https://s4.anilist.co/file/anilistcdn/character/large/b723-vp5hPptgnNEC.png',
   usopp_r:         'https://s4.anilist.co/file/anilistcdn/character/large/b724-GFGgI9AJQkfy.jpg',
@@ -67,6 +67,7 @@ const SEED = {
   kratos_e:        'https://static.wikia.nocookie.net/godofwar/images/e/e9/Kratos-_GOW_Ragnarok.png/revision/latest',
   // The Legend of Zelda
   link_r:          'https://static.wikia.nocookie.net/zelda_gamepedia_en/images/4/47/TLoZ_Series_Link_Render.png/revision/latest',
+  sukuna_fp_lt:    'https://static.wikia.nocookie.net/jujutsu-kaisen/images/4/40/Sukuna_%28Volume_25%29.png/revision/latest?cb=20240614165130',
   // Chainsaw Man — Power (AniList placeholder was wrong; using MAL image)
   power_r:         'https://myanimelist.net/images/characters/7/494969.jpg',
   // Demon Slayer — Rengoku (cached MAL URL was wrong character; fixed)
