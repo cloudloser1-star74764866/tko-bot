@@ -577,6 +577,46 @@
           "rarity": "R",
           "level": 1,
           "obtainedAt": "2026-04-01T08:04:40.833Z"
+        },
+        {
+          "id": "mob_r",
+          "name": "Shigeo Kageyama",
+          "series": "Mob Psycho 100",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T08:17:14.904Z"
+        },
+        {
+          "id": "rimuru_l",
+          "name": "Rimuru Tempest",
+          "series": "That Time I Got Reincarnated as a Slime",
+          "rarity": "L",
+          "level": 1,
+          "obtainedAt": "2026-04-01T08:17:24.276Z"
+        },
+        {
+          "id": "power_r",
+          "name": "Power",
+          "series": "Chainsaw Man",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T08:17:24.276Z"
+        },
+        {
+          "id": "emilia_r",
+          "name": "Emilia",
+          "series": "Re:Zero",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T08:17:24.276Z"
+        },
+        {
+          "id": "gintoki_r",
+          "name": "Gintoki Sakata",
+          "series": "Gintama",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T08:17:24.276Z"
         }
       ],
       "characterShards": {
@@ -592,15 +632,15 @@
         "deku_r": 44,
         "pikachu_r": 34,
         "ichigo_r": 36,
-        "naruto_r": 29,
+        "naruto_r": 30,
         "vegeta_e": 12,
         "levi_e": 12,
         "kaguya_ur": 3,
         "spike_r": 39,
         "killua_e": 7,
         "genos_l": 1,
-        "saitama_my": 1,
-        "sasuke_e": 14,
+        "saitama_my": 2,
+        "sasuke_e": 15,
         "zoro_e": 11,
         "shanks_l": 4,
         "goku_ssj4_l": 2,
@@ -611,19 +651,25 @@
         "kratos_e": 9,
         "sephiroth_e": 9,
         "itachi_l": 1,
-        "natsu_r": 1,
-        "itadori_r": 2,
-        "uryu_r": 2,
+        "natsu_r": 2,
+        "itadori_r": 3,
+        "uryu_r": 3,
         "rukia_r": 1,
-        "inuyasha_r": 2,
+        "inuyasha_r": 3,
         "noriaki_r": 1,
         "denji_r": 2,
         "law_e": 1,
         "chopper_r": 2,
-        "winry_r": 1,
+        "winry_r": 2,
         "sanji_r": 1,
         "light_r": 2,
-        "sukuna_fp_lt": 2
+        "sukuna_fp_lt": 2,
+        "usopp_r": 2,
+        "nobara_r": 1,
+        "kirito_r": 1,
+        "caesar_r": 1,
+        "anya_r": 1,
+        "yuno_r": 1
       },
       "platings": {
         "diamond": 4,
@@ -780,8 +826,8 @@
   },
   "pullCharges": {
     "833025999897755689": {
-      "charges": 19,
-      "lastRefill": 1775030667449
+      "charges": 0,
+      "lastRefill": 1775031417449
     },
     "921838182927040602": {
       "charges": 0,

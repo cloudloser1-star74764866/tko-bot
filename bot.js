@@ -39,11 +39,12 @@ const {
   ActionRowBuilder, ButtonBuilder, ButtonStyle,
 } = require('discord.js');
 
-const config    = require('./config');
+const config      = require('./config');
 const { CARDS, pullCard } = require('./cards');
-const inv       = require('./inventory');
-const trades    = require('./trades');
-const imgCache  = require('./imageCache');
+const inv         = require('./inventory');
+const trades      = require('./trades');
+const imgCache    = require('./imageCache');
+const emojiCache  = require('./emojiCache');
 
 const client = new Client({
   intents: [
@@ -494,10 +495,12 @@ function allPullEmbed(results, charges, withReset, authorUsername, overrideNote)
 
   // Numbered list lines
   const lines = results.map((r, idx) => {
-    const m       = rarityMeta(r.card.rarity);
-    const outcome = r.isDupe ? '🔮 Shard Obtained' : '✨ New!';
-    const plt     = r.plating ? `  ${r.plating.emoji} ${r.plating.label} Plating!` : '';
-    return `**${idx + 1}** ${m.emoji} x1 **${r.card.name}**\n${outcome}${plt}`;
+    const m         = rarityMeta(r.card.rarity);
+    const outcome   = r.isDupe ? '🔮 Shard Obtained' : '✨ New!';
+    const plt       = r.plating ? `  ${r.plating.emoji} ${r.plating.label} Plating!` : '';
+    const cardEmoji = emojiCache.getEmoji(r.card.id) ?? '';
+    const emojiSuffix = cardEmoji ? ` ${cardEmoji}` : '';
+    return `**${idx + 1}** ${m.emoji} x1 **${r.card.name}**${emojiSuffix}\n${outcome}${plt}`;
   });
 
   // Thumbnail: highest-rarity new card, then highest-rarity dupe
