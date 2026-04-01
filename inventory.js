@@ -1,6 +1,5 @@
 // ============================================================
 //  test BOT — INVENTORY MANAGER
-//  Handles loading/saving user inventories and shards to disk
 // ============================================================
 
 const fs   = require('fs');
@@ -27,39 +26,24 @@ function saveInventory(data) {
 
 function ensureUser(inventory, userId) {
   if (!inventory.users[userId]) {
-    inventory.users[userId] = { cards: [], shards: 0, characterShards: {} };
+    inventory.users[userId] = { cards: [], characterShards: {}, platings: {} };
   }
-  if (!inventory.users[userId].characterShards) {
-    inventory.users[userId].characterShards = {};
-  }
-}
-
-// ── Pull Charge Persistence ───────────────────────────────
-
-/**
- * Load a user's stored pull charge bucket from disk.
- * Returns { charges, lastRefill } or null if no record exists yet.
- */
-function loadPullCharges(inventory, userId) {
-  return inventory.pullCharges[userId] ?? null;
-}
-
-/**
- * Save a user's pull charge bucket to inventory and write to disk immediately.
- */
-function savePullCharges(inventory, userId, charges, lastRefill) {
-  inventory.pullCharges[userId] = { charges, lastRefill };
-  saveInventory(inventory);
+  // Migration: add missing fields to older records
+  const u = inventory.users[userId];
+  if (!u.characterShards) u.characterShards = {};
+  if (!u.platings)        u.platings        = {};
+  // Drop legacy trade shards field if present
+  if ('shards' in u) delete u.shards;
 }
 
 // ── Card Operations ───────────────────────────────────────
 
 /**
  * Add a card to a user's inventory.
- * If duplicate, award 1 character shard for that specific card.
+ * Duplicates award +1 character shard for that specific card.
  * Returns { isDupe, cardName }
  */
-function addCardToInventory(inventory, userId, card, shardValues) {
+function addCardToInventory(inventory, userId, card) {
   ensureUser(inventory, userId);
   const user = inventory.users[userId];
 
@@ -104,23 +88,28 @@ function getCharacterShards(inventory, userId) {
   return inventory.users[userId].characterShards;
 }
 
-// ── Trade Shard Operations ────────────────────────────────
+// ── Plating Operations ────────────────────────────────────
 
-function getShards(inventory, userId) {
+function getPlatings(inventory, userId) {
   ensureUser(inventory, userId);
-  return inventory.users[userId].shards;
+  return inventory.users[userId].platings;
 }
 
-function addShards(inventory, userId, amount) {
+function addPlating(inventory, userId, tierId) {
   ensureUser(inventory, userId);
-  inventory.users[userId].shards += amount;
+  const p = inventory.users[userId].platings;
+  p[tierId] = (p[tierId] || 0) + 1;
 }
 
-function removeShards(inventory, userId, amount) {
-  ensureUser(inventory, userId);
-  if (inventory.users[userId].shards < amount) return false;
-  inventory.users[userId].shards -= amount;
-  return true;
+// ── Pull Charge Helpers (used by bot.js in-memory Map) ────
+
+function loadPullCharges(inventory, userId) {
+  return inventory.pullCharges[userId] ?? null;
+}
+
+function savePullCharges(inventory, userId, charges, lastRefill) {
+  inventory.pullCharges[userId] = { charges, lastRefill };
+  saveInventory(inventory);
 }
 
 module.exports = {
@@ -128,5 +117,5 @@ module.exports = {
   loadPullCharges, savePullCharges,
   addCardToInventory, removeCardFromInventory, hasCard, getCards,
   getCharacterShards,
-  getShards, addShards, removeShards,
+  getPlatings, addPlating,
 };

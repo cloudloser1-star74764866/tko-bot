@@ -2,20 +2,15 @@
 //  test BOT — MAIN
 //  Commands:
 //    ZP pull  (p)                           – pull a random card
+//    ZP allpull  (ap)                       – pull all available charges at once
 //    ZP collection  (col)                   – browse your card collection
 //    ZP collection [filter]                 – filter by rarity or name
 //    ZP collection @user [filter]           – view someone else's cards
-//    ZP inventory  (inv)                    – view your character shards
+//    ZP inventory  (inv)                    – view character shards & platings
 //    ZP card <id>  (c <id>)                 – inspect a card
-//    ZP shards  (sh)                        – check your trade shard balance
-//    ZP trade @user <cardId> <shards>       – offer a trade
-//    ZP accept <tradeId>  (a)               – accept a trade offer
-//    ZP decline <tradeId>  (dec)            – decline a trade offer
-//    ZP trades                              – view pending trades sent to you
 //    ZP help  (h)                           – show all commands
 //  Admin-only (user 833025999897755689):
 //    ZP setrarity <rarity|reset>            – force pulls to a rarity
-//    ZP giveshards <amount>                 – add trade shards to your account
 //    ZP resetcooldown                       – reset pull charges to max
 // ============================================================
 
@@ -28,7 +23,6 @@ const {
 const config    = require('./config');
 const { CARDS, pullCard } = require('./cards');
 const inv       = require('./inventory');
-const trades    = require('./trades');
 
 const client = new Client({
   intents: [
@@ -87,6 +81,27 @@ function setCharges(userId, charges, lastRefill) {
   schedulePersist();
 }
 
+// ── Plating ───────────────────────────────────────────────
+
+/**
+ * Roll for a plating drop. Returns the tier object or null.
+ * 0.1% total chance per pull; tier determined by weighted roll.
+ */
+function rollPlating() {
+  if (Math.random() >= config.PLATING_CHANCE) return null;
+  const roll = Math.random() * 100;
+  let cumulative = 0;
+  for (const tier of config.PLATING_TIERS) {
+    cumulative += tier.weight;
+    if (roll < cumulative) return tier;
+  }
+  return config.PLATING_TIERS[0];
+}
+
+function platingById(id) {
+  return config.PLATING_TIERS.find(t => t.id === id) ?? null;
+}
+
 // ── Helpers ───────────────────────────────────────────────
 
 function rarityMeta(rarity) {
@@ -99,10 +114,9 @@ function cardEmbed(card, title, footer) {
     .setColor(meta.color)
     .setTitle(title ?? `${meta.emoji} ${card.name}`)
     .addFields(
-      { name: 'Series',  value: card.series,                    inline: true },
-      { name: 'Rarity',  value: `${meta.emoji} ${meta.label}`, inline: true },
-      { name: 'Stars',   value: meta.stars || '—',              inline: true },
-      { name: 'Flavour', value: `*${card.desc}*`,               inline: false },
+      { name: 'Series', value: card.series,                    inline: true },
+      { name: 'Rarity', value: `${meta.emoji} ${meta.label}`, inline: true },
+      { name: 'Stars',  value: meta.stars || '—',              inline: true },
     );
   if (card.image) embed.setThumbnail(card.image);
   if (footer)     embed.setFooter({ text: footer });
@@ -113,10 +127,6 @@ function lookupCard(cardId) {
   return CARDS.find(c => c.id.toLowerCase() === cardId.toLowerCase()) ?? null;
 }
 
-/**
- * Apply a filter string to a card list.
- * Matches rarity codes exactly (e.g. "LT") or name/series substring.
- */
 function applyFilter(cards, filter) {
   if (!filter) return cards;
   const upper = filter.toUpperCase();
@@ -128,10 +138,8 @@ function applyFilter(cards, filter) {
   );
 }
 
-/**
- * Build a single paginated collection embed + prev/next buttons.
- * customId format: col|authorId|targetId|page|filter
- */
+// ── Collection page builder ───────────────────────────────
+
 function buildCollectionPage(authorId, targetUser, cards, page, filter, inventory) {
   const filtered = applyFilter(cards, filter);
 
@@ -157,16 +165,14 @@ function buildCollectionPage(authorId, targetUser, cards, page, filter, inventor
     .setTitle(`${meta.emoji} ${card.name}`)
     .setDescription(`🗂️ **${targetUser.username}'s Collection**`)
     .addFields(
-      { name: 'Series',  value: card.series,                    inline: true },
-      { name: 'Rarity',  value: `${meta.emoji} ${meta.label}`, inline: true },
-      { name: 'Stars',   value: meta.stars || '—',              inline: true },
-      { name: 'Flavour', value: `*${card.desc}*`,               inline: false },
+      { name: 'Series', value: card.series,                    inline: true },
+      { name: 'Rarity', value: `${meta.emoji} ${meta.label}`, inline: true },
+      { name: 'Stars',  value: meta.stars || '—',              inline: true },
     )
     .setFooter({ text: `Card ${page + 1} of ${filtered.length}${filterTag}${shardTag}` });
 
   if (card.image) embed.setThumbnail(card.image);
 
-  // Encode state into button IDs (col|authorId|targetId|page|filter)
   const base = `col|${authorId}|${targetUser.id}|%page%|${filter}`;
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
@@ -207,12 +213,10 @@ client.on('interactionCreate', async (interaction) => {
   const [, authorId, targetId, pageStr, ...filterParts] = parts;
   const filter = filterParts.join('|');
 
-  // Only the person who ran the command can use the buttons
   if (interaction.user.id !== authorId) {
     return interaction.reply({ content: '❌ These buttons are not for you.', ephemeral: true });
   }
 
-  // Close button — remove the components
   if (pageStr === 'close') {
     return interaction.update({ components: [] });
   }
@@ -245,19 +249,15 @@ client.on('messageCreate', async (message) => {
     const embed = new EmbedBuilder()
       .setColor(0x00FFD1)
       .setTitle('📖 test Bot — Commands')
-      .setDescription('Pull anime & game character cards, collect them, and trade with others!')
+      .setDescription('Pull anime & game character cards, collect them, and show off your platings!')
       .addFields(
-        { name: '`ZP pull` / `ZP p`',                          value: `Pull a random card (${config.MAX_PULL_CHARGES} charges, +1 every ${config.PULL_COOLDOWN_SECONDS}s)`, inline: false },
-        { name: '`ZP collection` / `ZP col`',                  value: 'Browse your card collection one card at a time',                 inline: false },
-        { name: '`ZP col [rarity or name]`',                   value: 'Filter by rarity (e.g. `LT`) or name/series keyword',           inline: false },
-        { name: '`ZP col @user [filter]`',                     value: "Browse another player's collection",                            inline: false },
-        { name: '`ZP inventory` / `ZP inv`',                   value: 'View your character shards',                                    inline: false },
-        { name: '`ZP card <cardId>` / `ZP c <cardId>`',        value: 'Inspect a specific card by ID',                                 inline: false },
-        { name: '`ZP shards` / `ZP sh`',                       value: 'Check your trade shard balance',                                inline: false },
-        { name: '`ZP trade @user <cardId> <shards>`',          value: 'Offer a card in exchange for shards',                           inline: false },
-        { name: '`ZP accept <tradeId>` / `ZP a <tradeId>`',    value: 'Accept a trade offer',                                          inline: false },
-        { name: '`ZP decline <tradeId>` / `ZP dec <tradeId>`', value: 'Decline a trade offer',                                         inline: false },
-        { name: '`ZP trades`',                                  value: 'View trade offers sent to you',                                 inline: false },
+        { name: '`ZP pull` / `ZP p`',                        value: `Pull a random card (${config.MAX_PULL_CHARGES} charges, +1 every ${config.PULL_COOLDOWN_SECONDS}s)`, inline: false },
+        { name: '`ZP allpull` / `ZP ap`',                    value: 'Spend all your pull charges at once and see a full summary',                   inline: false },
+        { name: '`ZP collection` / `ZP col`',                value: 'Browse your card collection one card at a time',                               inline: false },
+        { name: '`ZP col [rarity or name]`',                 value: 'Filter by rarity (e.g. `LT`) or name/series keyword',                          inline: false },
+        { name: '`ZP col @user [filter]`',                   value: "Browse another player's collection",                                            inline: false },
+        { name: '`ZP inventory` / `ZP inv`',                 value: 'View your character shards and platings',                                       inline: false },
+        { name: '`ZP card <cardId>` / `ZP c <cardId>`',      value: 'Inspect a specific card by ID',                                                 inline: false },
       )
       .addFields({
         name: '✨ Rarities',
@@ -266,7 +266,13 @@ client.on('messageCreate', async (message) => {
           .join('  •  '),
         inline: false,
       })
-      .setFooter({ text: 'Dupes become character shards. Trades expire after 5 minutes.' });
+      .addFields({
+        name: '🪙 Platings',
+        value: config.PLATING_TIERS.map(t => `${t.emoji} **${t.label}**`).join('  •  ') +
+          `\n0.1% chance per pull • Dupes give character shards`,
+        inline: false,
+      })
+      .setFooter({ text: 'Dupes earn character shards stored in your inventory.' });
 
     if (isAdmin(userId)) {
       const rarityKeys = Object.keys(config.RARITY_META).join(' | ');
@@ -275,7 +281,6 @@ client.on('messageCreate', async (message) => {
         value: [
           `\`ZP setrarity <${rarityKeys}>\` — Force your pulls to a specific rarity`,
           `\`ZP setrarity reset\` — Clear rarity override`,
-          `\`ZP giveshards <amount>\` — Add trade shards to your account`,
           `\`ZP resetcooldown\` — Restore your pull charges to max`,
         ].join('\n'),
         inline: false,
@@ -283,6 +288,22 @@ client.on('messageCreate', async (message) => {
     }
 
     return message.reply({ embeds: [embed] });
+  }
+
+  // ── Shared pull logic ────────────────────────────────────
+
+  /**
+   * Execute a single pull for userId.
+   * Returns { card, isDupe, plating } — does NOT save inventory (caller must).
+   */
+  function executeSinglePull(inventory, userId) {
+    const card    = (isAdmin(userId) && adminRarityOverride)
+      ? pullCardForced(adminRarityOverride)
+      : pullCard();
+    const { isDupe } = inv.addCardToInventory(inventory, userId, card);
+    const plating    = rollPlating();
+    if (plating) inv.addPlating(inventory, userId, plating.id);
+    return { card, isDupe, plating };
   }
 
   // ── pull | p ─────────────────────────────────────────────
@@ -296,42 +317,142 @@ client.on('messageCreate', async (message) => {
 
     setCharges(userId, charges - 1, lastRefill);
 
-    const card = (isAdmin(userId) && adminRarityOverride)
-      ? pullCardForced(adminRarityOverride)
-      : pullCard();
-
-    const inventory = inv.loadInventory();
-    const { isDupe } = inv.addCardToInventory(inventory, userId, card, config.SHARD_VALUES);
+    const inventory             = inv.loadInventory();
+    const { card, isDupe, plating } = executeSinglePull(inventory, userId);
     inv.saveInventory(inventory);
 
-    const meta        = rarityMeta(card.rarity);
-    const remaining   = charges - 1;
-    const chargeInfo  = remaining > 0
+    const meta       = rarityMeta(card.rarity);
+    const remaining  = charges - 1;
+    const chargeInfo = remaining > 0
       ? `${remaining} pull${remaining === 1 ? '' : 's'} remaining`
       : `No pulls left — next charge in ${config.PULL_COOLDOWN_SECONDS}s`;
     const overrideNote = (isAdmin(userId) && adminRarityOverride)
       ? ` • 🔧 Rarity locked to ${meta.label}` : '';
+    const platingNote  = plating ? ` • ${plating.emoji} **${plating.label} Plating** obtained!` : '';
 
     if (isDupe) {
       const embed = cardEmbed(card,
         `♻️ Duplicate — ${card.name}`,
-        `Already in your collection! +1 ${card.name} Shard added to your inventory • ${chargeInfo}${overrideNote}`
+        `Already in your collection! +1 ${card.name} Shard added to inventory • ${chargeInfo}${overrideNote}${platingNote}`
       );
       embed.setColor(0x888888);
+      if (plating) embed.setColor(plating.color);
       return message.reply({ embeds: [embed] });
     }
 
     const embed = cardEmbed(card,
       `${meta.emoji} You pulled — ${card.name}!`,
-      `Added to your collection! • ${meta.label} • ${chargeInfo}${overrideNote}`
+      `Added to your collection! • ${meta.label} • ${chargeInfo}${overrideNote}${platingNote}`
     );
+    if (plating) embed.setColor(plating.color);
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── allpull | ap ──────────────────────────────────────────
+  if (command === 'allpull' || command === 'ap') {
+    const { charges, lastRefill } = getCharges(userId);
+
+    if (charges <= 0) {
+      const secsUntilNext = Math.ceil(config.PULL_COOLDOWN_SECONDS - (Date.now() - lastRefill) / 1000);
+      return message.reply(`⏳ No pulls left! Next charge in **${secsUntilNext}s**. Charges refill 1 every **${config.PULL_COOLDOWN_SECONDS}s** (max **${config.MAX_PULL_CHARGES}**).`);
+    }
+
+    // Spend all charges
+    setCharges(userId, 0, lastRefill);
+
+    const inventory = inv.loadInventory();
+    const newCards  = [];
+    const dupes     = [];
+    const platings  = [];
+
+    for (let i = 0; i < charges; i++) {
+      const { card, isDupe, plating } = executeSinglePull(inventory, userId);
+      if (isDupe) dupes.push(card);
+      else        newCards.push(card);
+      if (plating) platings.push(plating);
+    }
+
+    inv.saveInventory(inventory);
+
+    const overrideNote = (isAdmin(userId) && adminRarityOverride)
+      ? ` • 🔧 Rarity locked to ${rarityMeta(adminRarityOverride).label}` : '';
+
+    const embed = new EmbedBuilder()
+      .setColor(0x00FFD1)
+      .setTitle(`🎴 All Pull — ${charges} card${charges === 1 ? '' : 's'} pulled${overrideNote}`);
+
+    // New cards
+    if (newCards.length > 0) {
+      const lines = newCards.map(c => {
+        const m = rarityMeta(c.rarity);
+        return `${m.emoji} **${c.name}** *(${m.label})*`;
+      });
+      // Split into chunks of 1024 chars to stay within field limits
+      let chunk = '';
+      let fieldCount = 0;
+      for (const line of lines) {
+        if ((chunk + '\n' + line).length > 1000) {
+          embed.addFields({ name: fieldCount === 0 ? `✨ New Cards (${newCards.length})` : '​', value: chunk.trim(), inline: false });
+          chunk = line;
+          fieldCount++;
+        } else {
+          chunk = chunk ? chunk + '\n' + line : line;
+        }
+      }
+      if (chunk) embed.addFields({ name: fieldCount === 0 ? `✨ New Cards (${newCards.length})` : '​', value: chunk.trim(), inline: false });
+    }
+
+    // Dupes
+    if (dupes.length > 0) {
+      const grouped = {};
+      for (const c of dupes) grouped[c.id] = (grouped[c.id] || { card: c, count: 0 });
+      for (const c of dupes) grouped[c.id].count++;
+
+      const lines = Object.values(grouped).map(({ card: c, count }) => {
+        const m = rarityMeta(c.rarity);
+        return `${m.emoji} ${c.name}${count > 1 ? ` ×${count}` : ''} → +${count} 🔮 shard${count === 1 ? '' : 's'}`;
+      });
+
+      let chunk = '';
+      let fieldCount = 0;
+      for (const line of lines) {
+        if ((chunk + '\n' + line).length > 1000) {
+          embed.addFields({ name: fieldCount === 0 ? `♻️ Duplicates (${dupes.length})` : '​', value: chunk.trim(), inline: false });
+          chunk = line;
+          fieldCount++;
+        } else {
+          chunk = chunk ? chunk + '\n' + line : line;
+        }
+      }
+      if (chunk) embed.addFields({ name: fieldCount === 0 ? `♻️ Duplicates (${dupes.length})` : '​', value: chunk.trim(), inline: false });
+    }
+
+    // Platings
+    if (platings.length > 0) {
+      const grouped = {};
+      for (const p of platings) grouped[p.id] = (grouped[p.id] || { tier: p, count: 0 });
+      for (const p of platings) grouped[p.id].count++;
+      embed.addFields({
+        name: '🪙 Platings Obtained!',
+        value: Object.values(grouped)
+          .map(({ tier, count }) => `${tier.emoji} **${tier.label}**${count > 1 ? ` ×${count}` : ''}`)
+          .join('\n'),
+        inline: false,
+      });
+      // Colour embed with the rarest plating obtained
+      const rarityOrder = ['diamond', 'gold', 'silver', 'bronze'];
+      for (const id of rarityOrder) {
+        if (grouped[id]) { embed.setColor(grouped[id].tier.color); break; }
+      }
+    }
+
+    embed.setFooter({ text: `Charges spent: ${charges} • Next charge in ${config.PULL_COOLDOWN_SECONDS}s` });
     return message.reply({ embeds: [embed] });
   }
 
   // ── collection | col ─────────────────────────────────────
   if (command === 'collection' || command === 'col') {
     const target  = message.mentions.users.first() ?? message.author;
-    // Filter = all remaining args after stripping the mention token
     const filter  = args.filter(a => !a.startsWith('<@')).join(' ').trim();
 
     const inventory = inv.loadInventory();
@@ -347,41 +468,66 @@ client.on('messageCreate', async (message) => {
 
   // ── inventory | inv ───────────────────────────────────────
   if (command === 'inventory' || command === 'inv') {
-    const target     = message.mentions.users.first() ?? message.author;
-    const inventory  = inv.loadInventory();
+    const target    = message.mentions.users.first() ?? message.author;
+    const inventory = inv.loadInventory();
+
+    // ─ Character shards ─
     const charShards = inv.getCharacterShards(inventory, target.id);
-    const entries    = Object.entries(charShards).filter(([, count]) => count > 0);
+    const shardEntries = Object.entries(charShards).filter(([, n]) => n > 0);
 
-    if (entries.length === 0) {
-      return message.reply(`${target.id === userId ? 'You have' : `**${target.username}** has`} no character shards yet. Pull duplicates to earn them!`);
+    // ─ Platings ─
+    const platingsObj   = inv.getPlatings(inventory, target.id);
+    const platingEntries = Object.entries(platingsObj).filter(([, n]) => n > 0);
+
+    if (shardEntries.length === 0 && platingEntries.length === 0) {
+      return message.reply(
+        `${target.id === userId ? 'You have' : `**${target.username}** has`} nothing in your inventory yet. Pull duplicates to earn character shards, and hope for a plating drop!`
+      );
     }
 
-    const grouped = {};
-    for (const [key] of Object.entries(config.RARITY_META)) grouped[key] = [];
-    for (const [cardId, count] of entries) {
-      const card   = lookupCard(cardId);
-      const rarity = card?.rarity ?? 'R';
-      if (!grouped[rarity]) grouped[rarity] = [];
-      grouped[rarity].push({ cardId, name: card?.name ?? cardId, count });
-    }
-
-    const totalShards = entries.reduce((sum, [, c]) => sum + c, 0);
     const embed = new EmbedBuilder()
       .setColor(0x9B59B6)
-      .setTitle(`🔮 ${target.username}'s Character Shards`)
-      .setDescription(`**${totalShards}** shard(s) total`);
+      .setTitle(`🎒 ${target.username}'s Inventory`);
 
-    for (const [rarity, group] of Object.entries(grouped)) {
-      if (group.length === 0) continue;
-      const meta = rarityMeta(rarity);
+    // Platings section
+    if (platingEntries.length > 0) {
+      const totalPlatings = platingEntries.reduce((s, [, n]) => s + n, 0);
       embed.addFields({
-        name:  `${meta.emoji} ${meta.label}`,
-        value: group.map(s => `${s.name} — **×${s.count}**`).join('\n'),
+        name: `🪙 Platings (${totalPlatings} total)`,
+        value: config.PLATING_TIERS
+          .filter(t => platingsObj[t.id] > 0)
+          .map(t => `${t.emoji} **${t.label}** — ×${platingsObj[t.id]}`)
+          .join('\n'),
         inline: false,
       });
     }
 
-    embed.setFooter({ text: 'Character shards are earned by pulling duplicate cards' });
+    // Character shards section (grouped by rarity)
+    if (shardEntries.length > 0) {
+      const grouped = {};
+      for (const [key] of Object.entries(config.RARITY_META)) grouped[key] = [];
+      for (const [cardId, count] of shardEntries) {
+        const card   = lookupCard(cardId);
+        const rarity = card?.rarity ?? 'R';
+        if (!grouped[rarity]) grouped[rarity] = [];
+        grouped[rarity].push({ name: card?.name ?? cardId, count });
+      }
+
+      const totalShards = shardEntries.reduce((s, [, n]) => s + n, 0);
+      embed.addFields({ name: `🔮 Character Shards (${totalShards} total)`, value: '​', inline: false });
+
+      for (const [rarity, group] of Object.entries(grouped)) {
+        if (group.length === 0) continue;
+        const meta = rarityMeta(rarity);
+        embed.addFields({
+          name:  `${meta.emoji} ${meta.label}`,
+          value: group.map(s => `${s.name} — ×${s.count}`).join('\n'),
+          inline: true,
+        });
+      }
+    }
+
+    embed.setFooter({ text: 'Character shards from duplicate pulls • Platings from 0.1% pull luck' });
     return message.reply({ embeds: [embed] });
   }
 
@@ -401,140 +547,6 @@ client.on('messageCreate', async (message) => {
       ? `✅ In your collection${shards > 0 ? ` • 🔮 ×${shards} shard${shards === 1 ? '' : 's'}` : ''}`
       : '❌ Not in your collection';
     embed.setFooter({ text: status });
-    return message.reply({ embeds: [embed] });
-  }
-
-  // ── shards | sh ──────────────────────────────────────────
-  if (command === 'shards' || command === 'sh') {
-    const inventory = inv.loadInventory();
-    const shards    = inv.getShards(inventory, userId);
-    return message.reply(`💎 You have **${shards} trade shards**.\n*Character shards (from dupes) are viewable with \`ZP inv\`.*`);
-  }
-
-  // ── trade ─────────────────────────────────────────────────
-  if (command === 'trade') {
-    const toUser   = message.mentions.users.first();
-    const cardId   = args[1];
-    const shardAsk = parseInt(args[2], 10);
-
-    if (!toUser || !cardId || isNaN(shardAsk) || shardAsk < 0) {
-      return message.reply('Usage: `ZP trade @user <cardId> <shardsYouWant>`\nExample: `ZP trade @Alice naruto_r 50`');
-    }
-    if (toUser.id === userId) return message.reply('❌ You cannot trade with yourself.');
-    if (toUser.bot)           return message.reply('❌ You cannot trade with a bot.');
-
-    const inventory = inv.loadInventory();
-
-    if (!inv.hasCard(inventory, userId, cardId)) {
-      return message.reply(`❌ You don't own \`${cardId}\`. Check \`ZP col\` for your cards.`);
-    }
-
-    const receiverShards = inv.getShards(inventory, toUser.id);
-    if (receiverShards < shardAsk) {
-      return message.reply(`❌ **${toUser.username}** only has **${receiverShards} trade shards** — not enough for your asking price.`);
-    }
-
-    const card    = lookupCard(cardId);
-    const meta    = rarityMeta(card?.rarity ?? 'R');
-    const tradeId = trades.createTrade({
-      fromUserId:    userId,
-      toUserId:      toUser.id,
-      offeredCardId: cardId,
-      askingShards:  shardAsk,
-    });
-
-    const embed = new EmbedBuilder()
-      .setColor(meta.color)
-      .setTitle('🤝 Trade Offer Sent')
-      .setDescription(`${message.author.username} → ${toUser.username}`)
-      .addFields(
-        { name: 'Offering',              value: `${meta.emoji} **${card?.name ?? cardId}** (${meta.label})`, inline: true },
-        { name: 'Asking (trade shards)', value: `💎 ${shardAsk}`,                                            inline: true },
-        { name: 'Trade ID',              value: `\`${tradeId}\``,                                            inline: true },
-      )
-      .setFooter({ text: `${toUser.username}: use ZP a ${tradeId}  or  ZP dec ${tradeId} • Expires in 5 min` });
-
-    return message.reply({ content: `${toUser}`, embeds: [embed] });
-  }
-
-  // ── accept | a ────────────────────────────────────────────
-  if (command === 'accept' || command === 'a') {
-    const tradeId = args[0];
-    if (!tradeId) return message.reply('Usage: `ZP accept <tradeId>` or `ZP a <tradeId>`');
-
-    const trade = trades.getTrade(tradeId);
-    if (!trade) return message.reply(`❌ Trade \`${tradeId}\` not found or has expired.`);
-    if (trade.toUserId !== userId) return message.reply('❌ That trade is not addressed to you.');
-
-    const inventory = inv.loadInventory();
-
-    if (!inv.hasCard(inventory, trade.fromUserId, trade.offeredCardId)) {
-      trades.cancelTrade(tradeId);
-      return message.reply('❌ The sender no longer owns that card. Trade cancelled.');
-    }
-    if (!inv.removeShards(inventory, trade.toUserId, trade.askingShards)) {
-      return message.reply(`❌ You don't have enough trade shards (need **${trade.askingShards}**).`);
-    }
-
-    inv.removeCardFromInventory(inventory, trade.fromUserId, trade.offeredCardId);
-    const card = lookupCard(trade.offeredCardId);
-    const { isDupe } = inv.addCardToInventory(inventory, trade.toUserId, card, config.SHARD_VALUES);
-    inv.addShards(inventory, trade.fromUserId, trade.askingShards);
-    inv.saveInventory(inventory);
-    trades.cancelTrade(tradeId);
-
-    const meta = rarityMeta(card?.rarity ?? 'R');
-    const embed = new EmbedBuilder()
-      .setColor(0x2ecc71)
-      .setTitle('✅ Trade Complete!')
-      .addFields(
-        { name: 'Card transferred',  value: `${meta.emoji} **${card?.name ?? trade.offeredCardId}**`, inline: true },
-        { name: 'Trade shards paid', value: `💎 ${trade.askingShards}`,                               inline: true },
-      );
-
-    if (isDupe) {
-      embed.setFooter({ text: `You already had that card — +1 ${card?.name} Shard added to your inventory!` });
-    }
-
-    return message.reply({ embeds: [embed] });
-  }
-
-  // ── decline | dec ─────────────────────────────────────────
-  if (command === 'decline' || command === 'dec') {
-    const tradeId = args[0];
-    if (!tradeId) return message.reply('Usage: `ZP decline <tradeId>` or `ZP dec <tradeId>`');
-
-    const trade = trades.getTrade(tradeId);
-    if (!trade) return message.reply(`❌ Trade \`${tradeId}\` not found or already expired.`);
-    if (trade.toUserId !== userId && trade.fromUserId !== userId) {
-      return message.reply('❌ You are not part of that trade.');
-    }
-
-    trades.cancelTrade(tradeId);
-    return message.reply(`🚫 Trade \`${tradeId}\` has been cancelled.`);
-  }
-
-  // ── trades ────────────────────────────────────────────────
-  if (command === 'trades') {
-    const pending = trades.getTradesForUser(userId);
-    if (pending.length === 0) {
-      return message.reply('📭 You have no pending trade offers.');
-    }
-
-    const embed = new EmbedBuilder()
-      .setColor(0xF1C40F)
-      .setTitle('📬 Pending Trade Offers');
-
-    for (const trade of pending) {
-      const card     = lookupCard(trade.offeredCardId);
-      const meta     = rarityMeta(card?.rarity ?? 'R');
-      const fromUser = await client.users.fetch(trade.fromUserId).catch(() => ({ username: trade.fromUserId }));
-      embed.addFields({
-        name:  `Trade ${trade.tradeId} — from ${fromUser.username}`,
-        value: `${meta.emoji} **${card?.name ?? trade.offeredCardId}** for 💎 **${trade.askingShards} trade shards**\n\`ZP a ${trade.tradeId}\`  •  \`ZP dec ${trade.tradeId}\``,
-      });
-    }
-
     return message.reply({ embeds: [embed] });
   }
 
@@ -558,15 +570,6 @@ client.on('messageCreate', async (message) => {
       adminRarityOverride = target;
       const meta = rarityMeta(target);
       return message.reply(`🔧 Rarity locked to **${meta.emoji} ${meta.label}** — use \`ZP setrarity reset\` to clear.`);
-    }
-
-    if (command === 'giveshards') {
-      const amount = parseInt(args[0], 10);
-      if (isNaN(amount) || amount <= 0) return message.reply('Usage: `ZP giveshards <amount>`');
-      const inventory = inv.loadInventory();
-      inv.addShards(inventory, userId, amount);
-      inv.saveInventory(inventory);
-      return message.reply(`🔧 Added **${amount} trade shards**. New balance: **${inv.getShards(inventory, userId)}**.`);
     }
 
     if (command === 'resetcooldown') {

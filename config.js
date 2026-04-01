@@ -10,17 +10,6 @@ module.exports = {
   PULL_COOLDOWN_SECONDS: 30,    // Seconds to regenerate 1 pull charge
   MAX_PULL_CHARGES: 20,         // Maximum stored pull charges
 
-  // ── Shard Values (duplicates) ─────────────────────────────
-  // When you pull a duplicate card it auto-converts to shards
-  SHARD_VALUES: {
-    R:  10,    // Rare        = 10  💎
-    E:  25,    // Epic        = 25  💎
-    L:  60,    // Legendary   = 60  💎
-    MY: 120,   // Mythical    = 120 💎
-    UR: 250,   // Ultra-Rare  = 250 💎
-    LT: 500,   // Limited     = 500 💎
-  },
-
   // ── Pull Rates ────────────────────────────────────────────
   // Must add up to exactly 100
   PULL_RATES: {
@@ -31,6 +20,18 @@ module.exports = {
     UR:  4,    // Ultra-Rare   4%
     LT:  1,    // Limited      1%
   },
+
+  // ── Plating ───────────────────────────────────────────────
+  // 0.1% chance per individual pull to also receive a plating.
+  // If a plating drops, the tier is chosen by the weights below
+  // (they must add up to 100).
+  PLATING_CHANCE: 0.001,
+  PLATING_TIERS: [
+    { id: 'bronze',  label: 'Bronze',  emoji: '🥉', weight: 55, color: 0xCD7F32 },
+    { id: 'silver',  label: 'Silver',  emoji: '🥈', weight: 28, color: 0xC0C0C0 },
+    { id: 'gold',    label: 'Gold',    emoji: '🥇', weight: 13, color: 0xFFD700 },
+    { id: 'diamond', label: 'Diamond', emoji: '💎', weight:  4, color: 0xB9F2FF },
+  ],
 
   // ── Rarity Metadata (display) ────────────────────────────
   RARITY_META: {
