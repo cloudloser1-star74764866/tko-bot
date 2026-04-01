@@ -133,7 +133,7 @@ function getCardStats(card) {
 // ── Trade item helpers ────────────────────────────────────
 
 /**
- * Parse a trade item string. Supported formats:
+ * Parse a single trade item token. Supported formats:
  *   shard:<cardId>:<amount>      e.g. shard:naruto_r:3
  *   plating:<tierId>:<amount>    e.g. plating:gold:1
  *   yen:<amount>                 e.g. yen:500
@@ -141,7 +141,7 @@ function getCardStats(card) {
  * Returns { type, id?, amount } or null on bad input.
  */
 function parseTradeItem(str) {
-  const parts  = str.split(':');
+  const parts  = str.trim().split(':');
   const type   = parts[0]?.toLowerCase();
   const CURRENCY_TYPES = ['yen', 'stars'];
   const ID_TYPES       = ['shard', 'plating'];
@@ -164,6 +164,18 @@ function parseTradeItem(str) {
 }
 
 /**
+ * Parse a comma-separated list of trade item tokens.
+ * Returns an array of items, or null if any token is invalid.
+ */
+function parseTradeItems(str) {
+  const tokens = str.split(',').map(s => s.trim()).filter(Boolean);
+  if (tokens.length === 0) return null;
+  const items = tokens.map(parseTradeItem);
+  if (items.some(i => i === null)) return null;
+  return items;
+}
+
+/**
  * Validate that type + id refer to something real.
  */
 function validateTradeItem(item) {
@@ -175,7 +187,7 @@ function validateTradeItem(item) {
 }
 
 /**
- * Human-readable label for a trade item.
+ * Human-readable label for a single trade item.
  */
 function describeItem(item) {
   if (item.type === 'shard') {
@@ -192,6 +204,13 @@ function describeItem(item) {
 }
 
 /**
+ * Human-readable label for an array of trade items.
+ */
+function describeItems(items) {
+  return items.map(describeItem).join('\n');
+}
+
+/**
  * Check whether a user currently holds enough of a trade item.
  */
 function userHasItem(inventory, userId, item) {
@@ -203,7 +222,15 @@ function userHasItem(inventory, userId, item) {
 }
 
 /**
- * Remove items from a user (returns false if insufficient).
+ * Check whether a user holds enough for every item in an array.
+ * Returns the first missing item, or null if all are present.
+ */
+function findMissingItem(inventory, userId, items) {
+  return items.find(item => !userHasItem(inventory, userId, item)) ?? null;
+}
+
+/**
+ * Remove a single item from a user (returns false if insufficient).
  */
 function removeItems(inventory, userId, item) {
   if (item.type === 'shard')   return inv.removeCharacterShards(inventory, userId, item.id, item.amount);
@@ -214,13 +241,27 @@ function removeItems(inventory, userId, item) {
 }
 
 /**
- * Add items to a user.
+ * Remove every item in an array from a user.
+ */
+function removeAllItems(inventory, userId, items) {
+  for (const item of items) removeItems(inventory, userId, item);
+}
+
+/**
+ * Add a single item to a user.
  */
 function addItems(inventory, userId, item) {
   if (item.type === 'shard')   inv.addCharacterShards(inventory, userId, item.id, item.amount);
   if (item.type === 'plating') inv.addPlatings(inventory, userId, item.id, item.amount);
   if (item.type === 'yen')     inv.addYen(inventory, userId, item.amount);
   if (item.type === 'stars')   inv.addStars(inventory, userId, item.amount);
+}
+
+/**
+ * Add every item in an array to a user.
+ */
+function addAllItems(inventory, userId, items) {
+  for (const item of items) addItems(inventory, userId, item);
 }
 
 // ── Misc helpers ──────────────────────────────────────────
@@ -411,12 +452,12 @@ client.on('messageCreate', async (message) => {
         {
           name: '`ZP trade @user <offer> [for <ask>]`',
           value: [
-            'Send a trade or free gift. Omit `for <ask>` to send an instant gift with no return.',
+            'Send a trade or instant gift. Omit `for <ask>` to gift instantly. Separate multiple items with commas.',
             '**Item formats:** `shard:<cardId>:<amount>` • `plating:<tier>:<amount>` • `yen:<amount>` • `stars:<amount>`',
             '**Examples:**',
-            '`ZP trade @Alice shard:naruto_r:3` — instant free gift',
-            '`ZP trade @Alice yen:500 for stars:100` — currency swap (requires acceptance)',
-            '`ZP trade @Alice shard:naruto_r:3 for plating:gold:1` — shard for plating (requires acceptance)',
+            '`ZP trade @Alice shard:naruto_r:3,yen:200` — instant gift of multiple items',
+            '`ZP trade @Alice yen:500 for stars:100` — single-item swap (requires acceptance)',
+            '`ZP trade @Alice shard:naruto_r:3,plating:gold:1 for yen:1000,stars:50` — multi-item trade',
           ].join('\n'),
           inline: false,
         },
@@ -725,6 +766,7 @@ client.on('messageCreate', async (message) => {
     if (toUser.bot)           return message.reply('❌ You cannot trade with a bot.');
 
     // Strip mention tokens and find optional "for" separator
+    // Rejoin with spaces so comma-separated items with spaces work
     const tradeArgs = args.filter(a => !a.startsWith('<@'));
     const forIndex  = tradeArgs.findIndex(a => a.toLowerCase() === 'for');
     const isFree    = forIndex === -1;
@@ -736,37 +778,44 @@ client.on('messageCreate', async (message) => {
       return message.reply('❌ Invalid format — you wrote "for" but left one side empty.');
     }
 
-    const offerStr = isFree ? tradeArgs.join('') : tradeArgs.slice(0, forIndex).join('');
-    const askStr   = isFree ? null : tradeArgs.slice(forIndex + 1).join('');
+    const offerStr = (isFree ? tradeArgs : tradeArgs.slice(0, forIndex)).join(' ');
+    const askStr   = isFree ? null : tradeArgs.slice(forIndex + 1).join(' ');
 
-    const offer = parseTradeItem(offerStr);
-    if (!offer) return message.reply(`❌ Couldn't parse offer \`${offerStr}\`.\nFormat: \`shard:<cardId>:<amount>\` • \`plating:<tier>:<amount>\` • \`yen:<amount>\` • \`stars:<amount>\``);
+    const offer = parseTradeItems(offerStr);
+    if (!offer) return message.reply(`❌ Couldn't parse offer \`${offerStr}\`.\nFormat: \`shard:<cardId>:<amount>\` • \`plating:<tier>:<amount>\` • \`yen:<amount>\` • \`stars:<amount>\`\nSeparate multiple items with commas: \`shard:naruto_r:3,yen:500\``);
 
-    const ask = askStr ? parseTradeItem(askStr) : null;
-    if (askStr && !ask) return message.reply(`❌ Couldn't parse ask \`${askStr}\`.\nFormat: \`shard:<cardId>:<amount>\` • \`plating:<tier>:<amount>\` • \`yen:<amount>\` • \`stars:<amount>\``);
+    const ask = askStr ? parseTradeItems(askStr) : null;
+    if (askStr && !ask) return message.reply(`❌ Couldn't parse ask \`${askStr}\`.\nFormat: \`shard:<cardId>:<amount>\` • \`plating:<tier>:<amount>\` • \`yen:<amount>\` • \`stars:<amount>\`\nSeparate multiple items with commas: \`plating:gold:1,stars:100\``);
 
-    if (!validateTradeItem(offer)) {
-      return message.reply(offer.type === 'shard'
-        ? `❌ Unknown card ID \`${offer.id}\`. Check \`ZP col\` for valid IDs.`
-        : `❌ Unknown plating tier \`${offer.id}\`. Valid tiers: ${config.PLATING_TIERS.map(t => t.id).join(', ')}`
-      );
+    for (const item of offer) {
+      if (!validateTradeItem(item)) {
+        return message.reply(item.type === 'shard'
+          ? `❌ Unknown card ID \`${item.id}\`. Check \`ZP col\` for valid IDs.`
+          : `❌ Unknown plating tier \`${item.id}\`. Valid tiers: ${config.PLATING_TIERS.map(t => t.id).join(', ')}`
+        );
+      }
     }
-    if (ask && !validateTradeItem(ask)) {
-      return message.reply(ask.type === 'shard'
-        ? `❌ Unknown card ID \`${ask.id}\`. Check \`ZP col\` for valid IDs.`
-        : `❌ Unknown plating tier \`${ask.id}\`. Valid tiers: ${config.PLATING_TIERS.map(t => t.id).join(', ')}`
-      );
+    if (ask) {
+      for (const item of ask) {
+        if (!validateTradeItem(item)) {
+          return message.reply(item.type === 'shard'
+            ? `❌ Unknown card ID \`${item.id}\`. Check \`ZP col\` for valid IDs.`
+            : `❌ Unknown plating tier \`${item.id}\`. Valid tiers: ${config.PLATING_TIERS.map(t => t.id).join(', ')}`
+          );
+        }
+      }
     }
 
     const inventory = inv.loadInventory();
-    if (!userHasItem(inventory, userId, offer)) {
-      return message.reply(`❌ You don't have enough to offer. You need ${describeItem(offer)}.`);
+    const missingOffer = findMissingItem(inventory, userId, offer);
+    if (missingOffer) {
+      return message.reply(`❌ You don't have enough to offer. You need ${describeItem(missingOffer)}.`);
     }
 
     // Free gifts auto-complete immediately — no pending trade needed
     if (isFree) {
-      removeItems(inventory, userId, offer);
-      addItems(inventory, toUser.id, offer);
+      removeAllItems(inventory, userId, offer);
+      addAllItems(inventory, toUser.id, offer);
       inv.saveInventory(inventory);
 
       const embed = new EmbedBuilder()
@@ -774,7 +823,7 @@ client.on('messageCreate', async (message) => {
         .setTitle('🎁 Gift Sent!')
         .setDescription(`**${message.author.username}** → **${toUser.username}**`)
         .addFields(
-          { name: `${toUser.username} received`, value: describeItem(offer), inline: true },
+          { name: `${toUser.username} received`, value: describeItems(offer), inline: true },
         )
         .setFooter({ text: 'Gift delivered instantly!' });
 
@@ -788,9 +837,9 @@ client.on('messageCreate', async (message) => {
       .setTitle('🤝 Trade Offer Sent')
       .setDescription(`**${message.author.username}** → **${toUser.username}**`)
       .addFields(
-        { name: 'Offering',   value: describeItem(offer),  inline: true },
-        { name: 'Asking for', value: describeItem(ask),    inline: true },
-        { name: 'Trade ID',   value: `\`${tradeId}\``,     inline: true },
+        { name: 'Offering',   value: describeItems(offer),  inline: true },
+        { name: 'Asking for', value: describeItems(ask),    inline: true },
+        { name: 'Trade ID',   value: `\`${tradeId}\``,      inline: true },
       )
       .setFooter({ text: `${toUser.username}: use  ZP a ${tradeId}  or  ZP dec ${tradeId}  • Expires in 5 min` });
 
@@ -810,24 +859,28 @@ client.on('messageCreate', async (message) => {
 
     const inventory = inv.loadInventory();
 
-    // Check sender still has what they offered
-    if (!userHasItem(inventory, trade.fromUserId, trade.offer)) {
+    // Check sender still has everything they offered
+    const missingSenderItem = findMissingItem(inventory, trade.fromUserId, trade.offer);
+    if (missingSenderItem) {
       trades.cancelTrade(tradeId);
-      return message.reply(`❌ The sender no longer has ${describeItem(trade.offer)}. Trade cancelled.`);
+      return message.reply(`❌ The sender no longer has ${describeItem(missingSenderItem)}. Trade cancelled.`);
     }
 
-    // Check receiver has what's being asked (skip for free trades)
-    if (trade.ask && !userHasItem(inventory, userId, trade.ask)) {
-      return message.reply(`❌ You don't have enough: you need ${describeItem(trade.ask)} to accept this trade.`);
+    // Check receiver has everything being asked (skip for free trades)
+    if (trade.ask) {
+      const missingReceiverItem = findMissingItem(inventory, userId, trade.ask);
+      if (missingReceiverItem) {
+        return message.reply(`❌ You don't have enough: you need ${describeItem(missingReceiverItem)} to accept this trade.`);
+      }
     }
 
     // Execute the transfer / swap
-    removeItems(inventory, trade.fromUserId, trade.offer);
+    removeAllItems(inventory, trade.fromUserId, trade.offer);
     if (trade.ask) {
-      removeItems(inventory, userId,           trade.ask);
-      addItems(inventory,    trade.fromUserId, trade.ask);
+      removeAllItems(inventory, userId,           trade.ask);
+      addAllItems(inventory,    trade.fromUserId, trade.ask);
     }
-    addItems(inventory, userId, trade.offer);
+    addAllItems(inventory, userId, trade.offer);
     inv.saveInventory(inventory);
     const offerMsg = trade.offerMessage;
     trades.cancelTrade(tradeId);
@@ -838,8 +891,8 @@ client.on('messageCreate', async (message) => {
       .setTitle(trade.ask ? '✅ Trade Complete!' : '🎁 Gift Accepted!')
       .setDescription(`**${fromUser.username}** → **${message.author.username}**`)
       .addFields(
-        { name: `${message.author.username} received`, value: describeItem(trade.offer),                      inline: true },
-        { name: `${fromUser.username} received`,       value: trade.ask ? describeItem(trade.ask) : '🆓 Nothing', inline: true },
+        { name: `${message.author.username} received`, value: describeItems(trade.offer),                        inline: true },
+        { name: `${fromUser.username} received`,       value: trade.ask ? describeItems(trade.ask) : '🆓 Nothing', inline: true },
       );
 
     if (offerMsg) {

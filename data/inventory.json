@@ -197,28 +197,49 @@
           "series": "Pokémon",
           "rarity": "MY",
           "obtainedAt": "2026-04-01T00:19:16.383Z"
+        },
+        {
+          "id": "saitama_my",
+          "name": "Saitama",
+          "series": "One Punch Man",
+          "rarity": "MY",
+          "obtainedAt": "2026-04-01T01:17:17.962Z"
+        },
+        {
+          "id": "allmight_l",
+          "name": "All Might",
+          "series": "My Hero Academia",
+          "rarity": "L",
+          "obtainedAt": "2026-04-01T01:17:17.962Z"
         }
       ],
       "characterShards": {
         "bakugo_e": 3,
         "link_r": 6,
-        "zeno_ur": 1,
-        "goku_r": 2,
+        "zeno_ur": 2,
+        "goku_r": 5,
         "gear5_luffy_lt": 5,
         "ultra_goku_lt": 7,
         "sage_naruto_lt": 7,
         "eren_r": 5,
-        "luffy_r": 2,
+        "luffy_r": 3,
         "deku_r": 4,
-        "pikachu_r": 4,
+        "pikachu_r": 6,
         "ichigo_r": 2,
         "naruto_r": 1,
-        "vegeta_e": 1,
-        "levi_e": 2,
-        "kaguya_ur": 1,
-        "spike_r": 1,
+        "vegeta_e": 2,
+        "levi_e": 3,
+        "kaguya_ur": 2,
+        "spike_r": 2,
         "killua_e": 1,
-        "genos_l": 1
+        "genos_l": 1,
+        "saitama_my": 1,
+        "sasuke_e": 1,
+        "zoro_e": 1,
+        "shanks_l": 1,
+        "goku_ssj4_l": 1,
+        "arceus_ur": 1,
+        "hisoka_l": 1
       },
       "platings": {
         "diamond": 1
@@ -355,8 +376,8 @@
   },
   "pullCharges": {
     "833025999897755689": {
-      "charges": 11,
-      "lastRefill": 1775003115083
+      "charges": 0,
+      "lastRefill": 1775006235083
     },
     "921838182927040602": {
       "charges": 0,
