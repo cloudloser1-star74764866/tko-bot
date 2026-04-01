@@ -26,11 +26,12 @@ function saveInventory(data) {
 
 function ensureUser(inventory, userId) {
   if (!inventory.users[userId]) {
-    inventory.users[userId] = { cards: [], characterShards: {}, platings: {}, yen: 0, stars: 0, candyTokens: 0 };
+    inventory.users[userId] = { cards: [], characterShards: {}, platings: {}, team: [], yen: 0, stars: 0, candyTokens: 0 };
   }
   const u = inventory.users[userId];
   if (!u.characterShards)               u.characterShards = {};
   if (!u.platings)                      u.platings        = {};
+  if (!u.team)                          u.team            = [];
   if (typeof u.yen          !== 'number') u.yen          = 0;
   if (typeof u.stars        !== 'number') u.stars        = 0;
   if (typeof u.candyTokens  !== 'number') u.candyTokens  = 0;
@@ -97,6 +98,70 @@ function setCardLevel(inventory, userId, cardId, level) {
   if (!card) return false;
   card.level = Math.max(1, Math.min(MAX_CARD_LEVEL, level));
   return true;
+}
+
+// ── Team Operations ───────────────────────────────────────
+
+const TEAM_SIZE = 4;
+
+function getTeam(inventory, userId) {
+  ensureUser(inventory, userId);
+  return inventory.users[userId].team;
+}
+
+/** Add a card to the team. Returns 'added', 'full', or 'already_on_team'. */
+function addToTeam(inventory, userId, cardId) {
+  ensureUser(inventory, userId);
+  const team = inventory.users[userId].team;
+  if (team.find(s => s.cardId === cardId)) return 'already_on_team';
+  if (team.length >= TEAM_SIZE) return 'full';
+  team.push({ cardId, plating: null });
+  return 'added';
+}
+
+/** Remove a card from the team. Returns the slot (with plating) or null. */
+function removeFromTeam(inventory, userId, cardId) {
+  ensureUser(inventory, userId);
+  const team = inventory.users[userId].team;
+  const idx  = team.findIndex(s => s.cardId === cardId);
+  if (idx === -1) return null;
+  const [slot] = team.splice(idx, 1);
+  return slot;
+}
+
+/**
+ * Equip a plating to a card on the team.
+ * Consumes the plating from inventory.
+ * Returns 'equipped', 'not_on_team', 'no_plating', or 'already_equipped'.
+ */
+function equipPlatingToTeam(inventory, userId, cardId, platingTier) {
+  ensureUser(inventory, userId);
+  const team = inventory.users[userId].team;
+  const slot = team.find(s => s.cardId === cardId);
+  if (!slot) return 'not_on_team';
+  if (slot.plating) return 'already_equipped';
+  const p = inventory.users[userId].platings;
+  if ((p[platingTier] ?? 0) < 1) return 'no_plating';
+  p[platingTier]--;
+  if (p[platingTier] === 0) delete p[platingTier];
+  slot.plating = platingTier;
+  return 'equipped';
+}
+
+/**
+ * Unequip a plating from a team card.
+ * Returns the plating tier that was removed, or null.
+ */
+function unequipPlatingFromTeam(inventory, userId, cardId) {
+  ensureUser(inventory, userId);
+  const team = inventory.users[userId].team;
+  const slot = team.find(s => s.cardId === cardId);
+  if (!slot || !slot.plating) return null;
+  const tier = slot.plating;
+  slot.plating = null;
+  const p = inventory.users[userId].platings;
+  p[tier] = (p[tier] ?? 0) + 1;
+  return tier;
 }
 
 // ── Character Shard Operations ────────────────────────────
@@ -224,6 +289,7 @@ module.exports = {
   loadPullCharges, savePullCharges,
   addCardToInventory, removeCardFromInventory, hasCard, getCards,
   MAX_CARD_LEVEL, getCardLevel, setCardLevel,
+  TEAM_SIZE, getTeam, addToTeam, removeFromTeam, equipPlatingToTeam, unequipPlatingFromTeam,
   getCharacterShards, addCharacterShards, removeCharacterShards,
   getPlatings, addPlating, addPlatings, removePlating,
   getYen, addYen, removeYen,

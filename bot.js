@@ -11,6 +11,10 @@
 //    ZP inventory  (inv)                    – view character shards & platings
 //    ZP card <id>  (c <id>)                 – inspect a card
 //    ZP absorb shard:<id>:<count>           – level up a card using its shards
+//    ZP team                                – view your battle team
+//    ZP team add/remove <id>               – manage team cards
+//    ZP team equip/unequip <id> <plating>  – equip platings to team cards
+//    ZP fight @user                         – challenge a player to a team battle
 //    ZP trade @user <offer> for <ask>       – offer a trade
 //    ZP accept <tradeId>  (a)               – accept a trade offer
 //    ZP decline <tradeId>  (dec)            – decline / cancel a trade
@@ -270,6 +274,50 @@ function addItems(inventory, userId, item) {
  */
 function addAllItems(inventory, userId, items) {
   for (const item of items) addItems(inventory, userId, item);
+}
+
+// ── Fight cooldown ────────────────────────────────────────
+
+const fightCooldowns = new Map(); // userId -> timestamp
+
+function getFightCooldownSecs(userId) {
+  const last = fightCooldowns.get(userId) ?? 0;
+  const elapsed = (Date.now() - last) / 1000;
+  const remaining = config.FIGHT_COOLDOWN_SECONDS - elapsed;
+  return remaining > 0 ? Math.ceil(remaining) : 0;
+}
+
+function setFightCooldown(userId) {
+  fightCooldowns.set(userId, Date.now());
+}
+
+// ── Team / Fight helpers ──────────────────────────────────
+
+/**
+ * Calculate the combat power of a single team slot.
+ * power = (hp + dmg) * levelMult * platingMult
+ */
+function slotPower(slot) {
+  const card = lookupCard(slot.cardId);
+  if (!card) return 0;
+  const level     = slot.level ?? 1;
+  const stats     = getCardStats(card, level);
+  const plating   = slot.plating ? config.PLATING_TIERS.find(t => t.id === slot.plating) : null;
+  const platMult  = plating ? plating.statMult : 1;
+  return (stats.hp + stats.dmg) * platMult;
+}
+
+/**
+ * Build a rich team snapshot for display / battle, merging team slots
+ * with live inventory card data (level, etc.).
+ */
+function resolveTeamSlots(team, inventory, userId) {
+  return team.map(slot => {
+    const card     = lookupCard(slot.cardId);
+    const invCard  = inv.getCards(inventory, userId).find(c => c.id === slot.cardId);
+    const level    = invCard?.level ?? 1;
+    return { ...slot, card, level };
+  });
 }
 
 // ── Misc helpers ──────────────────────────────────────────
@@ -573,6 +621,12 @@ client.on('messageCreate', async (message) => {
         { name: '`ZP balance` / `ZP bal`',                     value: 'Check your 💴 Yen and ⭐ Stars balance (add @user to check theirs)',              inline: false },
         { name: '`ZP card <cardId>` / `ZP c <cardId>`',        value: 'Inspect a specific card by ID',                                                   inline: false },
         { name: '`ZP absorb shard:<cardId>:<count>`',           value: 'Spend character shards to level up a card (1 shard = 1 level, max Lv. 100, +2% stats per level)', inline: false },
+        { name: '`ZP team`',                                    value: 'View your battle team (or `ZP team @user` to view someone else\'s)',                             inline: false },
+        { name: '`ZP team add <cardId>`',                       value: 'Add a card to your team (max 4 cards)',                                                         inline: false },
+        { name: '`ZP team remove <cardId>`',                    value: 'Remove a card from your team (returns any equipped plating)',                                    inline: false },
+        { name: '`ZP team equip <cardId> <plating>`',           value: 'Equip a plating to a team card for a stat boost in battle (consumes the plating)',               inline: false },
+        { name: '`ZP team unequip <cardId>`',                   value: 'Remove a plating from a team card (returns it to your inventory)',                               inline: false },
+        { name: '`ZP fight @user`',                             value: `Challenge a player to a team battle! Both need ${inv.TEAM_SIZE} cards. Winner earns 100–1,000 💴 Yen and 10–100 ⭐ Stars`, inline: false },
         {
           name: '`ZP trade @user <offer> [for <ask>]`',
           value: [
@@ -1000,6 +1054,235 @@ client.on('messageCreate', async (message) => {
     }
 
     return message.reply({ embeds: [embed] });
+  }
+
+  // ── team ─────────────────────────────────────────────────
+  if (command === 'team') {
+    const sub = args[0]?.toLowerCase();
+
+    // ── ZP team (view) ─────────────────────────────────────
+    if (!sub || sub === 'view') {
+      const target    = message.mentions.users.first() ?? message.author;
+      const inventory = inv.loadInventory();
+      const team      = inv.getTeam(inventory, target.id);
+      const resolved  = resolveTeamSlots(team, inventory, target.id);
+
+      const embed = new EmbedBuilder()
+        .setColor(0x00FFD1)
+        .setTitle(`⚔️ ${target.username}'s Team`);
+
+      if (resolved.length === 0) {
+        embed.setDescription(`No cards on this team yet.\nUse \`ZP team add <cardId>\` to add up to ${inv.TEAM_SIZE} cards.`);
+      } else {
+        let totalPower = 0;
+        const lines = resolved.map((slot, i) => {
+          if (!slot.card) return `${i + 1}. ~~${slot.cardId}~~ *(missing card)*`;
+          const meta    = rarityMeta(slot.card.rarity);
+          const power   = slotPower(slot);
+          totalPower   += power;
+          const plating = slot.plating ? config.PLATING_TIERS.find(t => t.id === slot.plating) : null;
+          const platStr = plating ? ` ${plating.emoji}` : '';
+          return `${i + 1}. ${meta.emoji} **${slot.card.name}**${platStr} — Lv.${slot.level} • ⚡ ${Math.round(power).toLocaleString()} power`;
+        });
+        embed.setDescription(lines.join('\n'));
+        embed.addFields({ name: '⚡ Total Power', value: Math.round(totalPower).toLocaleString(), inline: true });
+        if (resolved.length < inv.TEAM_SIZE) {
+          embed.addFields({ name: '📋 Slots', value: `${resolved.length} / ${inv.TEAM_SIZE}`, inline: true });
+        } else {
+          embed.addFields({ name: '✅ Ready to Fight!', value: `Use \`ZP fight @user\``, inline: true });
+        }
+      }
+      embed.setFooter({ text: `team add <id> • team remove <id> • team equip <id> <plating> • team unequip <id>` });
+      return message.reply({ embeds: [embed] });
+    }
+
+    // ── ZP team add <cardId> ────────────────────────────────
+    if (sub === 'add') {
+      const cardId = args[1]?.toLowerCase();
+      if (!cardId) return message.reply('Usage: `ZP team add <cardId>`');
+
+      const card = lookupCard(cardId);
+      if (!card) return message.reply(`❌ No card found with id \`${cardId}\`.`);
+
+      const inventory = inv.loadInventory();
+      if (!inv.hasCard(inventory, userId, card.id)) {
+        return message.reply(`❌ You don't own **${card.name}**. Pull it first!`);
+      }
+
+      const result = inv.addToTeam(inventory, userId, card.id);
+      inv.saveInventory(inventory);
+
+      if (result === 'already_on_team') return message.reply(`❌ **${card.name}** is already on your team.`);
+      if (result === 'full') return message.reply(`❌ Your team is full (${inv.TEAM_SIZE}/${inv.TEAM_SIZE}). Remove a card first with \`ZP team remove <cardId>\`.`);
+
+      const team = inv.getTeam(inventory, userId);
+      const meta = rarityMeta(card.rarity);
+      return message.reply(`✅ ${meta.emoji} **${card.name}** added to your team! (${team.length}/${inv.TEAM_SIZE})`);
+    }
+
+    // ── ZP team remove <cardId> ─────────────────────────────
+    if (sub === 'remove') {
+      const cardId = args[1]?.toLowerCase();
+      if (!cardId) return message.reply('Usage: `ZP team remove <cardId>`');
+
+      const card = lookupCard(cardId);
+      const name = card?.name ?? cardId;
+
+      const inventory = inv.loadInventory();
+      const removed   = inv.removeFromTeam(inventory, userId, cardId);
+      if (!removed) return message.reply(`❌ **${name}** is not on your team.`);
+
+      inv.saveInventory(inventory);
+      const platReturn = removed.plating
+        ? ` Your ${config.PLATING_TIERS.find(t => t.id === removed.plating)?.emoji ?? ''} **${removed.plating}** plating was returned to your inventory.`
+        : '';
+      return message.reply(`✅ **${name}** removed from your team.${platReturn}`);
+    }
+
+    // ── ZP team equip <cardId> <platingTier> ───────────────
+    if (sub === 'equip') {
+      const cardId = args[1]?.toLowerCase();
+      const tierId = args[2]?.toLowerCase();
+      if (!cardId || !tierId) return message.reply('Usage: `ZP team equip <cardId> <bronze|silver|gold|diamond>`');
+
+      const card = lookupCard(cardId);
+      if (!card) return message.reply(`❌ No card found with id \`${cardId}\`.`);
+
+      const tier = config.PLATING_TIERS.find(t => t.id === tierId);
+      if (!tier) return message.reply(`❌ Unknown plating tier \`${tierId}\`. Valid: ${config.PLATING_TIERS.map(t => t.id).join(', ')}`);
+
+      const inventory = inv.loadInventory();
+      const result    = inv.equipPlatingToTeam(inventory, userId, card.id, tier.id);
+      inv.saveInventory(inventory);
+
+      if (result === 'not_on_team')      return message.reply(`❌ **${card.name}** is not on your team. Add it first with \`ZP team add ${card.id}\`.`);
+      if (result === 'no_plating')       return message.reply(`❌ You don't have a **${tier.label}** plating in your inventory.`);
+      if (result === 'already_equipped') {
+        const existSlot = inv.getTeam(inventory, userId).find(s => s.cardId === card.id);
+        const existing  = config.PLATING_TIERS.find(t => t.id === existSlot?.plating);
+        return message.reply(`❌ **${card.name}** already has a ${existing?.emoji ?? ''} **${existing?.label ?? 'plating'}** equipped. Unequip it first with \`ZP team unequip ${card.id}\`.`);
+      }
+
+      const mult = tier.statMult;
+      return message.reply(`${tier.emoji} **${tier.label}** plating equipped to **${card.name}**! Stats in battle: ×${mult} (+${Math.round((mult - 1) * 100)}%)`);
+    }
+
+    // ── ZP team unequip <cardId> ────────────────────────────
+    if (sub === 'unequip') {
+      const cardId = args[1]?.toLowerCase();
+      if (!cardId) return message.reply('Usage: `ZP team unequip <cardId>`');
+
+      const card = lookupCard(cardId);
+      const name = card?.name ?? cardId;
+
+      const inventory = inv.loadInventory();
+      const returned  = inv.unequipPlatingFromTeam(inventory, userId, cardId);
+      inv.saveInventory(inventory);
+
+      if (!returned) return message.reply(`❌ **${name}** has no plating equipped (or is not on your team).`);
+
+      const tier = config.PLATING_TIERS.find(t => t.id === returned);
+      return message.reply(`✅ ${tier?.emoji ?? ''} **${tier?.label ?? returned}** plating unequipped from **${name}** and returned to your inventory.`);
+    }
+
+    return message.reply('Usage: `ZP team` • `ZP team add <id>` • `ZP team remove <id>` • `ZP team equip <id> <plating>` • `ZP team unequip <id>`');
+  }
+
+  // ── fight ─────────────────────────────────────────────────
+  if (command === 'fight') {
+    const opponent = message.mentions.users.first();
+    if (!opponent) return message.reply('Usage: `ZP fight @user` — challenge another player to a team battle!');
+    if (opponent.id === userId) return message.reply('❌ You cannot fight yourself.');
+    if (opponent.bot)           return message.reply('❌ You cannot fight a bot.');
+
+    // Cooldown check
+    const coolSecs = getFightCooldownSecs(userId);
+    if (coolSecs > 0) {
+      return message.reply(`⏳ You're on cooldown! You can fight again in **${coolSecs}s**.`);
+    }
+
+    const inventory = inv.loadInventory();
+
+    const atkTeamRaw = inv.getTeam(inventory, userId);
+    const defTeamRaw = inv.getTeam(inventory, opponent.id);
+
+    if (atkTeamRaw.length < inv.TEAM_SIZE) {
+      return message.reply(`❌ Your team only has **${atkTeamRaw.length}/${inv.TEAM_SIZE}** cards. Use \`ZP team add <cardId>\` to fill it up.`);
+    }
+    if (defTeamRaw.length < inv.TEAM_SIZE) {
+      return message.reply(`❌ **${opponent.username}** only has **${defTeamRaw.length}/${inv.TEAM_SIZE}** cards on their team. They need a full team to fight.`);
+    }
+
+    const atkTeam = resolveTeamSlots(atkTeamRaw, inventory, userId);
+    const defTeam = resolveTeamSlots(defTeamRaw, inventory, opponent.id);
+
+    const atkBase  = atkTeam.reduce((s, slot) => s + slotPower(slot), 0);
+    const defBase  = defTeam.reduce((s, slot) => s + slotPower(slot), 0);
+
+    // Each side rolls a ±15% random multiplier
+    const atkRoll  = 0.85 + Math.random() * 0.30;
+    const defRoll  = 0.85 + Math.random() * 0.30;
+    const atkFinal = atkBase * atkRoll;
+    const defFinal = defBase * defRoll;
+
+    const attackerWins = atkFinal >= defFinal;
+    const winnerId     = attackerWins ? userId         : opponent.id;
+    const loserId      = attackerWins ? opponent.id    : userId;
+    const winnerName   = attackerWins ? message.author.username : opponent.username;
+    const loserName    = attackerWins ? opponent.username : message.author.username;
+    const winnerTeam   = attackerWins ? atkTeam : defTeam;
+    const loserTeam    = attackerWins ? defTeam : atkTeam;
+
+    const yenEarned   = Math.floor(config.FIGHT_YEN_MIN  + Math.random() * (config.FIGHT_YEN_MAX  - config.FIGHT_YEN_MIN + 1));
+    const starsEarned = Math.floor(config.FIGHT_STAR_MIN + Math.random() * (config.FIGHT_STAR_MAX - config.FIGHT_STAR_MIN + 1));
+
+    inv.addYen(inventory, winnerId, yenEarned);
+    inv.addStars(inventory, winnerId, starsEarned);
+    inv.saveInventory(inventory);
+
+    setFightCooldown(userId);
+
+    function teamLines(slots) {
+      return slots.map(slot => {
+        if (!slot.card) return `• ~~${slot.cardId}~~`;
+        const meta    = rarityMeta(slot.card.rarity);
+        const plating = slot.plating ? config.PLATING_TIERS.find(t => t.id === slot.plating) : null;
+        const platStr = plating ? ` ${plating.emoji}` : '';
+        return `${meta.emoji}${platStr} **${slot.card.name}** Lv.${slot.level}`;
+      }).join('\n');
+    }
+
+    const topPlating = winnerTeam
+      .map(s => s.plating ? config.PLATING_TIERS.find(t => t.id === s.plating) : null)
+      .filter(Boolean)
+      .sort((a, b) => b.statMult - a.statMult)[0];
+
+    const embedColor = topPlating?.color ?? 0x00FFD1;
+
+    const embed = new EmbedBuilder()
+      .setColor(embedColor)
+      .setTitle(`⚔️ Battle Result`)
+      .setDescription(`**${winnerName}** defeated **${loserName}**!`)
+      .addFields(
+        {
+          name:   `🏆 ${winnerName}'s Team — ⚡ ${Math.round(attackerWins ? atkBase : defBase).toLocaleString()} power`,
+          value:  teamLines(winnerTeam),
+          inline: true,
+        },
+        {
+          name:   `💀 ${loserName}'s Team — ⚡ ${Math.round(attackerWins ? defBase : atkBase).toLocaleString()} power`,
+          value:  teamLines(loserTeam),
+          inline: true,
+        },
+        {
+          name:  '🎁 Rewards',
+          value: `💴 **¥${yenEarned.toLocaleString()}** Yen\n⭐ **${starsEarned.toLocaleString()}** Stars`,
+          inline: false,
+        },
+      )
+      .setFooter({ text: `${config.FIGHT_COOLDOWN_SECONDS}s fight cooldown • Team power includes level & plating bonuses` });
+
+    return message.reply({ content: `${opponent}`, embeds: [embed] });
   }
 
   // ── trade ─────────────────────────────────────────────────

@@ -27,11 +27,18 @@ module.exports = {
   // (they must add up to 100).
   PLATING_CHANCE: 0.001,
   PLATING_TIERS: [
-    { id: 'bronze',  label: 'Bronze',  emoji: '🥉', weight: 55, color: 0xCD7F32 },
-    { id: 'silver',  label: 'Silver',  emoji: '🥈', weight: 28, color: 0xC0C0C0 },
-    { id: 'gold',    label: 'Gold',    emoji: '🥇', weight: 13, color: 0xFFD700 },
-    { id: 'diamond', label: 'Diamond', emoji: '💎', weight:  4, color: 0xB9F2FF },
+    { id: 'bronze',  label: 'Bronze',  emoji: '🥉', weight: 55, color: 0xCD7F32, statMult: 2.0 },
+    { id: 'silver',  label: 'Silver',  emoji: '🥈', weight: 28, color: 0xC0C0C0, statMult: 3.0 },
+    { id: 'gold',    label: 'Gold',    emoji: '🥇', weight: 13, color: 0xFFD700, statMult: 4.0 },
+    { id: 'diamond', label: 'Diamond', emoji: '💎', weight:  4, color: 0xB9F2FF, statMult: 6.0 },
   ],
+
+  // ── Fight Rewards ─────────────────────────────────────────
+  FIGHT_YEN_MIN:   100,
+  FIGHT_YEN_MAX:  1000,
+  FIGHT_STAR_MIN:   10,
+  FIGHT_STAR_MAX:  100,
+  FIGHT_COOLDOWN_SECONDS: 60,
 
   // ── Card Stats (scale by rarity) ─────────────────────────
   // Each card gets deterministic HP and DMG based on its card ID
