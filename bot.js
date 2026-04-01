@@ -894,6 +894,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
               `\`ZP giveyen [@user] <amount>\` — Add Yen to a user`,
               `\`ZP givestars [@user] <amount>\` — Add Stars to a user`,
               `\`ZP givecandytokens [@user] <amount>\` — Give Candy Tokens to a user`,
+              `\`ZP refresh\` — Delete all server emojis and re-sync from scratch`,
               `\`ZP giveitem @user <itemId>\` — Give a limited item to a player`,
             ].join('\n'),
             inline: false,
@@ -2947,8 +2948,8 @@ client.on('messageCreate', async (message) => {
     return message.reply(`Gave **${amount}** Candy Token${amount === 1 ? '' : 's'} to **${target.username}**.`);
   }
 
-  // ── emojirefresh ──────────────────────────────────────────
-  if (command === 'emojirefresh') {
+  // ── refresh ───────────────────────────────────────────────
+  if (command === 'refresh') {
     await message.reply('Starting emoji refresh: deleting all emojis and re-syncing...');
     await emojiCache.deleteAllEmojis(client);
     await emojiCache.syncEmojis(client, CARDS, imgCache);
