@@ -756,6 +756,8 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         { name: '`ZP absorb shard:<id>:<count>`',     value: 'Spend character shards to level up a card. **1 shard = 1 level**, max **Lv. 100**. Each level gives **+2% stats**.', inline: false },
         { name: '`ZP inventory` / `ZP inv`',         value: 'View your 🪙 platings. Add `@user` to check someone else.', inline: false },
         { name: '`ZP shards [rarity or name]`',      value: 'View your character shards. Filter by rarity (`R`, `E`, `L`, `MY`, `UR`, `LT`) or by character name. Add `@user` to check someone else.', inline: false },
+        { name: '`ZP items`',                        value: 'View your special items. Items are granted by admins and can be used to obtain Limited cards.', inline: false },
+        { name: '`ZP use <itemId>`',                 value: `Use a special item to claim its Limited card. Current items: ${config.ITEMS.map(i => `\`${i.id}\` → 💖 ${i.name}`).join(', ')}.`, inline: false },
         { name: '`ZP balance` / `ZP bal`',           value: 'Check your 💴 Yen, ⭐ Stars, and 🍬 Candy Tokens. Add `@user` to check someone else.', inline: false },
       )
       .setFooter({ text: 'Page 2 of 5 • ZP help' }),
@@ -849,6 +851,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
             `\`ZP giveyen [@user] <amount>\` — Add Yen to yourself or a user`,
             `\`ZP givestars [@user] <amount>\` — Add Stars to yourself or a user`,
             `\`ZP givecandytokens [@user] <amount>\` — Give 🍬 Candy Tokens to yourself or a user`,
+            `\`ZP giveitem @user <itemId>\` — Give a limited item to a player (${config.ITEMS.map(i => `\`${i.id}\``).join(', ')})`,
           ].join('\n'),
           inline: false,
         })
@@ -1294,6 +1297,64 @@ client.on('messageCreate', async (message) => {
     }
 
     embed.setFooter({ text: 'Filter by rarity: ZP shards R  •  By name: ZP shards naruto' });
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── items ─────────────────────────────────────────────────
+  if (command === 'items') {
+    const target    = message.mentions.users.first() ?? message.author;
+    const inventory = inv.loadInventory();
+    const userItems = inv.getItems(inventory, target.id);
+    const entries   = Object.entries(userItems).filter(([, n]) => n > 0);
+
+    if (entries.length === 0) {
+      return message.reply(`${target.id === userId ? 'You have' : `**${target.username}** has`} no items. Items are granted by admins for special events!`);
+    }
+
+    const lines = entries.map(([itemId, count]) => {
+      const item = config.ITEMS.find(i => i.id === itemId);
+      if (!item) return `❓ \`${itemId}\` — ×${count}`;
+      return `${item.emoji} **${item.name}** — ×${count}\n*${item.desc}*\nUse: \`ZP use ${item.id}\``;
+    }).join('\n\n');
+
+    const embed = new EmbedBuilder()
+      .setColor(0xFF69B4)
+      .setTitle(`🎁 ${target.username}'s Items`)
+      .setDescription(lines)
+      .setFooter({ text: 'Use an item with: ZP use <itemId>' });
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── use ───────────────────────────────────────────────────
+  if (command === 'use') {
+    const itemId = args[0]?.toLowerCase();
+    if (!itemId) return message.reply('Usage: `ZP use <itemId>` — check `ZP items` to see what you have.');
+
+    const item = config.ITEMS.find(i => i.id === itemId);
+    if (!item) return message.reply(`❌ Unknown item \`${itemId}\`. Check \`ZP items\` for your available items.`);
+
+    const inventory = inv.loadInventory();
+
+    if (!inv.removeItem(inventory, userId, itemId)) {
+      return message.reply(`❌ You don't have **${item.emoji} ${item.name}**. Items are granted by admins for special events!`);
+    }
+
+    const card     = CARDS.find(c => c.id === item.cardId);
+    const { isDupe } = inv.addCardToInventory(inventory, userId, card);
+    inv.saveInventory(inventory);
+
+    const meta    = rarityMeta(card.rarity);
+    const img     = imgCache.getImage(card.id) ?? card.image ?? null;
+    const outcome = isDupe
+      ? `You already own **${card.name}** — **+1 Shard** added instead.`
+      : `**${card.name}** has been added to your collection!`;
+
+    const embed = new EmbedBuilder()
+      .setColor(meta.color)
+      .setTitle(`${item.emoji} ${item.name} used!`)
+      .setDescription(`${meta.emoji} **${meta.label}** — ${card.series}\n\n${outcome}`)
+      .setFooter({ text: `${item.name} consumed` });
+    if (img) embed.setImage(img);
     return message.reply({ embeds: [embed] });
   }
 
@@ -1902,6 +1963,18 @@ client.on('messageCreate', async (message) => {
       inv.addCandyTokens(inventory, target.id, amount);
       inv.saveInventory(inventory);
       return message.reply(`🔧 Given **🍬 ×${amount.toLocaleString()} Candy Token${amount === 1 ? '' : 's'}** to **${target.username}**. They now have ${inv.getCandyTokens(inventory, target.id).toLocaleString()}.`);
+    }
+
+    if (command === 'giveitem') {
+      const target = message.mentions.users.first() ?? message.author;
+      const itemId = args.find(a => !a.startsWith('<@'))?.toLowerCase();
+      if (!itemId) return message.reply(`Usage: \`ZP giveitem @user <itemId>\`\nAvailable items: ${config.ITEMS.map(i => `\`${i.id}\``).join(', ')}`);
+      const item = config.ITEMS.find(i => i.id === itemId);
+      if (!item) return message.reply(`❌ Unknown item \`${itemId}\`. Valid items: ${config.ITEMS.map(i => `\`${i.id}\``).join(', ')}`);
+      const inventory = inv.loadInventory();
+      inv.addItem(inventory, target.id, itemId);
+      inv.saveInventory(inventory);
+      return message.reply(`🔧 Gave **${item.emoji} ${item.name}** to **${target.username}**. They can use it with \`ZP use ${itemId}\`.`);
     }
 
     if (command === 'resetcooldown') {

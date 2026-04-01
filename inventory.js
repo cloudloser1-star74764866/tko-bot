@@ -32,6 +32,7 @@ function ensureUser(inventory, userId) {
   if (!u.characterShards)               u.characterShards = {};
   if (!u.platings)                      u.platings        = {};
   if (!u.team)                          u.team            = [];
+  if (!u.items)                         u.items           = {};
   if (typeof u.yen          !== 'number') u.yen          = 0;
   if (typeof u.stars        !== 'number') u.stars        = 0;
   if (typeof u.candyTokens  !== 'number') u.candyTokens  = 0;
@@ -273,6 +274,28 @@ function removeCandyTokens(inventory, userId, amount) {
   return true;
 }
 
+// ── Item Operations ───────────────────────────────────────
+
+function getItems(inventory, userId) {
+  ensureUser(inventory, userId);
+  return inventory.users[userId].items;
+}
+
+function addItem(inventory, userId, itemId) {
+  ensureUser(inventory, userId);
+  const items = inventory.users[userId].items;
+  items[itemId] = (items[itemId] || 0) + 1;
+}
+
+function removeItem(inventory, userId, itemId) {
+  ensureUser(inventory, userId);
+  const items = inventory.users[userId].items;
+  if (!items[itemId] || items[itemId] <= 0) return false;
+  items[itemId] -= 1;
+  if (items[itemId] === 0) delete items[itemId];
+  return true;
+}
+
 // ── Pull Charge Helpers ───────────────────────────────────
 
 function loadPullCharges(inventory, userId) {
@@ -295,4 +318,5 @@ module.exports = {
   getYen, addYen, removeYen,
   getStars, addStars, removeStars,
   getCandyTokens, addCandyTokens, removeCandyTokens,
+  getItems, addItem, removeItem,
 };

@@ -52,6 +52,15 @@ module.exports = {
     LT: { hpMin: 1100, hpMax: 1500, dmgMin: 280, dmgMax: 400 },
   },
 
+  // ── Limited Items ─────────────────────────────────────────
+  // Items granted by admins that give a specific LT card when used.
+  ITEMS: [
+    { id: 'liberation',     name: 'Liberation',       emoji: '🗡️',  cardId: 'gear5_luffy_lt', desc: 'Awakens the power of the Sun God within Luffy.' },
+    { id: 'tattoos',        name: "Sukuna's Tattoos", emoji: '🔱',  cardId: 'sukuna_fp_lt',   desc: 'Cursed marks of the King of Curses in their full glory.' },
+    { id: 'instincts',      name: "Goku's Instincts", emoji: '⚡',  cardId: 'ultra_goku_lt',  desc: 'The divine technique of pure autonomous movement.' },
+    { id: 'ramen',          name: 'Ramen',            emoji: '🍜',  cardId: 'sage_naruto_lt', desc: 'A bowl of ramen carrying the chakra of the Sage of Six Paths.' },
+  ],
+
   // ── Rarity Metadata (display) ────────────────────────────
   RARITY_META: {
     R:  { label: 'Rare',       emoji: '🔵', color: 0x4A90D9, stars: '⭐'            },
