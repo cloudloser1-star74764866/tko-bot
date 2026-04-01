@@ -91,6 +91,12 @@ const SEED = {
   pikachu_r:       'https://img.pokemondb.net/artwork/large/pikachu.jpg',
   mewtwo_my:       'https://img.pokemondb.net/artwork/large/mewtwo.jpg',
   arceus_ur:       'https://img.pokemondb.net/artwork/large/arceus.jpg',
+  // Naruto — Sakura Haruno
+  sakura:          'https://s4.anilist.co/file/anilistcdn/character/large/b145-IorfpI8arxeX.png',
+  // Hajime no Ippo — Makunouchi Ippo
+  ippo:            'https://s4.anilist.co/file/anilistcdn/character/large/b15-AAj73hDX9bor.jpg',
+  // Eromanga-sensei — Sagiri Izumi
+  sagiri:          'https://s4.anilist.co/file/anilistcdn/character/large/b89576-lw430mWycPAg.png',
 };
 
 // ── AniList search terms for remaining cards ─────────────────

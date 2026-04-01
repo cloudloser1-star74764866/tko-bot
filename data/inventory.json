@@ -965,7 +965,7 @@
         "kirito": 6,
         "caesar": 7,
         "anya": 8,
-        "yuno": 4,
+        "yuno": 5,
         "power": 4,
         "chad": 6,
         "tanjiro": 3,
@@ -1044,7 +1044,7 @@
       "privacy": false,
       "clanId": null,
       "duoId": null,
-      "totalPulls": 60,
+      "totalPulls": 61,
       "totalKills": 0
     },
     "1488543846257262712": {
@@ -2093,6 +2093,30 @@
           "rarity": "R",
           "level": 1,
           "obtainedAt": "2026-04-01T11:04:28.777Z"
+        },
+        {
+          "id": "inuyasha",
+          "name": "Inuyasha",
+          "series": "Inuyasha",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:05:45.573Z"
+        },
+        {
+          "id": "denji",
+          "name": "Denji",
+          "series": "Chainsaw Man",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:06:13.532Z"
+        },
+        {
+          "id": "nami",
+          "name": "Nami",
+          "series": "One Piece",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T11:06:42.581Z"
         }
       ],
       "characterShards": {
@@ -2105,24 +2129,24 @@
       },
       "platings": {},
       "team": [],
-      "yen": 676767,
+      "yen": 6767,
       "stars": 0,
-      "candyTokens": 0,
+      "candyTokens": 67,
       "wish": null,
       "levelCaps": {},
       "prestigePoints": {},
       "privacy": false,
       "clanId": null,
       "duoId": null,
-      "totalPulls": 38,
+      "totalPulls": 41,
       "totalKills": 0,
       "items": {}
     }
   },
   "pullCharges": {
     "833025999897755689": {
-      "charges": 0,
-      "lastRefill": 1775041187668
+      "charges": 12,
+      "lastRefill": 1775041577668
     },
     "921838182927040602": {
       "charges": 0,
@@ -2137,8 +2161,8 @@
       "lastRefill": 1775036465086
     },
     "689152429341933780": {
-      "charges": 0,
-      "lastRefill": 1775041449960
+      "charges": 2,
+      "lastRefill": 1775041599960
     }
   },
   "clans": {},
