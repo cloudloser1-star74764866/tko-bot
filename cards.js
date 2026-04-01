@@ -104,7 +104,7 @@ const CARDS = [
   { id: 'zoro',           name: 'Roronoa Zoro',            series: 'One Piece',                         rarity: 'E',  desc: 'Swordsman aiming to be the world\'s greatest.' },
   { id: 'bakugo',         name: 'Katsuki Bakugo',          series: 'My Hero Academia',                  rarity: 'E',  desc: 'Explosive hero with a fiery spirit.' },
   { id: 'levi',           name: 'Levi Ackerman',           series: 'Attack on Titan',                   rarity: 'E',  desc: 'Humanity\'s strongest soldier.' },
-  { id: 'kratos',         name: 'Kratos',                  series: 'God of War',                        rarity: 'E',  desc: 'The Ghost of Sparta, slayer of gods.' },
+  { id: 'kratos',         name: 'Kratos',                  series: 'God of War',                        rarity: 'MY', desc: 'The Ghost of Sparta, slayer of gods.' },
   { id: 'sephiroth',      name: 'Sephiroth',               series: 'Final Fantasy VII',                 rarity: 'E',  desc: 'A legendary SOLDIER turned destroyer.' },
   { id: 'killua',         name: 'Killua Zoldyck',          series: 'Hunter x Hunter',                   rarity: 'E',  desc: 'An assassin heir with lightning reflexes.' },
   // Bleach
@@ -113,7 +113,7 @@ const CARDS = [
   { id: 'ulquiorra',      name: 'Ulquiorra Cifer',         series: 'Bleach',                            rarity: 'E',  desc: 'Fourth Espada. Nihilism made flesh.' },
   // JoJo's Bizarre Adventure
   { id: 'jotaro',         name: 'Jotaro Kujo',             series: 'JoJo\'s Bizarre Adventure',         rarity: 'E',  desc: 'Yare yare daze. Star Platinum: The World.' },
-  { id: 'giorno',         name: 'Giorno Giovanna',         series: 'JoJo\'s Bizarre Adventure',         rarity: 'E',  desc: 'I, Giorno Giovanna, have a dream.' },
+  { id: 'giorno',         name: 'Giorno Giovanna',         series: 'JoJo\'s Bizarre Adventure',         rarity: 'UR', desc: 'I, Giorno Giovanna, have a dream.' },
   { id: 'josuke',         name: 'Josuke Higashikata',      series: 'JoJo\'s Bizarre Adventure',         rarity: 'E',  desc: 'Don\'t insult the hair. Crazy Diamond will fix that.' },
   // One Piece
   { id: 'ace',            name: 'Portgas D. Ace',          series: 'One Piece',                         rarity: 'E',  desc: 'Fire Fist Ace — Whitebeard\'s beloved son.' },
@@ -129,7 +129,7 @@ const CARDS = [
   { id: 'roy',            name: 'Roy Mustang',             series: 'Fullmetal Alchemist: Brotherhood',  rarity: 'E',  desc: 'The Flame Alchemist aiming for the top.' },
   { id: 'armstrong',      name: 'Alex Louis Armstrong',    series: 'Fullmetal Alchemist: Brotherhood',  rarity: 'E',  desc: 'Strong-arm Alchemist — and proud of it.' },
   // Jujutsu Kaisen
-  { id: 'gojo',           name: 'Satoru Gojo',             series: 'Jujutsu Kaisen',                    rarity: 'E',  desc: 'The strongest — Infinity in the palm of his hand.' },
+  { id: 'gojo',           name: 'Satoru Gojo',             series: 'Jujutsu Kaisen',                    rarity: 'MY', desc: 'The strongest — Infinity in the palm of his hand.' },
   { id: 'todo',           name: 'Aoi Todo',                series: 'Jujutsu Kaisen',                    rarity: 'E',  desc: 'What\'s your type? Boogie Woogie!' },
   // Fairy Tail
   { id: 'laxus',          name: 'Laxus Dreyar',            series: 'Fairy Tail',                        rarity: 'E',  desc: 'Lightning Dragon Slayer and Fairy Tail\'s thunder god.' },
@@ -154,14 +154,14 @@ const CARDS = [
   { id: 'sebastian',      name: 'Sebastian Michaelis',     series: 'Black Butler',                      rarity: 'E',  desc: 'One hell of a butler. Demon by nature.' },
 
   // ── Legendary (L) ─────────────────────────────────────────
-  { id: 'itachi',         name: 'Itachi Uchiha',           series: 'Naruto',                            rarity: 'L',  desc: 'A shinobi who bore the weight of sacrifice.' },
+  { id: 'itachi',         name: 'Itachi Uchiha',           series: 'Naruto',                            rarity: 'MY', desc: 'A shinobi who bore the weight of sacrifice.' },
   { id: 'goku_ssj4',      name: 'Goku SSJ4',               series: 'Dragon Ball GT',                    rarity: 'L',  desc: 'The pinnacle of Saiyan transformation.' },
-  { id: 'shanks',         name: 'Red-Hair Shanks',         series: 'One Piece',                         rarity: 'L',  desc: 'One of the Four Emperors of the Sea.' },
+  { id: 'shanks',         name: 'Red-Hair Shanks',         series: 'One Piece',                         rarity: 'MY', desc: 'One of the Four Emperors of the Sea.' },
   { id: 'allmight',       name: 'All Might',               series: 'My Hero Academia',                  rarity: 'L',  desc: 'The Symbol of Peace. Plus Ultra!' },
   { id: 'genos',          name: 'Genos',                   series: 'One Punch Man',                     rarity: 'L',  desc: 'A cyborg hero seeking the truth of his power.' },
   { id: 'hisoka',         name: 'Hisoka Morow',            series: 'Hunter x Hunter',                   rarity: 'L',  desc: 'A twisted magician who lives to fight the strong.' },
   // Bleach
-  { id: 'aizen',          name: 'Sosuke Aizen',            series: 'Bleach',                            rarity: 'L',  desc: 'Omniscient, omnipotent — and he\'s been fooling you all along.' },
+  { id: 'aizen',          name: 'Sosuke Aizen',            series: 'Bleach',                            rarity: 'MY', desc: 'Omniscient, omnipotent — and he\'s been fooling you all along.' },
   { id: 'gin',            name: 'Gin Ichimaru',            series: 'Bleach',                            rarity: 'L',  desc: 'A silver smile that hides the sharpest blade.' },
   // JoJo's Bizarre Adventure
   { id: 'dio',            name: 'Dio Brando',              series: 'JoJo\'s Bizarre Adventure',         rarity: 'L',  desc: 'WRYYY! The World stops time itself.' },
@@ -170,17 +170,17 @@ const CARDS = [
   // Black Clover
   { id: 'licht',          name: 'Licht',                   series: 'Black Clover',                      rarity: 'L',  desc: 'The first Magic Knight, carrying a nation\'s grief.' },
   // Fullmetal Alchemist: Brotherhood
-  { id: 'father',         name: 'Father',                  series: 'Fullmetal Alchemist: Brotherhood',  rarity: 'L',  desc: 'The dwarf in the flask who consumed a God.' },
+  { id: 'father',         name: 'Father',                  series: 'Fullmetal Alchemist: Brotherhood',  rarity: 'MY', desc: 'The dwarf in the flask who consumed a God.' },
   // Jujutsu Kaisen
   { id: 'yuta',           name: 'Yuta Okkotsu',            series: 'Jujutsu Kaisen',                    rarity: 'L',  desc: 'Special Grade — his cursed energy is unmatched.' },
   // Fairy Tail
   { id: 'mavis',          name: 'Mavis Vermillion',        series: 'Fairy Tail',                        rarity: 'L',  desc: 'First Master of Fairy Tail, the Fairy Tactician.' },
   // Hunter x Hunter
-  { id: 'netero',         name: 'Isaac Netero',            series: 'Hunter x Hunter',                   rarity: 'L',  desc: 'The 12th Chairman — a prayer that could kill gods.' },
+  { id: 'netero',         name: 'Isaac Netero',            series: 'Hunter x Hunter',                   rarity: 'MY', desc: 'The 12th Chairman — a prayer that could kill gods.' },
   // Gurren Lagann
-  { id: 'simon',          name: 'Simon the Digger',        series: 'Gurren Lagann',                     rarity: 'L',  desc: 'From a tunnel-digging boy to the driller who pierces the heavens.' },
+  { id: 'simon',          name: 'Simon the Digger',        series: 'Gurren Lagann',                     rarity: 'UR', desc: 'From a tunnel-digging boy to the driller who pierces the heavens.' },
   // That Time I Got Reincarnated as a Slime
-  { id: 'rimuru',         name: 'Rimuru Tempest',          series: 'That Time I Got Reincarnated as a Slime', rarity: 'L', desc: 'A slime who built a nation and became a True Demon Lord.' },
+  { id: 'rimuru',         name: 'Rimuru Tempest',          series: 'That Time I Got Reincarnated as a Slime', rarity: 'UR', desc: 'A slime who built a nation and became a True Demon Lord.' },
 
   // ── Mythical (MY) ─────────────────────────────────────────
   { id: 'madara',         name: 'Madara Uchiha',           series: 'Naruto',                            rarity: 'MY', desc: 'A god of shinobi with unrivalled power.' },
