@@ -38,3 +38,7 @@ args = "node bot.js"
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[ports]]
+localPort = 3000
+externalPort = 3000
