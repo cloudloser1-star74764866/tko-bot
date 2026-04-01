@@ -66,6 +66,7 @@
 //    ZP conquestrecall
 // ============================================================
 
+require("./server.js");
 require('dotenv').config();
 const {
   Client, GatewayIntentBits, EmbedBuilder,
@@ -73,8 +74,6 @@ const {
   REST, Routes, SlashCommandBuilder,
 } = require('discord.js');
 
-const keepAlive   = require('./keep_alive');
-keepAlive();
 
 const config      = require('./config');
 const { CARDS, pullCard } = require('./cards');

@@ -71,7 +71,7 @@ const SEED = {
   // The Legend of Zelda
   link_r:          'https://static.wikia.nocookie.net/zelda_gamepedia_en/images/4/47/TLoZ_Series_Link_Render.png/revision/latest',
   sukuna_fp_lt:    'https://static.wikia.nocookie.net/jujutsu-kaisen/images/2/29/Sukuna%27s_Four_Arms.png/revision/latest',
-  sukuna_fp:       'https://s4.anilist.co/file/anilistcdn/character/large/b133701-LzIhoiiIwE48.jpg',
+  sukuna_fp:       'https://wallpapers.com/images/hd/sukuna-jujutsu-kaisen-4k-1xg7tq7j8j0zj8yq.jpg',
   sukuna:          'https://static.wikia.nocookie.net/jujutsu-kaisen/images/b/bc/Ryomen_Sukuna_anime_design.png/revision/latest',
   // Chainsaw Man — Power (AniList placeholder was wrong; using MAL image)
   power_r:         'https://myanimelist.net/images/characters/7/494969.jpg',
