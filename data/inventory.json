@@ -998,7 +998,7 @@
       },
       "yen": 0,
       "stars": 67,
-      "candyTokens": 50,
+      "candyTokens": 60,
       "team": [
         {
           "cardId": "sage_naruto",
@@ -1017,7 +1017,15 @@
           "plating": "diamond"
         }
       ],
-      "items": {}
+      "items": {},
+      "wish": null,
+      "levelCaps": {},
+      "prestigePoints": {},
+      "privacy": false,
+      "clanId": null,
+      "duoId": null,
+      "totalPulls": 0,
+      "totalKills": 0
     },
     "1488543846257262712": {
       "cards": [],
@@ -1842,5 +1850,8 @@
       "charges": 1,
       "lastRefill": 1775036465086
     }
-  }
+  },
+  "clans": {},
+  "duos": {},
+  "guilds": {}
 }
