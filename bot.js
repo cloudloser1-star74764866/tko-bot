@@ -909,10 +909,10 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         {
           name: 'Currencies & Resources',
           value: [
-            '**Yen** — earned from fights & kills. Traded between players.',
-            '**Stars** — earned from fights. Traded between players.',
-            '**Candy Tokens** — bought in shop or given by admins. Resets pull charges.',
-            '**Limit Breakers** — earned from `ZP conquestsend`. Used to break level cap past 100.',
+            '**Yen** — earned from fights             & kills. Traded between                   players.',
+            '**Stars** — earned from                  fights. Traded between                    players.',
+            '**Candy Tokens** — bought in             shop or given by admins.                  Resets pull charges.',
+            '**Limit Breakers** — earned              from `ZP conquestsend`. Used              to break level cap past 100.',
           ].join('\n'),
           inline: false,
         },
@@ -937,33 +937,34 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
     pages.push(
       new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('📖 Help — 🔧 Admin Commands')
+        .setTitle('📖 Help — 🛠️ Admin Commands')
         .addFields(
           {
             name: 'Bot Admin (owner only)',
             value: [
-              `\`ZP setrarity <${Object.keys(config.RARITY_META).join(' | ')}>\` — Force all pulls to a specific rarity`,
-              `\`ZP setrarity reset\` — Clear rarity override`,
-              `\`ZP setplating <${tierIds}>\` — Force every pull to drop a specific plating`,
-              `\`ZP setplating reset\` — Clear plating override`,
-              `\`ZP resetcooldown\` — Restore your pull charges to max`,
-              `\`ZP giveyen [@user] <amount>\` — Add Yen to a user`,
-              `\`ZP givestars [@user] <amount>\` — Add Stars to a user`,
-              `\`ZP givecandytokens [@user] <amount>\` — Give Candy Tokens to a user`,
-              `\`ZP refresh\` — Delete all server emojis and re-sync from scratch`,
-              `\`ZP giveitem @user <itemId>\` — Give a limited item to a player`,
-              `\`ZP givelimitbreaker [@user] <amount>\` — Give Limit Breakers to a player`,
-              `\`ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]\` — Create a redeemable code`,
-              `\`ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]\` — Edit a code's rewards`,
-              `\`ZP deletecode <name>\` — Delete a code`,
-              `\`ZP listcodes\` — List all active codes`,
+              `\`ZP setrarity <${Object.keys(config.RARITY_META).join(' | ')}>\` – Force all pulls to a specific rarity`,
+              '`ZP setrarity reset` – Clear rarity override',
+              `\`ZP setplating <${tierIds}>\` – Force every pull to drop a specific plating`,
+              '`ZP setplating reset` – Clear plating override',
+              '`ZP resetcooldown` – Restore your pull charges to max',
+              '`ZP giveyen [@user] <amount>` – Add Yen to a user',
+              '`ZP givestars [@user] <amount>` – Add Stars to a user',
+              '`ZP givecandytokens [@user] <amount>` – Give Candy Tokens to a user',
+              '`ZP refresh` – Delete all server emojis and re-sync from scratch',
+              '`ZP giveitem @user <itemId>` – Give a limited item to a player',
+              '`ZP givelimitbreaker [@user] <amount>` – Give Limit Breakers to a player',
+              '`ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]` – Create a redeemable code',
+              '`ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]` – Edit a code\'s rewards',
+              '`ZP deletecode <name>` – Delete a code',
+              '`ZP listcodes` – List all active codes',
             ].join('\n'),
             inline: false,
-          },
+          }
         )
         .setFooter({ text: `Page ${pages.length + 1} of ${pages.length + 1} • Admin only` })
     );
   }
+
 
   const totalPages = pages.length;
   const p = Math.max(0, Math.min(page, totalPages - 1));
@@ -3285,3 +3286,9 @@ client.on('messageCreate', async (message) => {
 // ── Login ─────────────────────────────────────────────────
 
 client.login(process.env.DISCORD_TOKEN);
+
+console.log("Ping loop started");
+
+setInterval(() => {
+  require('node-fetch')('https://keepalive-server-j64e.onrender.com/');
+}, 4 * 60 * 1000);
