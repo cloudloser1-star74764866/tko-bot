@@ -68,6 +68,7 @@ require('dotenv').config();
 const {
   Client, GatewayIntentBits, EmbedBuilder,
   ActionRowBuilder, ButtonBuilder, ButtonStyle,
+  REST, Routes, SlashCommandBuilder,
 } = require('discord.js');
 
 const keepAlive   = require('./keep_alive');
@@ -85,6 +86,7 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
+    GatewayIntentBits.DirectMessages,
   ],
 });
 
@@ -1028,14 +1030,72 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
 client.once('ready', () => {
   initPullCharges();
   console.log(`✅ test Bot online as ${client.user.tag}`);
-  client.user.setActivity('ZP help', { type: 0 });
+  client.user.setActivity('ZP help  |  /zp', { type: 0 });
   imgCache.refreshMissing().catch(err => console.error('Image cache refresh error:', err));
   emojiCache.logCacheStatus(CARDS);
+
+  const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+  const slashCommand = new SlashCommandBuilder()
+    .setName('zp')
+    .setDescription('Use any ZP bot command')
+    .addStringOption(opt =>
+      opt.setName('input')
+        .setDescription('Command + args, e.g. "pull", "col legendary", "help", "wallet"')
+        .setRequired(true)
+    )
+    .addUserOption(opt =>
+      opt.setName('user')
+        .setDescription('Mention a user (needed for fight, trade, profile @user, etc.)')
+        .setRequired(false)
+    );
+
+  rest.put(Routes.applicationCommands(client.user.id), { body: [slashCommand.toJSON()] })
+    .then(() => console.log('✅ Global slash command /zp registered'))
+    .catch(err => console.error('Failed to register slash command:', err));
 });
 
-// ── Button Interactions ───────────────────────────────────
+// ── Slash command → message adapter ───────────────────────
+
+function createSlashContext(interaction) {
+  const userOption = interaction.options.getUser('user');
+  let replied = false;
+
+  return {
+    author: {
+      bot: false,
+      id: interaction.user.id,
+      username: interaction.user.username,
+    },
+    content: `${config.PREFIX} ${interaction.options.getString('input') ?? ''}`,
+    guild: interaction.guild ?? null,
+    channel: interaction.channel,
+    mentions: {
+      users: {
+        first: () => userOption ?? null,
+        get:   (id) => (userOption?.id === id ? userOption : null),
+      },
+    },
+    reply: async (opts) => {
+      if (!replied) {
+        replied = true;
+        return interaction.editReply(opts).catch(() => interaction.followUp(opts));
+      }
+      return interaction.followUp(opts);
+    },
+  };
+}
+
+// ── Interactions (buttons + slash commands) ───────────────
 
 client.on('interactionCreate', async (interaction) => {
+  // ── Slash command handler ──────────────────────────────
+  if (interaction.isChatInputCommand() && interaction.commandName === 'zp') {
+    await interaction.deferReply();
+    const mockMessage = createSlashContext(interaction);
+    client.emit('messageCreate', mockMessage);
+    return;
+  }
+
   if (!interaction.isButton()) return;
 
   const parts = interaction.customId.split('|');
