@@ -491,8 +491,6 @@ function singlePullEmbed(card, isDupe, plating, chargeInfo, authorUsername) {
  * Summary embed for allpull — numbered list in pull order.
  */
 function allPullEmbed(results, charges, withReset, authorUsername, overrideNote) {
-  const RARITY_RANK = { LT: 0, UR: 1, MY: 2, L: 3, E: 4, R: 5 };
-
   // Numbered list lines
   const lines = results.map((r, idx) => {
     const m         = rarityMeta(r.card.rarity);
@@ -502,15 +500,6 @@ function allPullEmbed(results, charges, withReset, authorUsername, overrideNote)
     const emojiSuffix = cardEmoji ? ` ${cardEmoji}` : '';
     return `**${idx + 1}** ${m.emoji} x1 **${r.card.name}**${emojiSuffix}\n${outcome}${plt}`;
   });
-
-  // Thumbnail: highest-rarity new card, then highest-rarity dupe
-  const best = [...results].sort((a, b) => {
-    const ra = RARITY_RANK[a.card.rarity] ?? 99;
-    const rb = RARITY_RANK[b.card.rarity] ?? 99;
-    if (ra !== rb) return ra - rb;
-    return a.isDupe ? 1 : -1; // prefer new cards on tie
-  })[0];
-  const thumbImg = best ? (imgCache.getImage(best.card.id) ?? best.card.image ?? null) : null;
 
   // Color: highest plating dropped, or teal
   const platings = results.map(r => r.plating).filter(Boolean);
@@ -538,7 +527,6 @@ function allPullEmbed(results, charges, withReset, authorUsername, overrideNote)
     .setDescription(fullDesc.length <= 4000 ? fullDesc : fullDesc.slice(0, 3990) + '\n…')
     .setFooter({ text: footerParts });
 
-  if (thumbImg) embed.setThumbnail(thumbImg);
   return embed;
 }
 
@@ -870,6 +858,8 @@ client.once('ready', () => {
   client.user.setActivity('ZP help', { type: 0 });
   // Fetch missing character images in the background (no await — non-blocking)
   imgCache.refreshMissing().catch(err => console.error('Image cache refresh error:', err));
+  // Upload card images as custom emojis across the 3 emoji servers
+  emojiCache.syncEmojis(client, CARDS, imgCache).catch(err => console.error('Emoji sync error:', err));
 });
 
 // ── Button Interactions ───────────────────────────────────
