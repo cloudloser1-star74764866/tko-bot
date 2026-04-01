@@ -232,26 +232,250 @@
           "series": "Naruto",
           "rarity": "L",
           "obtainedAt": "2026-04-01T01:25:02.549Z"
+        },
+        {
+          "id": "kirito_r",
+          "name": "Kirito",
+          "series": "Sword Art Online",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:14.929Z"
+        },
+        {
+          "id": "okabe_r",
+          "name": "Rintaro Okabe",
+          "series": "Steins;Gate",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:14.929Z"
+        },
+        {
+          "id": "usopp_r",
+          "name": "Usopp",
+          "series": "One Piece",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:14.929Z"
+        },
+        {
+          "id": "sanji_r",
+          "name": "Sanji",
+          "series": "One Piece",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:14.929Z"
+        },
+        {
+          "id": "inosuke_r",
+          "name": "Inosuke Hashibira",
+          "series": "Demon Slayer",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:14.929Z"
+        },
+        {
+          "id": "inuyasha_r",
+          "name": "Inuyasha",
+          "series": "Inuyasha",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:14.929Z"
+        },
+        {
+          "id": "asuna_r",
+          "name": "Asuna",
+          "series": "Sword Art Online",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:14.929Z"
+        },
+        {
+          "id": "nezuko_r",
+          "name": "Nezuko Kamado",
+          "series": "Demon Slayer",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:14.929Z"
+        },
+        {
+          "id": "anya_r",
+          "name": "Anya Forger",
+          "series": "Spy x Family",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:14.929Z"
+        },
+        {
+          "id": "uryu_r",
+          "name": "Uryu Ishida",
+          "series": "Bleach",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:14.929Z"
+        },
+        {
+          "id": "tanjiro_r",
+          "name": "Tanjiro Kamado",
+          "series": "Demon Slayer",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:14.929Z"
+        },
+        {
+          "id": "hiei_e",
+          "name": "Hiei",
+          "series": "Yu Yu Hakusho",
+          "rarity": "E",
+          "obtainedAt": "2026-04-01T01:35:14.929Z"
+        },
+        {
+          "id": "chopper_r",
+          "name": "Tony Tony Chopper",
+          "series": "One Piece",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:14.929Z"
+        },
+        {
+          "id": "itadori_r",
+          "name": "Yuji Itadori",
+          "series": "Jujutsu Kaisen",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:14.929Z"
+        },
+        {
+          "id": "rukia_r",
+          "name": "Rukia Kuchiki",
+          "series": "Bleach",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:14.929Z"
+        },
+        {
+          "id": "caesar_r",
+          "name": "Caesar Zeppeli",
+          "series": "JoJo's Bizarre Adventure",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:14.929Z"
+        },
+        {
+          "id": "law_e",
+          "name": "Trafalgar D. Water Law",
+          "series": "One Piece",
+          "rarity": "E",
+          "obtainedAt": "2026-04-01T01:35:14.929Z"
+        },
+        {
+          "id": "kid_e",
+          "name": "Eustass Kid",
+          "series": "One Piece",
+          "rarity": "E",
+          "obtainedAt": "2026-04-01T01:35:16.436Z"
+        },
+        {
+          "id": "light_r",
+          "name": "Light Yagami",
+          "series": "Death Note",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:16.436Z"
+        },
+        {
+          "id": "natsu_r",
+          "name": "Natsu Dragneel",
+          "series": "Fairy Tail",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:16.436Z"
+        },
+        {
+          "id": "asta_r",
+          "name": "Asta",
+          "series": "Black Clover",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:16.436Z"
+        },
+        {
+          "id": "ulquiorra_e",
+          "name": "Ulquiorra Cifer",
+          "series": "Bleach",
+          "rarity": "E",
+          "obtainedAt": "2026-04-01T01:35:16.436Z"
+        },
+        {
+          "id": "nami_r",
+          "name": "Nami",
+          "series": "One Piece",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:16.436Z"
+        },
+        {
+          "id": "winry_r",
+          "name": "Winry Rockbell",
+          "series": "Fullmetal Alchemist: Brotherhood",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:16.436Z"
+        },
+        {
+          "id": "denji_r",
+          "name": "Denji",
+          "series": "Chainsaw Man",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:16.436Z"
+        },
+        {
+          "id": "chad_r",
+          "name": "Yasutora Sado",
+          "series": "Bleach",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:16.436Z"
+        },
+        {
+          "id": "noriaki_r",
+          "name": "Noriaki Kakyoin",
+          "series": "JoJo's Bizarre Adventure",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:16.436Z"
+        },
+        {
+          "id": "kurama_e",
+          "name": "Kurama",
+          "series": "Yu Yu Hakusho",
+          "rarity": "E",
+          "obtainedAt": "2026-04-01T01:35:18.512Z"
+        },
+        {
+          "id": "orihime_r",
+          "name": "Orihime Inoue",
+          "series": "Bleach",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:18.512Z"
+        },
+        {
+          "id": "noelle_r",
+          "name": "Noelle Silva",
+          "series": "Black Clover",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:18.512Z"
+        },
+        {
+          "id": "edward_r",
+          "name": "Edward Elric",
+          "series": "Fullmetal Alchemist: Brotherhood",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:18.512Z"
+        },
+        {
+          "id": "yuno_r",
+          "name": "Yuno",
+          "series": "Black Clover",
+          "rarity": "R",
+          "obtainedAt": "2026-04-01T01:35:18.512Z"
         }
       ],
       "characterShards": {
         "bakugo_e": 15,
         "link_r": 35,
         "zeno_ur": 2,
-        "goku_r": 24,
+        "goku_r": 25,
         "gear5_luffy_lt": 5,
         "ultra_goku_lt": 7,
         "sage_naruto_lt": 7,
         "eren_r": 39,
         "luffy_r": 40,
-        "deku_r": 43,
+        "deku_r": 44,
         "pikachu_r": 34,
-        "ichigo_r": 35,
-        "naruto_r": 27,
-        "vegeta_e": 10,
+        "ichigo_r": 36,
+        "naruto_r": 28,
+        "vegeta_e": 12,
         "levi_e": 12,
         "kaguya_ur": 3,
-        "spike_r": 37,
+        "spike_r": 38,
         "killua_e": 7,
         "genos_l": 1,
         "saitama_my": 1,
@@ -262,10 +486,22 @@
         "arceus_ur": 1,
         "hisoka_l": 3,
         "allmight_l": 2,
-        "cloud_r": 30,
+        "cloud_r": 33,
         "kratos_e": 9,
         "sephiroth_e": 9,
-        "itachi_l": 1
+        "itachi_l": 1,
+        "natsu_r": 1,
+        "itadori_r": 2,
+        "uryu_r": 2,
+        "rukia_r": 1,
+        "inuyasha_r": 2,
+        "noriaki_r": 1,
+        "denji_r": 2,
+        "law_e": 1,
+        "chopper_r": 2,
+        "winry_r": 1,
+        "sanji_r": 1,
+        "light_r": 2
       },
       "platings": {
         "diamond": 1,
@@ -273,7 +509,7 @@
       },
       "yen": 0,
       "stars": 0,
-      "candyTokens": 90
+      "candyTokens": 87
     },
     "1488543846257262712": {
       "cards": [],
@@ -405,7 +641,7 @@
   "pullCharges": {
     "833025999897755689": {
       "charges": 20,
-      "lastRefill": 1775006888304
+      "lastRefill": 1775007318513
     },
     "921838182927040602": {
       "charges": 0,
