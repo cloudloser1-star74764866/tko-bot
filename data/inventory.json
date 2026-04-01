@@ -3,7 +3,7 @@
     "833025999897755689": {
       "cards": [
         {
-          "id": "ichigo_r",
+          "id": "ichigo",
           "name": "Ichigo Kurosaki",
           "series": "Bleach",
           "rarity": "R",
@@ -11,7 +11,7 @@
           "level": 1
         },
         {
-          "id": "pikachu_r",
+          "id": "pikachu",
           "name": "Pikachu",
           "series": "Pokémon",
           "rarity": "R",
@@ -19,7 +19,7 @@
           "level": 1
         },
         {
-          "id": "killua_e",
+          "id": "killua",
           "name": "Killua Zoldyck",
           "series": "Hunter x Hunter",
           "rarity": "E",
@@ -27,7 +27,7 @@
           "level": 1
         },
         {
-          "id": "cloud_r",
+          "id": "cloud",
           "name": "Cloud Strife",
           "series": "Final Fantasy VII",
           "rarity": "R",
@@ -35,7 +35,7 @@
           "level": 1
         },
         {
-          "id": "bakugo_e",
+          "id": "bakugo",
           "name": "Katsuki Bakugo",
           "series": "My Hero Academia",
           "rarity": "E",
@@ -43,7 +43,7 @@
           "level": 1
         },
         {
-          "id": "genos_l",
+          "id": "genos",
           "name": "Genos",
           "series": "One Punch Man",
           "rarity": "L",
@@ -51,7 +51,7 @@
           "level": 1
         },
         {
-          "id": "luffy_r",
+          "id": "luffy",
           "name": "Monkey D. Luffy",
           "series": "One Piece",
           "rarity": "R",
@@ -59,7 +59,7 @@
           "level": 1
         },
         {
-          "id": "levi_e",
+          "id": "levi",
           "name": "Levi Ackerman",
           "series": "Attack on Titan",
           "rarity": "E",
@@ -67,7 +67,7 @@
           "level": 1
         },
         {
-          "id": "link_r",
+          "id": "link",
           "name": "Link",
           "series": "The Legend of Zelda",
           "rarity": "R",
@@ -75,7 +75,7 @@
           "level": 1
         },
         {
-          "id": "whitebeard_my",
+          "id": "whitebeard",
           "name": "Whitebeard",
           "series": "One Piece",
           "rarity": "MY",
@@ -83,7 +83,7 @@
           "level": 1
         },
         {
-          "id": "goku_ssj4_l",
+          "id": "goku_ssj4",
           "name": "Goku SSJ4",
           "series": "Dragon Ball GT",
           "rarity": "L",
@@ -91,7 +91,7 @@
           "level": 1
         },
         {
-          "id": "deku_r",
+          "id": "deku",
           "name": "Izuku Midoriya",
           "series": "My Hero Academia",
           "rarity": "R",
@@ -99,7 +99,7 @@
           "level": 1
         },
         {
-          "id": "arceus_ur",
+          "id": "arceus",
           "name": "Arceus",
           "series": "Pokémon",
           "rarity": "UR",
@@ -107,7 +107,7 @@
           "level": 1
         },
         {
-          "id": "goku_r",
+          "id": "goku",
           "name": "Goku",
           "series": "Dragon Ball Z",
           "rarity": "R",
@@ -115,7 +115,7 @@
           "level": 1
         },
         {
-          "id": "zeno_ur",
+          "id": "zeno",
           "name": "Zeno",
           "series": "Dragon Ball Super",
           "rarity": "UR",
@@ -123,7 +123,7 @@
           "level": 1
         },
         {
-          "id": "eren_r",
+          "id": "eren",
           "name": "Eren Yeager",
           "series": "Attack on Titan",
           "rarity": "R",
@@ -131,7 +131,7 @@
           "level": 1
         },
         {
-          "id": "ultra_goku_lt",
+          "id": "ultra_goku",
           "name": "Goku (Ultra Instinct)",
           "series": "Dragon Ball Super",
           "rarity": "LT",
@@ -139,7 +139,7 @@
           "level": 100
         },
         {
-          "id": "gear5_luffy_lt",
+          "id": "gear5_luffy",
           "name": "Luffy (Gear 5)",
           "series": "One Piece",
           "rarity": "LT",
@@ -147,7 +147,7 @@
           "level": 100
         },
         {
-          "id": "vegeta_e",
+          "id": "vegeta",
           "name": "Vegeta",
           "series": "Dragon Ball Z",
           "rarity": "E",
@@ -155,7 +155,7 @@
           "level": 1
         },
         {
-          "id": "sage_naruto_lt",
+          "id": "sage_naruto",
           "name": "Naruto (Six Paths Sage)",
           "series": "Naruto",
           "rarity": "LT",
@@ -163,7 +163,7 @@
           "level": 100
         },
         {
-          "id": "naruto_r",
+          "id": "naruto",
           "name": "Naruto Uzumaki",
           "series": "Naruto",
           "rarity": "R",
@@ -171,7 +171,7 @@
           "level": 1
         },
         {
-          "id": "spike_r",
+          "id": "spike",
           "name": "Spike Spiegel",
           "series": "Cowboy Bebop",
           "rarity": "R",
@@ -179,7 +179,7 @@
           "level": 1
         },
         {
-          "id": "kaguya_ur",
+          "id": "kaguya",
           "name": "Kaguya Ōtsutsuki",
           "series": "Naruto",
           "rarity": "UR",
@@ -187,7 +187,7 @@
           "level": 1
         },
         {
-          "id": "shanks_l",
+          "id": "shanks",
           "name": "Red-Hair Shanks",
           "series": "One Piece",
           "rarity": "L",
@@ -195,7 +195,7 @@
           "level": 1
         },
         {
-          "id": "sasuke_e",
+          "id": "sasuke",
           "name": "Sasuke Uchiha",
           "series": "Naruto",
           "rarity": "E",
@@ -203,7 +203,7 @@
           "level": 1
         },
         {
-          "id": "zoro_e",
+          "id": "zoro",
           "name": "Roronoa Zoro",
           "series": "One Piece",
           "rarity": "E",
@@ -211,7 +211,7 @@
           "level": 1
         },
         {
-          "id": "hisoka_l",
+          "id": "hisoka",
           "name": "Hisoka Morow",
           "series": "Hunter x Hunter",
           "rarity": "L",
@@ -219,7 +219,7 @@
           "level": 1
         },
         {
-          "id": "mewtwo_my",
+          "id": "mewtwo",
           "name": "Mewtwo",
           "series": "Pokémon",
           "rarity": "MY",
@@ -227,7 +227,7 @@
           "level": 1
         },
         {
-          "id": "saitama_my",
+          "id": "saitama",
           "name": "Saitama",
           "series": "One Punch Man",
           "rarity": "MY",
@@ -235,7 +235,7 @@
           "level": 1
         },
         {
-          "id": "allmight_l",
+          "id": "allmight",
           "name": "All Might",
           "series": "My Hero Academia",
           "rarity": "L",
@@ -243,7 +243,7 @@
           "level": 1
         },
         {
-          "id": "sephiroth_e",
+          "id": "sephiroth",
           "name": "Sephiroth",
           "series": "Final Fantasy VII",
           "rarity": "E",
@@ -251,7 +251,7 @@
           "level": 1
         },
         {
-          "id": "kratos_e",
+          "id": "kratos",
           "name": "Kratos",
           "series": "God of War",
           "rarity": "E",
@@ -259,7 +259,7 @@
           "level": 1
         },
         {
-          "id": "itachi_l",
+          "id": "itachi",
           "name": "Itachi Uchiha",
           "series": "Naruto",
           "rarity": "L",
@@ -267,7 +267,7 @@
           "level": 1
         },
         {
-          "id": "kirito_r",
+          "id": "kirito",
           "name": "Kirito",
           "series": "Sword Art Online",
           "rarity": "R",
@@ -275,7 +275,7 @@
           "level": 1
         },
         {
-          "id": "okabe_r",
+          "id": "okabe",
           "name": "Rintaro Okabe",
           "series": "Steins;Gate",
           "rarity": "R",
@@ -283,7 +283,7 @@
           "level": 1
         },
         {
-          "id": "usopp_r",
+          "id": "usopp",
           "name": "Usopp",
           "series": "One Piece",
           "rarity": "R",
@@ -291,7 +291,7 @@
           "level": 1
         },
         {
-          "id": "sanji_r",
+          "id": "sanji",
           "name": "Sanji",
           "series": "One Piece",
           "rarity": "R",
@@ -299,7 +299,7 @@
           "level": 1
         },
         {
-          "id": "inosuke_r",
+          "id": "inosuke",
           "name": "Inosuke Hashibira",
           "series": "Demon Slayer",
           "rarity": "R",
@@ -307,7 +307,7 @@
           "level": 1
         },
         {
-          "id": "inuyasha_r",
+          "id": "inuyasha",
           "name": "Inuyasha",
           "series": "Inuyasha",
           "rarity": "R",
@@ -315,7 +315,7 @@
           "level": 1
         },
         {
-          "id": "asuna_r",
+          "id": "asuna",
           "name": "Asuna",
           "series": "Sword Art Online",
           "rarity": "R",
@@ -323,7 +323,7 @@
           "level": 1
         },
         {
-          "id": "nezuko_r",
+          "id": "nezuko",
           "name": "Nezuko Kamado",
           "series": "Demon Slayer",
           "rarity": "R",
@@ -331,7 +331,7 @@
           "level": 1
         },
         {
-          "id": "anya_r",
+          "id": "anya",
           "name": "Anya Forger",
           "series": "Spy x Family",
           "rarity": "R",
@@ -339,7 +339,7 @@
           "level": 1
         },
         {
-          "id": "uryu_r",
+          "id": "uryu",
           "name": "Uryu Ishida",
           "series": "Bleach",
           "rarity": "R",
@@ -347,7 +347,7 @@
           "level": 1
         },
         {
-          "id": "tanjiro_r",
+          "id": "tanjiro",
           "name": "Tanjiro Kamado",
           "series": "Demon Slayer",
           "rarity": "R",
@@ -355,7 +355,7 @@
           "level": 1
         },
         {
-          "id": "hiei_e",
+          "id": "hiei",
           "name": "Hiei",
           "series": "Yu Yu Hakusho",
           "rarity": "E",
@@ -363,7 +363,7 @@
           "level": 1
         },
         {
-          "id": "chopper_r",
+          "id": "chopper",
           "name": "Tony Tony Chopper",
           "series": "One Piece",
           "rarity": "R",
@@ -371,7 +371,7 @@
           "level": 1
         },
         {
-          "id": "itadori_r",
+          "id": "itadori",
           "name": "Yuji Itadori",
           "series": "Jujutsu Kaisen",
           "rarity": "R",
@@ -379,7 +379,7 @@
           "level": 1
         },
         {
-          "id": "rukia_r",
+          "id": "rukia",
           "name": "Rukia Kuchiki",
           "series": "Bleach",
           "rarity": "R",
@@ -387,7 +387,7 @@
           "level": 1
         },
         {
-          "id": "caesar_r",
+          "id": "caesar",
           "name": "Caesar Zeppeli",
           "series": "JoJo's Bizarre Adventure",
           "rarity": "R",
@@ -395,7 +395,7 @@
           "level": 1
         },
         {
-          "id": "law_e",
+          "id": "law",
           "name": "Trafalgar D. Water Law",
           "series": "One Piece",
           "rarity": "E",
@@ -403,7 +403,7 @@
           "level": 1
         },
         {
-          "id": "kid_e",
+          "id": "kid",
           "name": "Eustass Kid",
           "series": "One Piece",
           "rarity": "E",
@@ -411,7 +411,7 @@
           "level": 1
         },
         {
-          "id": "light_r",
+          "id": "light",
           "name": "Light Yagami",
           "series": "Death Note",
           "rarity": "R",
@@ -419,7 +419,7 @@
           "level": 1
         },
         {
-          "id": "natsu_r",
+          "id": "natsu",
           "name": "Natsu Dragneel",
           "series": "Fairy Tail",
           "rarity": "R",
@@ -427,7 +427,7 @@
           "level": 1
         },
         {
-          "id": "asta_r",
+          "id": "asta",
           "name": "Asta",
           "series": "Black Clover",
           "rarity": "R",
@@ -435,7 +435,7 @@
           "level": 1
         },
         {
-          "id": "ulquiorra_e",
+          "id": "ulquiorra",
           "name": "Ulquiorra Cifer",
           "series": "Bleach",
           "rarity": "E",
@@ -443,7 +443,7 @@
           "level": 1
         },
         {
-          "id": "nami_r",
+          "id": "nami",
           "name": "Nami",
           "series": "One Piece",
           "rarity": "R",
@@ -451,7 +451,7 @@
           "level": 1
         },
         {
-          "id": "winry_r",
+          "id": "winry",
           "name": "Winry Rockbell",
           "series": "Fullmetal Alchemist: Brotherhood",
           "rarity": "R",
@@ -459,7 +459,7 @@
           "level": 1
         },
         {
-          "id": "denji_r",
+          "id": "denji",
           "name": "Denji",
           "series": "Chainsaw Man",
           "rarity": "R",
@@ -467,7 +467,7 @@
           "level": 1
         },
         {
-          "id": "chad_r",
+          "id": "chad",
           "name": "Yasutora Sado",
           "series": "Bleach",
           "rarity": "R",
@@ -475,7 +475,7 @@
           "level": 1
         },
         {
-          "id": "noriaki_r",
+          "id": "noriaki",
           "name": "Noriaki Kakyoin",
           "series": "JoJo's Bizarre Adventure",
           "rarity": "R",
@@ -483,7 +483,7 @@
           "level": 1
         },
         {
-          "id": "kurama_e",
+          "id": "kurama",
           "name": "Kurama",
           "series": "Yu Yu Hakusho",
           "rarity": "E",
@@ -491,7 +491,7 @@
           "level": 1
         },
         {
-          "id": "orihime_r",
+          "id": "orihime",
           "name": "Orihime Inoue",
           "series": "Bleach",
           "rarity": "R",
@@ -499,7 +499,7 @@
           "level": 1
         },
         {
-          "id": "noelle_r",
+          "id": "noelle",
           "name": "Noelle Silva",
           "series": "Black Clover",
           "rarity": "R",
@@ -507,7 +507,7 @@
           "level": 1
         },
         {
-          "id": "edward_r",
+          "id": "edward",
           "name": "Edward Elric",
           "series": "Fullmetal Alchemist: Brotherhood",
           "rarity": "R",
@@ -515,7 +515,7 @@
           "level": 1
         },
         {
-          "id": "yuno_r",
+          "id": "yuno",
           "name": "Yuno",
           "series": "Black Clover",
           "rarity": "R",
@@ -523,7 +523,7 @@
           "level": 1
         },
         {
-          "id": "joseph_r",
+          "id": "joseph",
           "name": "Joseph Joestar",
           "series": "JoJo's Bizarre Adventure",
           "rarity": "R",
@@ -531,7 +531,7 @@
           "obtainedAt": "2026-04-01T02:51:20.298Z"
         },
         {
-          "id": "subaru_r",
+          "id": "subaru",
           "name": "Subaru Natsuki",
           "series": "Re:Zero",
           "rarity": "R",
@@ -539,7 +539,7 @@
           "obtainedAt": "2026-04-01T02:51:21.946Z"
         },
         {
-          "id": "nobara_r",
+          "id": "nobara",
           "name": "Nobara Kugisaki",
           "series": "Jujutsu Kaisen",
           "rarity": "R",
@@ -547,7 +547,7 @@
           "obtainedAt": "2026-04-01T02:51:23.935Z"
         },
         {
-          "id": "zenitsu_r",
+          "id": "zenitsu",
           "name": "Zenitsu Agatsuma",
           "series": "Demon Slayer",
           "rarity": "R",
@@ -555,7 +555,7 @@
           "obtainedAt": "2026-04-01T02:51:25.318Z"
         },
         {
-          "id": "gon_r",
+          "id": "gon",
           "name": "Gon Freecss",
           "series": "Hunter x Hunter",
           "rarity": "R",
@@ -563,7 +563,7 @@
           "obtainedAt": "2026-04-01T02:51:26.779Z"
         },
         {
-          "id": "sukuna_fp_lt",
+          "id": "sukuna_fp",
           "name": "Sukuna (Full Power)",
           "series": "Jujutsu Kaisen",
           "rarity": "LT",
@@ -571,7 +571,7 @@
           "obtainedAt": "2026-04-01T02:52:01.405Z"
         },
         {
-          "id": "gray_r",
+          "id": "gray",
           "name": "Gray Fullbuster",
           "series": "Fairy Tail",
           "rarity": "R",
@@ -579,7 +579,7 @@
           "obtainedAt": "2026-04-01T08:04:40.833Z"
         },
         {
-          "id": "mob_r",
+          "id": "mob",
           "name": "Shigeo Kageyama",
           "series": "Mob Psycho 100",
           "rarity": "R",
@@ -587,7 +587,7 @@
           "obtainedAt": "2026-04-01T08:17:14.904Z"
         },
         {
-          "id": "rimuru_l",
+          "id": "rimuru",
           "name": "Rimuru Tempest",
           "series": "That Time I Got Reincarnated as a Slime",
           "rarity": "L",
@@ -595,7 +595,7 @@
           "obtainedAt": "2026-04-01T08:17:24.276Z"
         },
         {
-          "id": "power_r",
+          "id": "power",
           "name": "Power",
           "series": "Chainsaw Man",
           "rarity": "R",
@@ -603,7 +603,7 @@
           "obtainedAt": "2026-04-01T08:17:24.276Z"
         },
         {
-          "id": "emilia_r",
+          "id": "emilia",
           "name": "Emilia",
           "series": "Re:Zero",
           "rarity": "R",
@@ -611,7 +611,7 @@
           "obtainedAt": "2026-04-01T08:17:24.276Z"
         },
         {
-          "id": "gintoki_r",
+          "id": "gintoki",
           "name": "Gintoki Sakata",
           "series": "Gintama",
           "rarity": "R",
@@ -619,7 +619,7 @@
           "obtainedAt": "2026-04-01T08:17:24.276Z"
         },
         {
-          "id": "robin_r",
+          "id": "robin",
           "name": "Nico Robin",
           "series": "One Piece",
           "rarity": "R",
@@ -627,7 +627,7 @@
           "obtainedAt": "2026-04-01T08:32:41.586Z"
         },
         {
-          "id": "erza_r",
+          "id": "erza",
           "name": "Erza Scarlet",
           "series": "Fairy Tail",
           "rarity": "R",
@@ -635,7 +635,7 @@
           "obtainedAt": "2026-04-01T08:32:50.844Z"
         },
         {
-          "id": "alphonse_r",
+          "id": "alphonse",
           "name": "Alphonse Elric",
           "series": "Fullmetal Alchemist: Brotherhood",
           "rarity": "R",
@@ -643,7 +643,7 @@
           "obtainedAt": "2026-04-01T08:39:13.451Z"
         },
         {
-          "id": "todo_e",
+          "id": "todo",
           "name": "Aoi Todo",
           "series": "Jujutsu Kaisen",
           "rarity": "E",
@@ -651,7 +651,7 @@
           "obtainedAt": "2026-04-01T08:39:13.451Z"
         },
         {
-          "id": "loid_r",
+          "id": "loid",
           "name": "Loid Forger",
           "series": "Spy x Family",
           "rarity": "R",
@@ -659,7 +659,7 @@
           "obtainedAt": "2026-04-01T08:39:13.451Z"
         },
         {
-          "id": "kurapika_r",
+          "id": "kurapika",
           "name": "Kurapika",
           "series": "Hunter x Hunter",
           "rarity": "R",
@@ -667,7 +667,7 @@
           "obtainedAt": "2026-04-01T08:39:13.451Z"
         },
         {
-          "id": "rem_e",
+          "id": "rem",
           "name": "Rem",
           "series": "Re:Zero",
           "rarity": "E",
@@ -675,7 +675,7 @@
           "obtainedAt": "2026-04-01T08:39:32.450Z"
         },
         {
-          "id": "byakuya_e",
+          "id": "byakuya",
           "name": "Byakuya Kuchiki",
           "series": "Bleach",
           "rarity": "E",
@@ -683,7 +683,7 @@
           "obtainedAt": "2026-04-01T08:39:32.450Z"
         },
         {
-          "id": "acnologia_my",
+          "id": "acnologia",
           "name": "Acnologia",
           "series": "Fairy Tail",
           "rarity": "MY",
@@ -691,7 +691,7 @@
           "obtainedAt": "2026-04-01T08:39:32.450Z"
         },
         {
-          "id": "yusuke_r",
+          "id": "yusuke",
           "name": "Yusuke Urameshi",
           "series": "Yu Yu Hakusho",
           "rarity": "R",
@@ -699,7 +699,7 @@
           "obtainedAt": "2026-04-01T08:39:32.450Z"
         },
         {
-          "id": "ace_e",
+          "id": "ace",
           "name": "Portgas D. Ace",
           "series": "One Piece",
           "rarity": "E",
@@ -707,7 +707,7 @@
           "obtainedAt": "2026-04-01T08:39:58.024Z"
         },
         {
-          "id": "mihawk_l",
+          "id": "mihawk",
           "name": "Dracule Mihawk",
           "series": "One Piece",
           "rarity": "L",
@@ -715,7 +715,7 @@
           "obtainedAt": "2026-04-01T08:39:58.024Z"
         },
         {
-          "id": "reigen_r",
+          "id": "reigen",
           "name": "Reigen Arataka",
           "series": "Mob Psycho 100",
           "rarity": "R",
@@ -723,7 +723,7 @@
           "obtainedAt": "2026-04-01T08:39:58.024Z"
         },
         {
-          "id": "l_r",
+          "id": "l",
           "name": "L Lawliet",
           "series": "Death Note",
           "rarity": "R",
@@ -731,7 +731,7 @@
           "obtainedAt": "2026-04-01T08:40:10.134Z"
         },
         {
-          "id": "beerus_my",
+          "id": "beerus",
           "name": "Beerus",
           "series": "Dragon Ball Super",
           "rarity": "MY",
@@ -739,7 +739,7 @@
           "obtainedAt": "2026-04-01T08:40:10.134Z"
         },
         {
-          "id": "renji_r",
+          "id": "renji",
           "name": "Renji Abarai",
           "series": "Bleach",
           "rarity": "R",
@@ -747,7 +747,7 @@
           "obtainedAt": "2026-04-01T08:40:10.135Z"
         },
         {
-          "id": "gojo_e",
+          "id": "gojo",
           "name": "Satoru Gojo",
           "series": "Jujutsu Kaisen",
           "rarity": "E",
@@ -755,7 +755,7 @@
           "obtainedAt": "2026-04-01T08:40:28.502Z"
         },
         {
-          "id": "giorno_e",
+          "id": "giorno",
           "name": "Giorno Giovanna",
           "series": "JoJo's Bizarre Adventure",
           "rarity": "E",
@@ -763,7 +763,7 @@
           "obtainedAt": "2026-04-01T08:40:28.502Z"
         },
         {
-          "id": "father_l",
+          "id": "father",
           "name": "Father",
           "series": "Fullmetal Alchemist: Brotherhood",
           "rarity": "L",
@@ -771,7 +771,7 @@
           "obtainedAt": "2026-04-01T08:40:28.502Z"
         },
         {
-          "id": "kaido_my",
+          "id": "kaido",
           "name": "Kaido",
           "series": "One Piece",
           "rarity": "MY",
@@ -779,7 +779,7 @@
           "obtainedAt": "2026-04-01T08:40:29.799Z"
         },
         {
-          "id": "yuta_l",
+          "id": "yuta",
           "name": "Yuta Okkotsu",
           "series": "Jujutsu Kaisen",
           "rarity": "L",
@@ -787,7 +787,7 @@
           "obtainedAt": "2026-04-01T08:40:29.799Z"
         },
         {
-          "id": "escanor_my",
+          "id": "escanor",
           "name": "Escanor",
           "series": "The Seven Deadly Sins",
           "rarity": "MY",
@@ -795,7 +795,7 @@
           "obtainedAt": "2026-04-01T08:40:29.799Z"
         },
         {
-          "id": "joyboy_ur",
+          "id": "joyboy",
           "name": "Joy Boy",
           "series": "One Piece",
           "rarity": "UR",
@@ -803,7 +803,7 @@
           "obtainedAt": "2026-04-01T08:40:31.232Z"
         },
         {
-          "id": "grimmjow_e",
+          "id": "grimmjow",
           "name": "Grimmjow Jaegerjaquez",
           "series": "Bleach",
           "rarity": "E",
@@ -811,7 +811,7 @@
           "obtainedAt": "2026-04-01T08:40:31.232Z"
         },
         {
-          "id": "lelouch_e",
+          "id": "lelouch",
           "name": "Lelouch vi Britannia",
           "series": "Code Geass",
           "rarity": "E",
@@ -819,7 +819,7 @@
           "obtainedAt": "2026-04-01T08:40:31.232Z"
         },
         {
-          "id": "laxus_e",
+          "id": "laxus",
           "name": "Laxus Dreyar",
           "series": "Fairy Tail",
           "rarity": "E",
@@ -827,7 +827,7 @@
           "obtainedAt": "2026-04-01T08:45:32.240Z"
         },
         {
-          "id": "albedo_e",
+          "id": "albedo",
           "name": "Albedo",
           "series": "Overlord",
           "rarity": "E",
@@ -835,7 +835,7 @@
           "obtainedAt": "2026-04-01T08:45:32.240Z"
         },
         {
-          "id": "josuke_e",
+          "id": "josuke",
           "name": "Josuke Higashikata",
           "series": "JoJo's Bizarre Adventure",
           "rarity": "E",
@@ -843,7 +843,7 @@
           "obtainedAt": "2026-04-01T08:52:09.089Z"
         },
         {
-          "id": "sukuna_my",
+          "id": "sukuna",
           "name": "Ryomen Sukuna",
           "series": "Jujutsu Kaisen",
           "rarity": "MY",
@@ -851,7 +851,7 @@
           "obtainedAt": "2026-04-01T08:52:09.089Z"
         },
         {
-          "id": "tengen_e",
+          "id": "tengen",
           "name": "Tengen Uzui",
           "series": "Demon Slayer",
           "rarity": "E",
@@ -859,7 +859,7 @@
           "obtainedAt": "2026-04-01T09:16:46.394Z"
         },
         {
-          "id": "yor_r",
+          "id": "yor",
           "name": "Yor Forger",
           "series": "Spy x Family",
           "rarity": "R",
@@ -867,7 +867,7 @@
           "obtainedAt": "2026-04-01T09:24:45.348Z"
         },
         {
-          "id": "gildarts_e",
+          "id": "gildarts",
           "name": "Gildarts Clive",
           "series": "Fairy Tail",
           "rarity": "E",
@@ -875,7 +875,7 @@
           "obtainedAt": "2026-04-01T09:25:23.010Z"
         },
         {
-          "id": "yami_e",
+          "id": "yami",
           "name": "Yami Sukehiro",
           "series": "Black Clover",
           "rarity": "E",
@@ -883,7 +883,7 @@
           "obtainedAt": "2026-04-01T09:29:57.369Z"
         },
         {
-          "id": "muzan_my",
+          "id": "muzan",
           "name": "Muzan Kibutsuji",
           "series": "Demon Slayer",
           "rarity": "MY",
@@ -891,7 +891,7 @@
           "obtainedAt": "2026-04-01T09:30:29.962Z"
         },
         {
-          "id": "kira_my",
+          "id": "kira",
           "name": "Yoshikage Kira",
           "series": "JoJo's Bizarre Adventure",
           "rarity": "MY",
@@ -900,97 +900,97 @@
         }
       ],
       "characterShards": {
-        "bakugo_e": 15,
-        "link_r": 46,
-        "zeno_ur": 2,
-        "goku_r": 30,
-        "gear5_luffy_lt": 14,
-        "ultra_goku_lt": 19,
-        "sage_naruto_lt": 23,
-        "eren_r": 44,
-        "luffy_r": 44,
-        "deku_r": 50,
-        "pikachu_r": 36,
-        "ichigo_r": 43,
-        "naruto_r": 35,
-        "vegeta_e": 13,
-        "levi_e": 12,
-        "kaguya_ur": 3,
-        "spike_r": 45,
-        "killua_e": 8,
-        "genos_l": 1,
-        "saitama_my": 6,
-        "sasuke_e": 16,
-        "zoro_e": 12,
-        "shanks_l": 4,
-        "goku_ssj4_l": 2,
-        "arceus_ur": 3,
-        "hisoka_l": 4,
-        "allmight_l": 2,
-        "cloud_r": 36,
-        "kratos_e": 11,
-        "sephiroth_e": 10,
-        "itachi_l": 1,
-        "natsu_r": 6,
-        "itadori_r": 11,
-        "uryu_r": 13,
-        "rukia_r": 6,
-        "inuyasha_r": 7,
-        "noriaki_r": 6,
-        "denji_r": 7,
-        "law_e": 2,
-        "chopper_r": 12,
-        "winry_r": 9,
-        "sanji_r": 2,
-        "light_r": 5,
-        "sukuna_fp_lt": 2,
-        "usopp_r": 4,
-        "nobara_r": 4,
-        "kirito_r": 6,
-        "caesar_r": 6,
-        "anya_r": 8,
-        "yuno_r": 4,
-        "power_r": 4,
-        "chad_r": 6,
-        "tanjiro_r": 3,
-        "gray_r": 8,
-        "robin_r": 6,
-        "noelle_r": 3,
-        "asuna_r": 2,
-        "kurama_e": 1,
-        "nami_r": 4,
-        "mob_r": 3,
-        "edward_r": 3,
-        "hiei_e": 1,
-        "erza_r": 7,
-        "gon_r": 8,
-        "okabe_r": 6,
-        "nezuko_r": 8,
-        "joseph_r": 3,
-        "reigen_r": 5,
-        "gintoki_r": 5,
-        "renji_r": 6,
-        "ulquiorra_e": 2,
-        "asta_r": 4,
-        "l_r": 5,
-        "orihime_r": 1,
-        "zenitsu_r": 4,
-        "inosuke_r": 3,
-        "alphonse_r": 3,
-        "lelouch_e": 1,
-        "loid_r": 4,
-        "kurapika_r": 3,
-        "yusuke_r": 3,
-        "subaru_r": 1,
-        "yor_r": 2,
-        "escanor_my": 3,
-        "kaido_my": 3,
-        "whitebeard_my": 1,
-        "muzan_my": 1,
-        "mewtwo_my": 3,
-        "sukuna_my": 3,
-        "acnologia_my": 2,
-        "kira_my": 1
+        "bakugo": 15,
+        "link": 46,
+        "zeno": 2,
+        "goku": 30,
+        "gear5_luffy": 14,
+        "ultra_goku": 19,
+        "sage_naruto": 23,
+        "eren": 44,
+        "luffy": 44,
+        "deku": 50,
+        "pikachu": 36,
+        "ichigo": 43,
+        "naruto": 35,
+        "vegeta": 13,
+        "levi": 12,
+        "kaguya": 3,
+        "spike": 45,
+        "killua": 8,
+        "genos": 1,
+        "saitama": 6,
+        "sasuke": 16,
+        "zoro": 12,
+        "shanks": 4,
+        "goku_ssj4": 2,
+        "arceus": 3,
+        "hisoka": 4,
+        "allmight": 2,
+        "cloud": 36,
+        "kratos": 11,
+        "sephiroth": 10,
+        "itachi": 1,
+        "natsu": 6,
+        "itadori": 11,
+        "uryu": 13,
+        "rukia": 6,
+        "inuyasha": 7,
+        "noriaki": 6,
+        "denji": 7,
+        "law": 2,
+        "chopper": 12,
+        "winry": 9,
+        "sanji": 2,
+        "light": 5,
+        "sukuna_fp": 2,
+        "usopp": 4,
+        "nobara": 4,
+        "kirito": 6,
+        "caesar": 6,
+        "anya": 8,
+        "yuno": 4,
+        "power": 4,
+        "chad": 6,
+        "tanjiro": 3,
+        "gray": 8,
+        "robin": 6,
+        "noelle": 3,
+        "asuna": 2,
+        "kurama": 1,
+        "nami": 4,
+        "mob": 3,
+        "edward": 3,
+        "hiei": 1,
+        "erza": 7,
+        "gon": 8,
+        "okabe": 6,
+        "nezuko": 8,
+        "joseph": 3,
+        "reigen": 5,
+        "gintoki": 5,
+        "renji": 6,
+        "ulquiorra": 2,
+        "asta": 4,
+        "l": 5,
+        "orihime": 1,
+        "zenitsu": 4,
+        "inosuke": 3,
+        "alphonse": 3,
+        "lelouch": 1,
+        "loid": 4,
+        "kurapika": 3,
+        "yusuke": 3,
+        "subaru": 1,
+        "yor": 2,
+        "escanor": 3,
+        "kaido": 3,
+        "whitebeard": 1,
+        "muzan": 1,
+        "mewtwo": 3,
+        "sukuna": 3,
+        "acnologia": 2,
+        "kira": 1
       },
       "platings": {
         "diamond": 4,
@@ -1001,19 +1001,19 @@
       "candyTokens": 50,
       "team": [
         {
-          "cardId": "sage_naruto_lt",
+          "cardId": "sage_naruto",
           "plating": "diamond"
         },
         {
-          "cardId": "ultra_goku_lt",
+          "cardId": "ultra_goku",
           "plating": "diamond"
         },
         {
-          "cardId": "gear5_luffy_lt",
+          "cardId": "gear5_luffy",
           "plating": "diamond"
         },
         {
-          "cardId": "sukuna_fp_lt",
+          "cardId": "sukuna_fp",
           "plating": "diamond"
         }
       ],
@@ -1029,7 +1029,7 @@
     "921838182927040602": {
       "cards": [
         {
-          "id": "itachi_l",
+          "id": "itachi",
           "name": "Itachi Uchiha",
           "series": "Naruto",
           "rarity": "L",
@@ -1037,7 +1037,7 @@
           "level": 1
         },
         {
-          "id": "vegeta_e",
+          "id": "vegeta",
           "name": "Vegeta",
           "series": "Dragon Ball Z",
           "rarity": "E",
@@ -1045,7 +1045,7 @@
           "level": 1
         },
         {
-          "id": "zoro_e",
+          "id": "zoro",
           "name": "Roronoa Zoro",
           "series": "One Piece",
           "rarity": "E",
@@ -1053,7 +1053,7 @@
           "level": 1
         },
         {
-          "id": "pikachu_r",
+          "id": "pikachu",
           "name": "Pikachu",
           "series": "Pokémon",
           "rarity": "R",
@@ -1061,7 +1061,7 @@
           "level": 1
         },
         {
-          "id": "kratos_e",
+          "id": "kratos",
           "name": "Kratos",
           "series": "God of War",
           "rarity": "E",
@@ -1069,7 +1069,7 @@
           "level": 1
         },
         {
-          "id": "sephiroth_e",
+          "id": "sephiroth",
           "name": "Sephiroth",
           "series": "Final Fantasy VII",
           "rarity": "E",
@@ -1077,7 +1077,7 @@
           "level": 1
         },
         {
-          "id": "spike_r",
+          "id": "spike",
           "name": "Spike Spiegel",
           "series": "Cowboy Bebop",
           "rarity": "R",
@@ -1085,7 +1085,7 @@
           "level": 1
         },
         {
-          "id": "ichigo_r",
+          "id": "ichigo",
           "name": "Ichigo Kurosaki",
           "series": "Bleach",
           "rarity": "R",
@@ -1093,7 +1093,7 @@
           "level": 1
         },
         {
-          "id": "killua_e",
+          "id": "killua",
           "name": "Killua Zoldyck",
           "series": "Hunter x Hunter",
           "rarity": "E",
@@ -1101,7 +1101,7 @@
           "level": 1
         },
         {
-          "id": "levi_e",
+          "id": "levi",
           "name": "Levi Ackerman",
           "series": "Attack on Titan",
           "rarity": "E",
@@ -1109,7 +1109,7 @@
           "level": 1
         },
         {
-          "id": "hisoka_l",
+          "id": "hisoka",
           "name": "Hisoka Morow",
           "series": "Hunter x Hunter",
           "rarity": "L",
@@ -1117,7 +1117,7 @@
           "level": 1
         },
         {
-          "id": "goku_r",
+          "id": "goku",
           "name": "Goku",
           "series": "Dragon Ball Z",
           "rarity": "R",
@@ -1125,7 +1125,7 @@
           "level": 1
         },
         {
-          "id": "link_r",
+          "id": "link",
           "name": "Link",
           "series": "The Legend of Zelda",
           "rarity": "R",
@@ -1133,7 +1133,7 @@
           "level": 1
         },
         {
-          "id": "cloud_r",
+          "id": "cloud",
           "name": "Cloud Strife",
           "series": "Final Fantasy VII",
           "rarity": "R",
@@ -1141,7 +1141,7 @@
           "level": 1
         },
         {
-          "id": "sasuke_e",
+          "id": "sasuke",
           "name": "Sasuke Uchiha",
           "series": "Naruto",
           "rarity": "E",
@@ -1150,11 +1150,11 @@
         }
       ],
       "characterShards": {
-        "itachi_l": 1,
-        "goku_r": 3,
-        "sephiroth_e": 1,
-        "link_r": 1,
-        "hisoka_l": 1
+        "itachi": 1,
+        "goku": 3,
+        "sephiroth": 1,
+        "link": 1,
+        "hisoka": 1
       },
       "platings": {},
       "yen": 101,
@@ -1165,7 +1165,7 @@
     "724025924378427535": {
       "cards": [
         {
-          "id": "denji_r",
+          "id": "denji",
           "name": "Denji",
           "series": "Chainsaw Man",
           "rarity": "R",
@@ -1173,7 +1173,7 @@
           "obtainedAt": "2026-04-01T09:22:54.803Z"
         },
         {
-          "id": "bakugo_e",
+          "id": "bakugo",
           "name": "Katsuki Bakugo",
           "series": "My Hero Academia",
           "rarity": "E",
@@ -1181,7 +1181,7 @@
           "obtainedAt": "2026-04-01T09:22:54.804Z"
         },
         {
-          "id": "itadori_r",
+          "id": "itadori",
           "name": "Yuji Itadori",
           "series": "Jujutsu Kaisen",
           "rarity": "R",
@@ -1189,7 +1189,7 @@
           "obtainedAt": "2026-04-01T09:22:54.804Z"
         },
         {
-          "id": "link_r",
+          "id": "link",
           "name": "Link",
           "series": "The Legend of Zelda",
           "rarity": "R",
@@ -1197,7 +1197,7 @@
           "obtainedAt": "2026-04-01T09:22:54.804Z"
         },
         {
-          "id": "l_r",
+          "id": "l",
           "name": "L Lawliet",
           "series": "Death Note",
           "rarity": "R",
@@ -1205,7 +1205,7 @@
           "obtainedAt": "2026-04-01T09:22:54.804Z"
         },
         {
-          "id": "luffy_r",
+          "id": "luffy",
           "name": "Monkey D. Luffy",
           "series": "One Piece",
           "rarity": "R",
@@ -1213,7 +1213,7 @@
           "obtainedAt": "2026-04-01T09:22:54.804Z"
         },
         {
-          "id": "noelle_r",
+          "id": "noelle",
           "name": "Noelle Silva",
           "series": "Black Clover",
           "rarity": "R",
@@ -1221,7 +1221,7 @@
           "obtainedAt": "2026-04-01T09:22:54.804Z"
         },
         {
-          "id": "sanji_r",
+          "id": "sanji",
           "name": "Sanji",
           "series": "One Piece",
           "rarity": "R",
@@ -1229,7 +1229,7 @@
           "obtainedAt": "2026-04-01T09:22:54.804Z"
         },
         {
-          "id": "gintoki_r",
+          "id": "gintoki",
           "name": "Gintoki Sakata",
           "series": "Gintama",
           "rarity": "R",
@@ -1237,7 +1237,7 @@
           "obtainedAt": "2026-04-01T09:22:54.804Z"
         },
         {
-          "id": "anya_r",
+          "id": "anya",
           "name": "Anya Forger",
           "series": "Spy x Family",
           "rarity": "R",
@@ -1245,7 +1245,7 @@
           "obtainedAt": "2026-04-01T09:22:54.804Z"
         },
         {
-          "id": "nezuko_r",
+          "id": "nezuko",
           "name": "Nezuko Kamado",
           "series": "Demon Slayer",
           "rarity": "R",
@@ -1253,7 +1253,7 @@
           "obtainedAt": "2026-04-01T09:22:54.804Z"
         },
         {
-          "id": "emilia_r",
+          "id": "emilia",
           "name": "Emilia",
           "series": "Re:Zero",
           "rarity": "R",
@@ -1261,7 +1261,7 @@
           "obtainedAt": "2026-04-01T09:22:54.804Z"
         },
         {
-          "id": "naruto_r",
+          "id": "naruto",
           "name": "Naruto Uzumaki",
           "series": "Naruto",
           "rarity": "R",
@@ -1269,7 +1269,7 @@
           "obtainedAt": "2026-04-01T09:22:54.804Z"
         },
         {
-          "id": "noriaki_r",
+          "id": "noriaki",
           "name": "Noriaki Kakyoin",
           "series": "JoJo's Bizarre Adventure",
           "rarity": "R",
@@ -1277,7 +1277,7 @@
           "obtainedAt": "2026-04-01T09:22:54.804Z"
         },
         {
-          "id": "robin_r",
+          "id": "robin",
           "name": "Nico Robin",
           "series": "One Piece",
           "rarity": "R",
@@ -1285,7 +1285,7 @@
           "obtainedAt": "2026-04-01T09:22:54.804Z"
         },
         {
-          "id": "edward_r",
+          "id": "edward",
           "name": "Edward Elric",
           "series": "Fullmetal Alchemist: Brotherhood",
           "rarity": "R",
@@ -1293,7 +1293,7 @@
           "obtainedAt": "2026-04-01T09:22:54.804Z"
         },
         {
-          "id": "yusuke_r",
+          "id": "yusuke",
           "name": "Yusuke Urameshi",
           "series": "Yu Yu Hakusho",
           "rarity": "R",
@@ -1301,7 +1301,7 @@
           "obtainedAt": "2026-04-01T09:22:54.804Z"
         },
         {
-          "id": "spike_r",
+          "id": "spike",
           "name": "Spike Spiegel",
           "series": "Cowboy Bebop",
           "rarity": "R",
@@ -1309,7 +1309,7 @@
           "obtainedAt": "2026-04-01T09:22:54.804Z"
         },
         {
-          "id": "pikachu_r",
+          "id": "pikachu",
           "name": "Pikachu",
           "series": "Pokémon",
           "rarity": "R",
@@ -1317,7 +1317,7 @@
           "obtainedAt": "2026-04-01T09:22:54.804Z"
         },
         {
-          "id": "asuna_r",
+          "id": "asuna",
           "name": "Asuna",
           "series": "Sword Art Online",
           "rarity": "R",
@@ -1325,7 +1325,7 @@
           "obtainedAt": "2026-04-01T09:24:42.364Z"
         },
         {
-          "id": "loid_r",
+          "id": "loid",
           "name": "Loid Forger",
           "series": "Spy x Family",
           "rarity": "R",
@@ -1333,7 +1333,7 @@
           "obtainedAt": "2026-04-01T09:24:42.364Z"
         },
         {
-          "id": "gray_r",
+          "id": "gray",
           "name": "Gray Fullbuster",
           "series": "Fairy Tail",
           "rarity": "R",
@@ -1341,7 +1341,7 @@
           "obtainedAt": "2026-04-01T09:25:11.634Z"
         },
         {
-          "id": "natsu_r",
+          "id": "natsu",
           "name": "Natsu Dragneel",
           "series": "Fairy Tail",
           "rarity": "R",
@@ -1349,7 +1349,7 @@
           "obtainedAt": "2026-04-01T09:25:11.634Z"
         },
         {
-          "id": "uryu_r",
+          "id": "uryu",
           "name": "Uryu Ishida",
           "series": "Bleach",
           "rarity": "R",
@@ -1357,7 +1357,7 @@
           "obtainedAt": "2026-04-01T09:25:11.634Z"
         },
         {
-          "id": "kurapika_r",
+          "id": "kurapika",
           "name": "Kurapika",
           "series": "Hunter x Hunter",
           "rarity": "R",
@@ -1365,7 +1365,7 @@
           "obtainedAt": "2026-04-01T09:25:11.634Z"
         },
         {
-          "id": "alphonse_r",
+          "id": "alphonse",
           "name": "Alphonse Elric",
           "series": "Fullmetal Alchemist: Brotherhood",
           "rarity": "R",
@@ -1373,7 +1373,7 @@
           "obtainedAt": "2026-04-01T09:25:11.634Z"
         },
         {
-          "id": "josuke_e",
+          "id": "josuke",
           "name": "Josuke Higashikata",
           "series": "JoJo's Bizarre Adventure",
           "rarity": "E",
@@ -1381,7 +1381,7 @@
           "obtainedAt": "2026-04-01T09:25:11.634Z"
         },
         {
-          "id": "asta_r",
+          "id": "asta",
           "name": "Asta",
           "series": "Black Clover",
           "rarity": "R",
@@ -1389,7 +1389,7 @@
           "obtainedAt": "2026-04-01T09:25:11.634Z"
         },
         {
-          "id": "erza_r",
+          "id": "erza",
           "name": "Erza Scarlet",
           "series": "Fairy Tail",
           "rarity": "R",
@@ -1397,7 +1397,7 @@
           "obtainedAt": "2026-04-01T09:25:11.634Z"
         },
         {
-          "id": "chopper_r",
+          "id": "chopper",
           "name": "Tony Tony Chopper",
           "series": "One Piece",
           "rarity": "R",
@@ -1405,7 +1405,7 @@
           "obtainedAt": "2026-04-01T09:25:11.634Z"
         },
         {
-          "id": "ichigo_r",
+          "id": "ichigo",
           "name": "Ichigo Kurosaki",
           "series": "Bleach",
           "rarity": "R",
@@ -1413,7 +1413,7 @@
           "obtainedAt": "2026-04-01T09:25:11.634Z"
         },
         {
-          "id": "armstrong_e",
+          "id": "armstrong",
           "name": "Alex Louis Armstrong",
           "series": "Fullmetal Alchemist: Brotherhood",
           "rarity": "E",
@@ -1421,7 +1421,7 @@
           "obtainedAt": "2026-04-01T09:25:11.634Z"
         },
         {
-          "id": "cloud_r",
+          "id": "cloud",
           "name": "Cloud Strife",
           "series": "Final Fantasy VII",
           "rarity": "R",
@@ -1429,7 +1429,7 @@
           "obtainedAt": "2026-04-01T09:25:11.634Z"
         },
         {
-          "id": "power_r",
+          "id": "power",
           "name": "Power",
           "series": "Chainsaw Man",
           "rarity": "R",
@@ -1437,7 +1437,7 @@
           "obtainedAt": "2026-04-01T09:25:11.634Z"
         },
         {
-          "id": "eren_r",
+          "id": "eren",
           "name": "Eren Yeager",
           "series": "Attack on Titan",
           "rarity": "R",
@@ -1445,7 +1445,7 @@
           "obtainedAt": "2026-04-01T09:25:42.174Z"
         },
         {
-          "id": "nobara_r",
+          "id": "nobara",
           "name": "Nobara Kugisaki",
           "series": "Jujutsu Kaisen",
           "rarity": "R",
@@ -1453,7 +1453,7 @@
           "obtainedAt": "2026-04-01T09:25:42.175Z"
         },
         {
-          "id": "kirito_r",
+          "id": "kirito",
           "name": "Kirito",
           "series": "Sword Art Online",
           "rarity": "R",
@@ -1461,7 +1461,7 @@
           "obtainedAt": "2026-04-01T09:25:42.175Z"
         },
         {
-          "id": "renji_r",
+          "id": "renji",
           "name": "Renji Abarai",
           "series": "Bleach",
           "rarity": "R",
@@ -1469,7 +1469,7 @@
           "obtainedAt": "2026-04-01T09:25:42.175Z"
         },
         {
-          "id": "rukia_r",
+          "id": "rukia",
           "name": "Rukia Kuchiki",
           "series": "Bleach",
           "rarity": "R",
@@ -1477,7 +1477,7 @@
           "obtainedAt": "2026-04-01T09:25:42.175Z"
         },
         {
-          "id": "gon_r",
+          "id": "gon",
           "name": "Gon Freecss",
           "series": "Hunter x Hunter",
           "rarity": "R",
@@ -1485,7 +1485,7 @@
           "obtainedAt": "2026-04-01T09:25:42.175Z"
         },
         {
-          "id": "zenitsu_r",
+          "id": "zenitsu",
           "name": "Zenitsu Agatsuma",
           "series": "Demon Slayer",
           "rarity": "R",
@@ -1493,7 +1493,7 @@
           "obtainedAt": "2026-04-01T09:25:42.175Z"
         },
         {
-          "id": "yuno_r",
+          "id": "yuno",
           "name": "Yuno",
           "series": "Black Clover",
           "rarity": "R",
@@ -1501,7 +1501,7 @@
           "obtainedAt": "2026-04-01T09:25:42.175Z"
         },
         {
-          "id": "tanjiro_r",
+          "id": "tanjiro",
           "name": "Tanjiro Kamado",
           "series": "Demon Slayer",
           "rarity": "R",
@@ -1509,7 +1509,7 @@
           "obtainedAt": "2026-04-01T09:25:42.175Z"
         },
         {
-          "id": "yami_e",
+          "id": "yami",
           "name": "Yami Sukehiro",
           "series": "Black Clover",
           "rarity": "E",
@@ -1517,7 +1517,7 @@
           "obtainedAt": "2026-04-01T09:25:42.175Z"
         },
         {
-          "id": "winry_r",
+          "id": "winry",
           "name": "Winry Rockbell",
           "series": "Fullmetal Alchemist: Brotherhood",
           "rarity": "R",
@@ -1525,7 +1525,7 @@
           "obtainedAt": "2026-04-01T09:25:44.132Z"
         },
         {
-          "id": "deku_r",
+          "id": "deku",
           "name": "Izuku Midoriya",
           "series": "My Hero Academia",
           "rarity": "R",
@@ -1533,7 +1533,7 @@
           "obtainedAt": "2026-04-01T09:25:44.132Z"
         },
         {
-          "id": "usopp_r",
+          "id": "usopp",
           "name": "Usopp",
           "series": "One Piece",
           "rarity": "R",
@@ -1541,7 +1541,7 @@
           "obtainedAt": "2026-04-01T09:25:44.132Z"
         },
         {
-          "id": "reigen_r",
+          "id": "reigen",
           "name": "Reigen Arataka",
           "series": "Mob Psycho 100",
           "rarity": "R",
@@ -1549,7 +1549,7 @@
           "obtainedAt": "2026-04-01T09:25:44.132Z"
         },
         {
-          "id": "orihime_r",
+          "id": "orihime",
           "name": "Orihime Inoue",
           "series": "Bleach",
           "rarity": "R",
@@ -1557,7 +1557,7 @@
           "obtainedAt": "2026-04-01T09:25:44.132Z"
         },
         {
-          "id": "yor_r",
+          "id": "yor",
           "name": "Yor Forger",
           "series": "Spy x Family",
           "rarity": "R",
@@ -1565,7 +1565,7 @@
           "obtainedAt": "2026-04-01T09:25:44.132Z"
         },
         {
-          "id": "nami_r",
+          "id": "nami",
           "name": "Nami",
           "series": "One Piece",
           "rarity": "R",
@@ -1573,7 +1573,7 @@
           "obtainedAt": "2026-04-01T09:25:52.719Z"
         },
         {
-          "id": "sukuna_my",
+          "id": "sukuna",
           "name": "Ryomen Sukuna",
           "series": "Jujutsu Kaisen",
           "rarity": "MY",
@@ -1581,7 +1581,7 @@
           "obtainedAt": "2026-04-01T09:25:52.719Z"
         },
         {
-          "id": "jotaro_e",
+          "id": "jotaro",
           "name": "Jotaro Kujo",
           "series": "JoJo's Bizarre Adventure",
           "rarity": "E",
@@ -1589,7 +1589,7 @@
           "obtainedAt": "2026-04-01T09:25:52.719Z"
         },
         {
-          "id": "killua_e",
+          "id": "killua",
           "name": "Killua Zoldyck",
           "series": "Hunter x Hunter",
           "rarity": "E",
@@ -1597,7 +1597,7 @@
           "obtainedAt": "2026-04-01T09:25:52.719Z"
         },
         {
-          "id": "makima_e",
+          "id": "makima",
           "name": "Makima",
           "series": "Chainsaw Man",
           "rarity": "E",
@@ -1605,7 +1605,7 @@
           "obtainedAt": "2026-04-01T09:25:52.719Z"
         },
         {
-          "id": "inuyasha_r",
+          "id": "inuyasha",
           "name": "Inuyasha",
           "series": "Inuyasha",
           "rarity": "R",
@@ -1614,34 +1614,34 @@
         }
       ],
       "characterShards": {
-        "gintoki_r": 2,
-        "spike_r": 1,
-        "uryu_r": 4,
-        "noriaki_r": 4,
-        "emilia_r": 2,
-        "robin_r": 3,
-        "edward_r": 2,
-        "natsu_r": 2,
-        "renji_r": 2,
-        "kirito_r": 1,
-        "link_r": 2,
-        "luffy_r": 1,
-        "alphonse_r": 1,
-        "power_r": 2,
-        "noelle_r": 1,
-        "rukia_r": 1,
-        "cloud_r": 1,
-        "itadori_r": 3,
-        "josuke_e": 1,
-        "erza_r": 2,
-        "gray_r": 1,
-        "gon_r": 1,
-        "naruto_r": 1,
-        "nezuko_r": 1,
-        "asta_r": 2,
-        "zenitsu_r": 1,
-        "yusuke_r": 1,
-        "deku_r": 1
+        "gintoki": 2,
+        "spike": 1,
+        "uryu": 4,
+        "noriaki": 4,
+        "emilia": 2,
+        "robin": 3,
+        "edward": 2,
+        "natsu": 2,
+        "renji": 2,
+        "kirito": 1,
+        "link": 2,
+        "luffy": 1,
+        "alphonse": 1,
+        "power": 2,
+        "noelle": 1,
+        "rukia": 1,
+        "cloud": 1,
+        "itadori": 3,
+        "josuke": 1,
+        "erza": 2,
+        "gray": 1,
+        "gon": 1,
+        "naruto": 1,
+        "nezuko": 1,
+        "asta": 2,
+        "zenitsu": 1,
+        "yusuke": 1,
+        "deku": 1
       },
       "platings": {},
       "team": [],
@@ -1652,7 +1652,7 @@
     "893911945374203994": {
       "cards": [
         {
-          "id": "subaru_r",
+          "id": "subaru",
           "name": "Subaru Natsuki",
           "series": "Re:Zero",
           "rarity": "R",
@@ -1660,7 +1660,7 @@
           "obtainedAt": "2026-04-01T09:37:35.087Z"
         },
         {
-          "id": "l_r",
+          "id": "l",
           "name": "L Lawliet",
           "series": "Death Note",
           "rarity": "R",
@@ -1668,7 +1668,7 @@
           "obtainedAt": "2026-04-01T09:37:41.283Z"
         },
         {
-          "id": "nami_r",
+          "id": "nami",
           "name": "Nami",
           "series": "One Piece",
           "rarity": "R",
@@ -1676,7 +1676,7 @@
           "obtainedAt": "2026-04-01T09:38:08.569Z"
         },
         {
-          "id": "natsu_r",
+          "id": "natsu",
           "name": "Natsu Dragneel",
           "series": "Fairy Tail",
           "rarity": "R",
@@ -1684,7 +1684,7 @@
           "obtainedAt": "2026-04-01T09:38:23.482Z"
         },
         {
-          "id": "sephiroth_e",
+          "id": "sephiroth",
           "name": "Sephiroth",
           "series": "Final Fantasy VII",
           "rarity": "E",
@@ -1692,7 +1692,7 @@
           "obtainedAt": "2026-04-01T09:38:29.434Z"
         },
         {
-          "id": "emilia_r",
+          "id": "emilia",
           "name": "Emilia",
           "series": "Re:Zero",
           "rarity": "R",
@@ -1700,7 +1700,7 @@
           "obtainedAt": "2026-04-01T09:38:42.043Z"
         },
         {
-          "id": "yusuke_r",
+          "id": "yusuke",
           "name": "Yusuke Urameshi",
           "series": "Yu Yu Hakusho",
           "rarity": "R",
@@ -1708,7 +1708,7 @@
           "obtainedAt": "2026-04-01T09:38:47.268Z"
         },
         {
-          "id": "dio_wr_ur",
+          "id": "dio_wr",
           "name": "DIO (The World)",
           "series": "JoJo's Bizarre Adventure",
           "rarity": "UR",
@@ -1716,7 +1716,7 @@
           "obtainedAt": "2026-04-01T09:39:04.785Z"
         },
         {
-          "id": "rem_e",
+          "id": "rem",
           "name": "Rem",
           "series": "Re:Zero",
           "rarity": "E",
@@ -1724,7 +1724,7 @@
           "obtainedAt": "2026-04-01T09:39:32.136Z"
         },
         {
-          "id": "caesar_r",
+          "id": "caesar",
           "name": "Caesar Zeppeli",
           "series": "JoJo's Bizarre Adventure",
           "rarity": "R",
@@ -1732,7 +1732,7 @@
           "obtainedAt": "2026-04-01T09:39:38.518Z"
         },
         {
-          "id": "usopp_r",
+          "id": "usopp",
           "name": "Usopp",
           "series": "One Piece",
           "rarity": "R",
@@ -1740,7 +1740,7 @@
           "obtainedAt": "2026-04-01T09:39:44.518Z"
         },
         {
-          "id": "erza_r",
+          "id": "erza",
           "name": "Erza Scarlet",
           "series": "Fairy Tail",
           "rarity": "R",
@@ -1748,7 +1748,7 @@
           "obtainedAt": "2026-04-01T09:39:51.351Z"
         },
         {
-          "id": "gintoki_r",
+          "id": "gintoki",
           "name": "Gintoki Sakata",
           "series": "Gintama",
           "rarity": "R",
@@ -1756,7 +1756,7 @@
           "obtainedAt": "2026-04-01T09:40:11.653Z"
         },
         {
-          "id": "denji_r",
+          "id": "denji",
           "name": "Denji",
           "series": "Chainsaw Man",
           "rarity": "R",
@@ -1764,7 +1764,7 @@
           "obtainedAt": "2026-04-01T09:40:20.209Z"
         },
         {
-          "id": "spike_r",
+          "id": "spike",
           "name": "Spike Spiegel",
           "series": "Cowboy Bebop",
           "rarity": "R",
@@ -1772,7 +1772,7 @@
           "obtainedAt": "2026-04-01T09:40:28.142Z"
         },
         {
-          "id": "itadori_r",
+          "id": "itadori",
           "name": "Yuji Itadori",
           "series": "Jujutsu Kaisen",
           "rarity": "R",
@@ -1780,7 +1780,7 @@
           "obtainedAt": "2026-04-01T09:40:32.060Z"
         },
         {
-          "id": "chopper_r",
+          "id": "chopper",
           "name": "Tony Tony Chopper",
           "series": "One Piece",
           "rarity": "R",
@@ -1788,7 +1788,7 @@
           "obtainedAt": "2026-04-01T09:40:42.415Z"
         },
         {
-          "id": "zenitsu_r",
+          "id": "zenitsu",
           "name": "Zenitsu Agatsuma",
           "series": "Demon Slayer",
           "rarity": "R",
@@ -1796,7 +1796,7 @@
           "obtainedAt": "2026-04-01T09:40:56.488Z"
         },
         {
-          "id": "gray_r",
+          "id": "gray",
           "name": "Gray Fullbuster",
           "series": "Fairy Tail",
           "rarity": "R",
@@ -1804,7 +1804,7 @@
           "obtainedAt": "2026-04-01T09:40:59.387Z"
         },
         {
-          "id": "yor_r",
+          "id": "yor",
           "name": "Yor Forger",
           "series": "Spy x Family",
           "rarity": "R",
@@ -1813,10 +1813,10 @@
         }
       ],
       "characterShards": {
-        "subaru_r": 2,
-        "nami_r": 2,
-        "emilia_r": 1,
-        "chopper_r": 1
+        "subaru": 2,
+        "nami": 2,
+        "emilia": 1,
+        "chopper": 1
       },
       "platings": {},
       "team": [],
