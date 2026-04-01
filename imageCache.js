@@ -67,6 +67,8 @@ const SEED = {
   kratos_e:        'https://static.wikia.nocookie.net/godofwar/images/e/e9/Kratos-_GOW_Ragnarok.png/revision/latest',
   // The Legend of Zelda
   link_r:          'https://static.wikia.nocookie.net/zelda_gamepedia_en/images/4/47/TLoZ_Series_Link_Render.png/revision/latest',
+  // Chainsaw Man — Power (AniList placeholder was wrong; using MAL image)
+  power_r:         'https://myanimelist.net/images/characters/7/494969.jpg',
 };
 
 // ── AniList search terms for remaining cards ─────────────────
@@ -106,7 +108,7 @@ const SEARCH_TERMS = {
   light_r:     'Light Yagami',         l_r:         'L Lawliet',
   near_l:      'Near',
   mob_r:       'Shigeo Kageyama',      reigen_r:    'Reigen Arataka',
-  denji_r:     'Denji',                power_r:     'Power',
+  denji_r:     'Denji',
   makima_e:    'Makima',
   loid_r:      'Loid Forger',          yor_r:       'Yor Briar',
   anya_r:      'Anya Forger',

@@ -617,11 +617,27 @@
           "rarity": "R",
           "level": 1,
           "obtainedAt": "2026-04-01T08:17:24.276Z"
+        },
+        {
+          "id": "robin_r",
+          "name": "Nico Robin",
+          "series": "One Piece",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T08:32:41.586Z"
+        },
+        {
+          "id": "erza_r",
+          "name": "Erza Scarlet",
+          "series": "Fairy Tail",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T08:32:50.844Z"
         }
       ],
       "characterShards": {
         "bakugo_e": 15,
-        "link_r": 35,
+        "link_r": 36,
         "zeno_ur": 2,
         "goku_r": 25,
         "gear5_luffy_lt": 13,
@@ -652,24 +668,33 @@
         "sephiroth_e": 9,
         "itachi_l": 1,
         "natsu_r": 2,
-        "itadori_r": 3,
+        "itadori_r": 5,
         "uryu_r": 3,
         "rukia_r": 1,
-        "inuyasha_r": 3,
+        "inuyasha_r": 4,
         "noriaki_r": 1,
-        "denji_r": 2,
+        "denji_r": 3,
         "law_e": 1,
-        "chopper_r": 2,
-        "winry_r": 2,
+        "chopper_r": 3,
+        "winry_r": 3,
         "sanji_r": 1,
         "light_r": 2,
         "sukuna_fp_lt": 2,
         "usopp_r": 2,
         "nobara_r": 1,
         "kirito_r": 1,
-        "caesar_r": 1,
+        "caesar_r": 2,
         "anya_r": 1,
-        "yuno_r": 1
+        "yuno_r": 1,
+        "power_r": 2,
+        "chad_r": 1,
+        "tanjiro_r": 1,
+        "gray_r": 1,
+        "robin_r": 1,
+        "noelle_r": 1,
+        "asuna_r": 1,
+        "kurama_e": 1,
+        "nami_r": 1
       },
       "platings": {
         "diamond": 4,
@@ -827,7 +852,7 @@
   "pullCharges": {
     "833025999897755689": {
       "charges": 0,
-      "lastRefill": 1775031417449
+      "lastRefill": 1775032347449
     },
     "921838182927040602": {
       "charges": 0,
