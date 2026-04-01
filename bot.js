@@ -44,13 +44,7 @@
 //    ZP duoadd @user                        – invite a player to your duo
 //    ZP duoremove                           – disband your duo
 //    ZP help  (h)                           – show all commands
-//  Server Admin:
-//    ZP setup                               – set this channel as the bot channel
-//    ZP limit #channel                      – restrict bot to a channel
-//    ZP limitremove                         – remove channel restriction
-//    ZP allow <command>                     – allow a command in this server
-//    ZP disallow <command>                  – disallow a command in this server
-//  Bot Admin (user 833025999897755689):
+//  Admin (user 833025999897755689):
 //    ZP setrarity <rarity|reset>
 //    ZP setplating <tier|reset>
 //    ZP resetcooldown
@@ -64,7 +58,6 @@ require('dotenv').config();
 const {
   Client, GatewayIntentBits, EmbedBuilder,
   ActionRowBuilder, ButtonBuilder, ButtonStyle,
-  PermissionFlagsBits,
 } = require('discord.js');
 
 const config      = require('./config');
@@ -91,10 +84,6 @@ let adminRarityOverride  = null;
 let adminPlatingOverride = null;
 
 function isAdmin(userId) { return userId === ADMIN_ID; }
-
-function isServerAdmin(member) {
-  return member?.permissions?.has(PermissionFlagsBits.Administrator) ?? false;
-}
 
 function pullCardForced(rarity) {
   const pool = CARDS.filter(c => c.rarity === rarity);
@@ -857,17 +846,6 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
             ].join('\n'),
             inline: false,
           },
-          {
-            name: 'Server Admin (server administrators)',
-            value: [
-              '`ZP setup` — Mark this channel as the bot\'s main channel',
-              '`ZP limit #channel` — Restrict bot usage to a specific channel',
-              '`ZP limitremove` — Remove channel restriction',
-              '`ZP allow <command>` — Re-enable a disallowed command',
-              '`ZP disallow <command>` — Block a command from being used in this server',
-            ].join('\n'),
-            inline: false,
-          },
         )
         .setFooter({ text: `Page ${pages.length + 1} of ${pages.length + 1} • Admin only` })
     );
@@ -1088,19 +1066,6 @@ client.on('messageCreate', async (message) => {
   const command = args.shift()?.toLowerCase();
   const userId  = message.author.id;
   const guildId = message.guild?.id;
-
-  // ── Channel restriction check ─────────────────────────────
-  if (guildId) {
-    const guildInv  = inv.loadInventory();
-    const gSettings = inv.getGuildSettings(guildInv, guildId);
-    if (gSettings.allowedChannels.length > 0 && !gSettings.allowedChannels.includes(message.channel.id)) {
-      const allowed = gSettings.allowedChannels.map(id => `<#${id}>`).join(', ');
-      return message.reply(`This bot is currently restricted to: ${allowed}`).then(m => setTimeout(() => m.delete().catch(() => {}), 5000));
-    }
-    if (gSettings.disallowedCommands.includes(command)) {
-      return message.reply(`The command \`${config.PREFIX} ${command}\` is disabled in this server.`);
-    }
-  }
 
   // ── help | h ─────────────────────────────────────────────
   if (!command || command === 'help' || command === 'h') {
@@ -2702,86 +2667,6 @@ client.on('messageCreate', async (message) => {
     inv.saveInventory(inventory);
 
     return message.reply(`Your duo partnership has been disbanded.`);
-  }
-
-  // ── Server Admin commands ─────────────────────────────────
-
-  // ── setup ─────────────────────────────────────────────────
-  if (command === 'setup') {
-    if (!isServerAdmin(message.member)) {
-      return message.reply('Only server administrators can use this command.');
-    }
-
-    const inventory = inv.loadInventory();
-    inv.addAllowedChannel(inventory, guildId, message.channel.id);
-    inv.saveInventory(inventory);
-
-    return message.reply(`This channel has been set up as an allowed bot channel. Use \`ZP limit #channel\` to restrict to a specific channel.`);
-  }
-
-  // ── limit ─────────────────────────────────────────────────
-  if (command === 'limit') {
-    if (!isServerAdmin(message.member)) {
-      return message.reply('Only server administrators can use this command.');
-    }
-
-    const channel = message.mentions.channels.first();
-    if (!channel) return message.reply('Usage: `ZP limit #channel` — restrict bot usage to a specific channel.');
-
-    const inventory = inv.loadInventory();
-    inv.clearAllowedChannels(inventory, guildId);
-    inv.addAllowedChannel(inventory, guildId, channel.id);
-    inv.saveInventory(inventory);
-
-    return message.reply(`Bot usage has been restricted to <#${channel.id}>. Only commands sent there will be processed.`);
-  }
-
-  // ── limitremove ───────────────────────────────────────────
-  if (command === 'limitremove') {
-    if (!isServerAdmin(message.member)) {
-      return message.reply('Only server administrators can use this command.');
-    }
-
-    const inventory = inv.loadInventory();
-    inv.clearAllowedChannels(inventory, guildId);
-    inv.saveInventory(inventory);
-
-    return message.reply('Channel restriction removed. The bot can now be used in any channel.');
-  }
-
-  // ── allow ─────────────────────────────────────────────────
-  if (command === 'allow') {
-    if (!isServerAdmin(message.member)) {
-      return message.reply('Only server administrators can use this command.');
-    }
-
-    const cmd = args[0]?.toLowerCase();
-    if (!cmd) return message.reply('Usage: `ZP allow <command>` — re-enable a previously disallowed command.');
-
-    const inventory = inv.loadInventory();
-    inv.allowCommand(inventory, guildId, cmd);
-    inv.saveInventory(inventory);
-
-    return message.reply(`Command \`${config.PREFIX} ${cmd}\` is now allowed in this server.`);
-  }
-
-  // ── disallow ──────────────────────────────────────────────
-  if (command === 'disallow') {
-    if (!isServerAdmin(message.member)) {
-      return message.reply('Only server administrators can use this command.');
-    }
-
-    const cmd = args[0]?.toLowerCase();
-    if (!cmd) return message.reply('Usage: `ZP disallow <command>` — block a command from being used in this server.');
-    if (['disallow', 'allow', 'setup', 'limit', 'limitremove'].includes(cmd)) {
-      return message.reply(`You cannot disallow admin configuration commands.`);
-    }
-
-    const inventory = inv.loadInventory();
-    inv.disallowCommand(inventory, guildId, cmd);
-    inv.saveInventory(inventory);
-
-    return message.reply(`Command \`${config.PREFIX} ${cmd}\` is now disabled in this server.`);
   }
 
   // ── Bot Admin commands ─────────────────────────────────────

@@ -70,13 +70,6 @@ The bot runs via the "Start application" workflow (`node bot.js`). Requires a `D
 - `ZP privacy` — Toggle profile privacy
 - `ZP help` / `ZP h` — Show all commands
 
-### Server Admin
-- `ZP setup` — Set current channel as bot channel
-- `ZP limit #channel` — Restrict bot to a channel
-- `ZP limitremove` — Remove channel restriction
-- `ZP allow <command>` — Re-enable a disallowed command
-- `ZP disallow <command>` — Block a command in this server
-
 ### Bot Admin (owner only)
 - `ZP setrarity`, `ZP setplating`, `ZP resetcooldown`
 - `ZP giveyen`, `ZP givestars`, `ZP givecandytokens`, `ZP giveitem`
