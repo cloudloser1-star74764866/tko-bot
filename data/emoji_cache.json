@@ -227,10 +227,6 @@
     "name": "albedo_e",
     "id": "1488818316507222047"
   },
-  "near_l": {
-    "name": "near_l",
-    "id": "1488818319971713045"
-  },
   "sasuke_e": {
     "name": "sasuke_e",
     "id": "1488818323557978162"
@@ -306,10 +302,6 @@
   "julius_e": {
     "name": "julius_e",
     "id": "1488818385876680755"
-  },
-  "rengoku_e": {
-    "name": "rengoku_e",
-    "id": "1488818389324398592"
   },
   "tengen_e": {
     "name": "tengen_e",

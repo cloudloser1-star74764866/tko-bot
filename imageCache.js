@@ -69,6 +69,10 @@ const SEED = {
   link_r:          'https://static.wikia.nocookie.net/zelda_gamepedia_en/images/4/47/TLoZ_Series_Link_Render.png/revision/latest',
   // Chainsaw Man — Power (AniList placeholder was wrong; using MAL image)
   power_r:         'https://myanimelist.net/images/characters/7/494969.jpg',
+  // Demon Slayer — Rengoku (cached MAL URL was wrong character; fixed)
+  rengoku_e:       'https://myanimelist.net/images/characters/10/423443.jpg',
+  // Death Note — Near (cached MAL URL was for a different character 'Nir'; fixed)
+  near_l:          'https://myanimelist.net/images/characters/13/77339.jpg',
 };
 
 // ── AniList search terms for remaining cards ─────────────────
@@ -89,7 +93,7 @@ const SEARCH_TERMS = {
   allmight_l:  'All Might',            eren_r:      'Eren Yeager',
   tanjiro_r:   'Tanjiro Kamado',       nezuko_r:    'Nezuko Kamado',
   zenitsu_r:   'Zenitsu Agatsuma',     inosuke_r:   'Inosuke Hashibira',
-  rengoku_e:   'Kyojuro Rengoku',      tengen_e:    'Tengen Uzui',
+  tengen_e:    'Tengen Uzui',
   muzan_my:    'Muzan Kibutsuji',
   edward_r:    'Edward Elric',         alphonse_r:  'Alphonse Elric',
   winry_r:     'Winry Rockbell',       roy_e:       'Roy Mustang',
@@ -106,7 +110,6 @@ const SEARCH_TERMS = {
   gildarts_e:  'Gildarts Clive',       mavis_l:     'Mavis Vermillion',
   acnologia_my:'Acnologia',
   light_r:     'Light Yagami',         l_r:         'L Lawliet',
-  near_l:      'Near',
   mob_r:       'Shigeo Kageyama',      reigen_r:    'Reigen Arataka',
   denji_r:     'Denji',
   makima_e:    'Makima',
