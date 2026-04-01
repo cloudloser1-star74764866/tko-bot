@@ -1198,20 +1198,152 @@
           "rarity": "E",
           "obtainedAt": "2026-04-01T00:42:26.610Z",
           "level": 1
+        },
+        {
+          "id": "noriaki",
+          "name": "Noriaki Kakyoin",
+          "series": "JoJo's Bizarre Adventure",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:09:23.455Z"
+        },
+        {
+          "id": "emilia",
+          "name": "Emilia",
+          "series": "Re:Zero",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:09:23.455Z"
+        },
+        {
+          "id": "noelle",
+          "name": "Noelle Silva",
+          "series": "Black Clover",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:09:23.455Z"
+        },
+        {
+          "id": "tanjiro",
+          "name": "Tanjiro Kamado",
+          "series": "Demon Slayer",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:09:23.456Z"
+        },
+        {
+          "id": "sakura",
+          "name": "Sakura Haruno",
+          "series": "Naruto",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:09:23.456Z"
+        },
+        {
+          "id": "caesar",
+          "name": "Caesar Zeppeli",
+          "series": "JoJo's Bizarre Adventure",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:09:23.456Z"
+        },
+        {
+          "id": "asta",
+          "name": "Asta",
+          "series": "Black Clover",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:09:23.456Z"
+        },
+        {
+          "id": "robin",
+          "name": "Nico Robin",
+          "series": "One Piece",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:09:23.456Z"
+        },
+        {
+          "id": "zenitsu",
+          "name": "Zenitsu Agatsuma",
+          "series": "Demon Slayer",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:09:23.456Z"
+        },
+        {
+          "id": "ippo",
+          "name": "Makunouchi Ippo",
+          "series": "Hajime no Ippo",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:09:23.456Z"
+        },
+        {
+          "id": "eren",
+          "name": "Eren Yeager",
+          "series": "Attack on Titan",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:09:23.456Z"
+        },
+        {
+          "id": "power",
+          "name": "Power",
+          "series": "Chainsaw Man",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:09:23.456Z"
+        },
+        {
+          "id": "rukia",
+          "name": "Rukia Kuchiki",
+          "series": "Bleach",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:09:23.456Z"
+        },
+        {
+          "id": "winry",
+          "name": "Winry Rockbell",
+          "series": "Fullmetal Alchemist: Brotherhood",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:09:23.456Z"
+        },
+        {
+          "id": "gintoki",
+          "name": "Gintoki Sakata",
+          "series": "Gintama",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:09:23.456Z"
         }
       ],
       "characterShards": {
         "itachi": 1,
-        "goku": 3,
-        "sephiroth": 1,
+        "goku": 4,
+        "sephiroth": 2,
         "link": 1,
-        "hisoka": 1
+        "hisoka": 1,
+        "noelle": 1,
+        "killua": 1,
+        "sakura": 1
       },
       "platings": {},
       "yen": 101,
       "stars": 0,
       "team": [],
-      "candyTokens": 67
+      "candyTokens": 67,
+      "items": {},
+      "wish": null,
+      "levelCaps": {},
+      "prestigePoints": {},
+      "privacy": false,
+      "clanId": null,
+      "duoId": null,
+      "totalPulls": 20,
+      "totalKills": 0
     },
     "724025924378427535": {
       "cards": [
@@ -2500,73 +2632,164 @@
           "rarity": "E",
           "level": 1,
           "obtainedAt": "2026-04-01T11:37:24.589Z"
+        },
+        {
+          "id": "law",
+          "name": "Trafalgar D. Water Law",
+          "series": "One Piece",
+          "rarity": "E",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:09:11.760Z"
+        },
+        {
+          "id": "gojo",
+          "name": "Satoru Gojo",
+          "series": "Jujutsu Kaisen",
+          "rarity": "E",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:09:29.099Z"
+        },
+        {
+          "id": "giorno",
+          "name": "Giorno Giovanna",
+          "series": "JoJo's Bizarre Adventure",
+          "rarity": "E",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:09:29.100Z"
+        },
+        {
+          "id": "robin",
+          "name": "Nico Robin",
+          "series": "One Piece",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:09:50.796Z"
+        },
+        {
+          "id": "genos",
+          "name": "Genos",
+          "series": "One Punch Man",
+          "rarity": "L",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:09:50.796Z"
+        },
+        {
+          "id": "escanor",
+          "name": "Escanor",
+          "series": "The Seven Deadly Sins",
+          "rarity": "MY",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:09:56.379Z"
+        },
+        {
+          "id": "yhwach",
+          "name": "Yhwach",
+          "series": "Bleach",
+          "rarity": "MY",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:10:01.202Z"
+        },
+        {
+          "id": "tengen",
+          "name": "Tengen Uzui",
+          "series": "Demon Slayer",
+          "rarity": "E",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:10:01.202Z"
         }
       ],
       "characterShards": {
-        "usopp": 7,
-        "gray": 4,
-        "edward": 2,
-        "zenitsu": 5,
-        "rukia": 4,
-        "spike": 2,
-        "eren": 3,
-        "sagiri": 3,
-        "yusuke": 4,
-        "orihime": 2,
+        "usopp": 8,
+        "gray": 5,
+        "edward": 5,
+        "zenitsu": 6,
+        "rukia": 5,
+        "spike": 4,
+        "eren": 8,
+        "sagiri": 4,
+        "yusuke": 7,
+        "orihime": 3,
         "l": 6,
-        "naruto": 4,
+        "naruto": 7,
         "winry": 2,
-        "nezuko": 3,
-        "inuyasha": 2,
-        "nobara": 3,
-        "tanjiro": 6,
-        "joseph": 2,
-        "deku": 1,
-        "renji": 3,
-        "luffy": 2,
+        "nezuko": 4,
+        "inuyasha": 5,
+        "nobara": 5,
+        "tanjiro": 12,
+        "joseph": 4,
+        "deku": 5,
+        "renji": 5,
+        "luffy": 4,
         "sanji": 3,
-        "asuna": 2,
-        "caesar": 2,
-        "chad": 1,
-        "anya": 1,
-        "nami": 2,
+        "asuna": 4,
+        "caesar": 4,
+        "chad": 2,
+        "anya": 2,
+        "nami": 3,
         "noriaki": 1,
-        "erza": 2,
-        "denji": 2,
+        "erza": 3,
+        "denji": 4,
         "chopper": 2,
-        "mob": 2,
-        "itadori": 2,
-        "kirito": 1,
-        "loid": 2,
-        "reigen": 1,
-        "yuno": 1,
+        "mob": 5,
+        "itadori": 4,
+        "kirito": 3,
+        "loid": 3,
+        "reigen": 3,
+        "yuno": 3,
         "alphonse": 1,
-        "yor": 1,
+        "yor": 6,
         "roy": 1,
         "ippo": 2,
-        "okabe": 1,
-        "gon": 1,
-        "power": 1,
-        "asta": 1,
-        "pikachu": 1,
-        "cloud": 1,
-        "ichigo": 1
+        "okabe": 5,
+        "gon": 4,
+        "power": 2,
+        "asta": 3,
+        "pikachu": 3,
+        "cloud": 2,
+        "ichigo": 2,
+        "todo": 1,
+        "emilia": 2,
+        "light": 3,
+        "goku": 5,
+        "muzan": 1,
+        "sakura": 2,
+        "sebastian": 1,
+        "albedo": 1,
+        "link": 3,
+        "subaru": 2,
+        "noelle": 3,
+        "uryu": 2,
+        "kamina": 1,
+        "robin": 1,
+        "josuke": 1,
+        "natsu": 2,
+        "whitebeard": 1,
+        "rengoku": 1,
+        "joyboy": 1,
+        "shanks": 1
       },
-      "platings": {},
-      "team": [],
+      "platings": {
+        "silver": 1
+      },
+      "team": [
+        {
+          "cardId": "joyboy",
+          "plating": null
+        }
+      ],
       "yen": 6767,
       "stars": 0,
-      "candyTokens": 62,
+      "candyTokens": 57,
       "wish": {
-        "cardId": "goku",
-        "pullCount": 100
+        "cardId": "sukuna",
+        "pullCount": 7
       },
       "levelCaps": {},
       "prestigePoints": {},
       "privacy": false,
       "clanId": null,
       "duoId": null,
-      "totalPulls": 287,
+      "totalPulls": 521,
       "totalKills": 0,
       "items": {}
     }
@@ -2578,7 +2801,7 @@
     },
     "921838182927040602": {
       "charges": 0,
-      "lastRefill": 1775004169294
+      "lastRefill": 1775045359294
     },
     "724025924378427535": {
       "charges": 0,
@@ -2590,7 +2813,7 @@
     },
     "689152429341933780": {
       "charges": 0,
-      "lastRefill": 1775043438629
+      "lastRefill": 1775045621283
     }
   },
   "clans": {},

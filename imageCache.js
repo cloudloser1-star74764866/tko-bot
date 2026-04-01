@@ -82,7 +82,7 @@ const SEED = {
   // Demon Slayer — Tanjiro
   tanjiro_r:       'https://s4.anilist.co/file/anilistcdn/character/large/b127216-WV2YX8OHdvVq.png',
   // Jujutsu Kaisen — Sukuna
-  sukuna_my:       'https://s4.anilist.co/file/anilistcdn/character/large/b127215-wd0O99BrxNku.png',
+  sukuna_my:       'https://static.wikia.nocookie.net/jujutsu-kaisen/images/b/bc/Ryomen_Sukuna_anime_design.png/revision/latest',
   // Sword Art Online — Asuna
   asuna_r:         'https://s4.anilist.co/file/anilistcdn/character/large/b36828-S2kOnUSJO6jZ.png',
   // Cowboy Bebop — Spike
