@@ -496,14 +496,36 @@ function singlePullEmbed(card, isDupe, plating, chargeInfo, authorUsername) {
  */
 function allPullEmbed(results, charges, withReset, authorUsername, overrideNote) {
   // Numbered list lines
-  const lines = results.map((r, idx) => {
-    const m         = rarityMeta(r.card.rarity);
-    const cardEmoji = emojiCache.getEmoji(r.card.id) ?? '';
+  // Group results by card so duplicates are shown as "x3 CardName"
+  const grouped = new Map();
+  for (const r of results) {
+    if (!grouped.has(r.card.id)) {
+      grouped.set(r.card.id, { card: r.card, newCount: 0, dupeCount: 0, platings: [] });
+    }
+    const g = grouped.get(r.card.id);
+    if (r.isDupe) g.dupeCount++; else g.newCount++;
+    if (r.plating) g.platings.push(r.plating);
+  }
+
+  const lines = [];
+  let lineNum = 1;
+  for (const [, g] of grouped) {
+    const m         = rarityMeta(g.card.rarity);
+    const cardEmoji = emojiCache.getEmoji(g.card.id) ?? '';
+    const total     = g.newCount + g.dupeCount;
     const emojiSuffix = cardEmoji ? ` ${cardEmoji}` : '';
-    const outcome   = r.isDupe ? `${cardEmoji ? cardEmoji + ' ' : ''}Shard Obtained` : '✨ New!';
-    const plt       = r.plating ? `  ${r.plating.emoji} ${r.plating.label} Plating!` : '';
-    return `**${idx + 1}** ${m.emoji} x1 **${r.card.name}**${emojiSuffix}\n${outcome}${plt}`;
-  });
+
+    const outcomeParts = [];
+    if (g.newCount > 0)   outcomeParts.push('✨ New!');
+    if (g.dupeCount > 0)  outcomeParts.push(`${cardEmoji ? cardEmoji + ' ' : ''}${g.dupeCount} Shard${g.dupeCount === 1 ? '' : 's'}`);
+    const outcomeLine = outcomeParts.join(' • ');
+
+    const platingStr = g.platings.map(p => `${p.emoji} ${p.label} Plating!`).join('  ');
+    const platingPart = platingStr ? `  ${platingStr}` : '';
+
+    lines.push(`**${lineNum}** ${m.emoji} x${total} **${g.card.name}**${emojiSuffix}\n${outcomeLine}${platingPart}`);
+    lineNum++;
+  }
 
   // Color: highest plating dropped, or teal
   const platings = results.map(r => r.plating).filter(Boolean);
