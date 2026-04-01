@@ -410,16 +410,16 @@ client.on('messageCreate', async (message) => {
         {
           name: '`ZP trade @user <offer> [for <ask>]`',
           value: [
-            'Send a trade or free gift. Omit `for <ask>` to give with no return.',
+            'Send a trade or free gift. Omit `for <ask>` to send an instant gift with no return.',
             '**Item formats:** `shard:<cardId>:<amount>` • `plating:<tier>:<amount>` • `yen:<amount>` • `stars:<amount>`',
             '**Examples:**',
-            '`ZP trade @Alice shard:naruto_r:3` — free gift',
-            '`ZP trade @Alice yen:500 for stars:100` — currency swap',
-            '`ZP trade @Alice shard:naruto_r:3 for plating:gold:1` — shard for plating',
+            '`ZP trade @Alice shard:naruto_r:3` — instant free gift',
+            '`ZP trade @Alice yen:500 for stars:100` — currency swap (requires acceptance)',
+            '`ZP trade @Alice shard:naruto_r:3 for plating:gold:1` — shard for plating (requires acceptance)',
           ].join('\n'),
           inline: false,
         },
-        { name: '`ZP accept <tradeId>` / `ZP a <tradeId>`',    value: 'Accept a trade or gift offer addressed to you',                                  inline: false },
+        { name: '`ZP accept <tradeId>` / `ZP a <tradeId>`',    value: 'Accept a trade offer addressed to you',                                          inline: false },
         { name: '`ZP decline <tradeId>` / `ZP dec <tradeId>`', value: 'Decline or cancel a trade',                                                      inline: false },
         { name: '`ZP trades`',                                  value: 'View pending trade/gift offers sent to you',                                     inline: false },
       )
@@ -762,16 +762,34 @@ client.on('messageCreate', async (message) => {
       return message.reply(`❌ You don't have enough to offer. You need ${describeItem(offer)}.`);
     }
 
+    // Free gifts auto-complete immediately — no pending trade needed
+    if (isFree) {
+      removeItems(inventory, userId, offer);
+      addItems(inventory, toUser.id, offer);
+      inv.saveInventory(inventory);
+
+      const embed = new EmbedBuilder()
+        .setColor(0x2ecc71)
+        .setTitle('🎁 Gift Sent!')
+        .setDescription(`**${message.author.username}** → **${toUser.username}**`)
+        .addFields(
+          { name: `${toUser.username} received`, value: describeItem(offer), inline: true },
+        )
+        .setFooter({ text: 'Gift delivered instantly!' });
+
+      return message.reply({ content: `${toUser}`, embeds: [embed] });
+    }
+
     const tradeId = trades.createTrade({ fromUserId: userId, toUserId: toUser.id, offer, ask });
 
     const embed = new EmbedBuilder()
-      .setColor(isFree ? 0x2ecc71 : 0x4A90D9)
-      .setTitle(isFree ? '🎁 Free Gift Offer Sent' : '🤝 Trade Offer Sent')
+      .setColor(0x4A90D9)
+      .setTitle('🤝 Trade Offer Sent')
       .setDescription(`**${message.author.username}** → **${toUser.username}**`)
       .addFields(
-        { name: 'Offering',   value: describeItem(offer),          inline: true },
-        { name: 'Asking for', value: ask ? describeItem(ask) : '🆓 Nothing — free!', inline: true },
-        { name: 'Trade ID',   value: `\`${tradeId}\``,             inline: true },
+        { name: 'Offering',   value: describeItem(offer),  inline: true },
+        { name: 'Asking for', value: describeItem(ask),    inline: true },
+        { name: 'Trade ID',   value: `\`${tradeId}\``,     inline: true },
       )
       .setFooter({ text: `${toUser.username}: use  ZP a ${tradeId}  or  ZP dec ${tradeId}  • Expires in 5 min` });
 
