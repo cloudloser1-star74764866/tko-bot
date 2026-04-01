@@ -1033,30 +1033,13 @@
         "todo": 1
       },
       "platings": {
-        "diamond": 4,
+        "diamond": 8,
         "bronze": 2
       },
-      "yen": 0,
-      "stars": 67,
+      "yen": 331,
+      "stars": 133,
       "candyTokens": 58,
-      "team": [
-        {
-          "cardId": "sage_naruto",
-          "plating": "diamond"
-        },
-        {
-          "cardId": "ultra_goku",
-          "plating": "diamond"
-        },
-        {
-          "cardId": "gear5_luffy",
-          "plating": "diamond"
-        },
-        {
-          "cardId": "sukuna_fp",
-          "plating": "diamond"
-        }
-      ],
+      "team": [],
       "items": {},
       "wish": {
         "cardId": "beerus",
@@ -2310,7 +2293,7 @@
           "name": "Joy Boy",
           "series": "One Piece",
           "rarity": "UR",
-          "level": 1,
+          "level": 2,
           "obtainedAt": "2026-04-01T11:07:48.784Z"
         },
         {
@@ -2696,77 +2679,187 @@
           "rarity": "E",
           "level": 1,
           "obtainedAt": "2026-04-01T12:10:01.202Z"
+        },
+        {
+          "id": "bakugo",
+          "name": "Katsuki Bakugo",
+          "series": "My Hero Academia",
+          "rarity": "E",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:20:49.644Z"
+        },
+        {
+          "id": "lelouch",
+          "name": "Lelouch vi Britannia",
+          "series": "Code Geass",
+          "rarity": "E",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:20:49.707Z"
+        },
+        {
+          "id": "sukuna",
+          "name": "Ryomen Sukuna",
+          "series": "Jujutsu Kaisen",
+          "rarity": "MY",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:20:49.739Z"
+        },
+        {
+          "id": "hiei",
+          "name": "Hiei",
+          "series": "Yu Yu Hakusho",
+          "rarity": "E",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:23:29.047Z"
+        },
+        {
+          "id": "kurapika",
+          "name": "Kurapika",
+          "series": "Hunter x Hunter",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:23:35.158Z"
+        },
+        {
+          "id": "armstrong",
+          "name": "Alex Louis Armstrong",
+          "series": "Fullmetal Alchemist: Brotherhood",
+          "rarity": "E",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:23:35.158Z"
+        },
+        {
+          "id": "zoro",
+          "name": "Roronoa Zoro",
+          "series": "One Piece",
+          "rarity": "E",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:23:44.923Z"
+        },
+        {
+          "id": "sasuke",
+          "name": "Sasuke Uchiha",
+          "series": "Naruto",
+          "rarity": "E",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:24:00.081Z"
+        },
+        {
+          "id": "near",
+          "name": "Near",
+          "series": "Death Note",
+          "rarity": "L",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:24:06.309Z"
+        },
+        {
+          "id": "blackbeard",
+          "name": "Marshall D. Teach",
+          "series": "One Piece",
+          "rarity": "UR",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:24:38.842Z"
+        },
+        {
+          "id": "beerus",
+          "name": "Beerus",
+          "series": "Dragon Ball Super",
+          "rarity": "MY",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:24:38.842Z"
+        },
+        {
+          "id": "netero",
+          "name": "Isaac Netero",
+          "series": "Hunter x Hunter",
+          "rarity": "L",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:24:38.842Z"
+        },
+        {
+          "id": "dio",
+          "name": "Dio Brando",
+          "series": "JoJo's Bizarre Adventure",
+          "rarity": "L",
+          "level": 1,
+          "obtainedAt": "2026-04-01T12:24:55.280Z"
         }
       ],
       "characterShards": {
-        "usopp": 8,
-        "gray": 5,
-        "edward": 5,
-        "zenitsu": 6,
+        "usopp": 12,
+        "gray": 7,
+        "edward": 9,
+        "zenitsu": 9,
         "rukia": 5,
-        "spike": 4,
-        "eren": 8,
-        "sagiri": 4,
-        "yusuke": 7,
-        "orihime": 3,
-        "l": 6,
-        "naruto": 7,
-        "winry": 2,
-        "nezuko": 4,
-        "inuyasha": 5,
-        "nobara": 5,
-        "tanjiro": 12,
-        "joseph": 4,
-        "deku": 5,
-        "renji": 5,
-        "luffy": 4,
-        "sanji": 3,
-        "asuna": 4,
-        "caesar": 4,
-        "chad": 2,
-        "anya": 2,
+        "spike": 5,
+        "eren": 14,
+        "sagiri": 6,
+        "yusuke": 11,
+        "orihime": 5,
+        "l": 8,
+        "naruto": 11,
+        "winry": 5,
+        "nezuko": 9,
+        "inuyasha": 9,
+        "nobara": 7,
+        "tanjiro": 17,
+        "joseph": 6,
+        "deku": 7,
+        "renji": 7,
+        "luffy": 5,
+        "sanji": 6,
+        "asuna": 7,
+        "caesar": 10,
+        "chad": 7,
+        "anya": 6,
         "nami": 3,
-        "noriaki": 1,
-        "erza": 3,
-        "denji": 4,
-        "chopper": 2,
-        "mob": 5,
-        "itadori": 4,
-        "kirito": 3,
-        "loid": 3,
-        "reigen": 3,
-        "yuno": 3,
-        "alphonse": 1,
+        "noriaki": 2,
+        "erza": 6,
+        "denji": 7,
+        "chopper": 3,
+        "mob": 7,
+        "itadori": 6,
+        "kirito": 6,
+        "loid": 6,
+        "reigen": 5,
+        "yuno": 8,
+        "alphonse": 4,
         "yor": 6,
         "roy": 1,
-        "ippo": 2,
-        "okabe": 5,
-        "gon": 4,
-        "power": 2,
-        "asta": 3,
-        "pikachu": 3,
-        "cloud": 2,
-        "ichigo": 2,
-        "todo": 1,
-        "emilia": 2,
-        "light": 3,
-        "goku": 5,
+        "ippo": 5,
+        "okabe": 7,
+        "gon": 5,
+        "power": 6,
+        "asta": 4,
+        "pikachu": 6,
+        "cloud": 5,
+        "ichigo": 3,
+        "todo": 2,
+        "emilia": 6,
+        "light": 7,
+        "goku": 6,
         "muzan": 1,
-        "sakura": 2,
-        "sebastian": 1,
+        "sakura": 3,
+        "sebastian": 2,
         "albedo": 1,
-        "link": 3,
-        "subaru": 2,
-        "noelle": 3,
-        "uryu": 2,
+        "link": 4,
+        "subaru": 4,
+        "noelle": 6,
+        "uryu": 4,
         "kamina": 1,
-        "robin": 1,
-        "josuke": 1,
-        "natsu": 2,
+        "robin": 6,
+        "josuke": 2,
+        "natsu": 4,
         "whitebeard": 1,
         "rengoku": 1,
-        "joyboy": 1,
-        "shanks": 1
+        "shanks": 1,
+        "inosuke": 3,
+        "gintoki": 3,
+        "ace": 1,
+        "zoro": 1,
+        "laxus": 1,
+        "simon": 1,
+        "sasuke": 1
       },
       "platings": {
         "silver": 1
@@ -2775,21 +2868,33 @@
         {
           "cardId": "joyboy",
           "plating": null
+        },
+        {
+          "cardId": "yhwach",
+          "plating": null
+        },
+        {
+          "cardId": "muzan",
+          "plating": null
+        },
+        {
+          "cardId": "whitebeard",
+          "plating": null
         }
       ],
       "yen": 6767,
       "stars": 0,
-      "candyTokens": 57,
+      "candyTokens": 49,
       "wish": {
         "cardId": "sukuna",
-        "pullCount": 7
+        "pullCount": 186
       },
       "levelCaps": {},
       "prestigePoints": {},
       "privacy": false,
       "clanId": null,
       "duoId": null,
-      "totalPulls": 521,
+      "totalPulls": 879,
       "totalKills": 0,
       "items": {}
     }
@@ -2813,7 +2918,7 @@
     },
     "689152429341933780": {
       "charges": 0,
-      "lastRefill": 1775045621283
+      "lastRefill": 1775046294047
     }
   },
   "clans": {},
