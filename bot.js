@@ -736,11 +736,11 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
       .setTitle('📖 Help — 🎴 Pulling (1/7)')
       .setDescription('Pull random character cards from anime, manga, and games!')
       .addFields(
-        { name: '`ZP pull` / `ZP p`',                value: `Pull a random card. You have up to **${config.MAX_PULL_CHARGES}** charges; +1 regenerates every **${config.PULL_COOLDOWN_SECONDS}s**.`, inline: false },
+        { name: '`ZP pull` / `ZP p` / `ZP pu`',      value: `Pull a random card. You have up to **${config.MAX_PULL_CHARGES}** charges; +1 regenerates every **${config.PULL_COOLDOWN_SECONDS}s**.`, inline: false },
         { name: '`ZP allpull` / `ZP ap`',             value: 'Spend **all** your current pull charges at once.', inline: false },
         { name: '`ZP allpull reset` / `ZP ap reset`', value: '🍬 Spend all charges then instantly refill back to max. Costs **1 Candy Token**.', inline: false },
-        { name: '`ZP reset` / `ZP r`',                value: '🍬 Use a Candy Token to instantly refill your pulls to max.', inline: false },
-        { name: '`ZP wish <cardId>` / `ZP w <cardId>`', value: `Set a card as your wish. After **${inv.WISH_THRESHOLD} pulls**, you are guaranteed to receive that card!`, inline: false },
+        { name: '`ZP reset` / `ZP rs`',               value: '🍬 Use a Candy Token to instantly refill your pulls to max.', inline: false },
+        { name: '`ZP wish <cardId>` / `ZP wi <cardId>`', value: `Set a card as your wish. After **${inv.WISH_THRESHOLD} pulls**, you are guaranteed to receive that card!`, inline: false },
       )
       .setFooter({ text: 'Page 1 of 7 • ZP help' }),
 
@@ -754,12 +754,12 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         { name: '`ZP col [rarity or keyword]`',        value: 'Filter by rarity code (e.g. `LT`, `MY`) or a name/series keyword.', inline: false },
         { name: '`ZP col @user [filter]`',             value: "Browse another player's collection.", inline: false },
         { name: '`ZP all` / `ZP all [filter]`',       value: 'Browse every card in the game, sorted by rarity.', inline: false },
-        { name: '`ZP card <id>` / `ZP c <id>`',       value: 'Inspect a specific card — shows level, stats, shards.', inline: false },
+        { name: '`ZP card <id>` / `ZP c <id>` / `ZP ca <id>`', value: 'Inspect a specific card — shows level, stats, shards.', inline: false },
         { name: '`ZP mycard <id>` / `ZP mc <id>` / `ZP mci <id>`', value: 'Inspect your own card with prestige points.', inline: false },
         { name: '`ZP cardinfo <id>` / `ZP ci <id>`',  value: 'View base game info for any card.', inline: false },
         { name: '`ZP absorb shard:<id>:<count>` / `ZP ab ...`', value: 'Spend character shards to level up a card. **1 shard = 1 level**. Each level gives **+2% stats**.', inline: false },
         { name: '`ZP increaselevelcap <id> <count>` / `ZP ilc <id> <count>`', value: 'Spend shards of a card to increase its personal level cap beyond 100. **1 shard = +1 cap**.', inline: false },
-        { name: '`ZP kill <cardId> <shardId>:<count>` / `ZP k ...`', value: 'Use a card to kill shards — earn **yen** and **prestige points** on the card used. 1 prestige point per shard.', inline: false },
+        { name: '`ZP kill <cardId> <shardId>:<count>` / `ZP ki ...`', value: 'Use a card to kill shards — earn **yen** and **prestige points** on the card used. 1 prestige point per shard.', inline: false },
       )
       .setFooter({ text: 'Page 2 of 7 • ZP help' }),
 
@@ -771,7 +771,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
       .addFields(
         { name: '`ZP wallet` / `ZP balance` / `ZP bal`', value: 'Check your 💴 Yen, ⭐ Stars, and 🍬 Candy Tokens. Add `@user` to check someone else.', inline: false },
         { name: '`ZP shop` / `ZP sh`',                    value: 'Browse the shop — see all buyable items and their costs.', inline: false },
-        { name: '`ZP buy candy stars <amount>` / `ZP b ...`', value: 'Buy candy tokens with stars. **1,000 stars** per token.', inline: false },
+        { name: '`ZP buy candy stars <amount>` / `ZP bu ...`', value: 'Buy candy tokens with stars. **1,000 stars** per token.', inline: false },
         { name: '`ZP buy candy yen <amount>`',             value: 'Buy candy tokens with yen. **¥10,000** per token.', inline: false },
         { name: '`ZP inventory` / `ZP inv`',              value: 'View your platings.', inline: false },
         { name: '`ZP shards [rarity or name]` / `ZP sd`', value: 'View your character shards. Filter by rarity or character name.', inline: false },
@@ -779,7 +779,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         { name: '`ZP use <itemId>`',                      value: 'Use a special item to claim its Limited card.', inline: false },
         { name: '`ZP profile` / `ZP pro`',                value: 'View your player profile — total cards, kills, pulls, wish progress, and more.', inline: false },
         { name: '`ZP profile @user`',                     value: "View another player's profile (if they haven't set it to private).", inline: false },
-        { name: '`ZP vote` / `ZP v`',                     value: 'Get the link to vote for the bot and earn extra pull charges!', inline: false },
+        { name: '`ZP vote` / `ZP vo`',                    value: 'Get the link to vote for the bot and earn extra pull charges!', inline: false },
         { name: '`ZP privacy` / `ZP pv`',                 value: 'Toggle your profile and collection privacy on/off.', inline: false },
       )
       .setFooter({ text: 'Page 3 of 7 • ZP help' }),
@@ -790,13 +790,13 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
       .setTitle('📖 Help — ⚔️ Team & Battle (4/7)')
       .setDescription(`Build a team of **${inv.TEAM_SIZE} cards** and fight other players!\n\n**Plating battle bonuses:**\n${platingList}`)
       .addFields(
-        { name: '`ZP team` / `ZP t`',                    value: 'View your battle team with power scores.', inline: false },
-        { name: '`ZP team add <cardId>` / `ZP add <id>`', value: `Add a card to your team (max ${inv.TEAM_SIZE}).`, inline: false },
-        { name: '`ZP team remove <cardId>` / `ZP remove <id>` / `ZP rm <id>`', value: 'Remove a card from your team.', inline: false },
-        { name: '`ZP swap <cardId1> <cardId2>` / `ZP sw ...`', value: 'Swap the positions of two cards on your team.', inline: false },
-        { name: '`ZP team equip <cardId> <plating>`',     value: 'Equip a plating onto a team card. Valid: `bronze` `silver` `gold` `diamond`', inline: false },
-        { name: '`ZP team unequip <cardId>`',             value: 'Remove a plating from a team card.', inline: false },
-        { name: '`ZP fight @user` / `ZP f @user`',       value: `Challenge a player to a turn-based team battle! ${config.FIGHT_COOLDOWN_SECONDS}s cooldown.`, inline: false },
+        { name: '`ZP team` / `ZP tm`',                   value: 'View your battle team with power scores.', inline: false },
+        { name: '`ZP team add <id>` / `ZP teamadd <id>` / `ZP add <id>`', value: `Add a card to your team (max ${inv.TEAM_SIZE}).`, inline: false },
+        { name: '`ZP team remove <id>` / `ZP teamremove <id>` / `ZP rm <id>`', value: 'Remove a card from your team.', inline: false },
+        { name: '`ZP swap <id1> <id2>` / `ZP sw ...`',  value: 'Swap the positions of two cards on your team.', inline: false },
+        { name: '`ZP team equip <id> <plating>` / `ZP teamequip ...`', value: 'Equip a plating onto a team card. Valid: `bronze` `silver` `gold` `diamond`', inline: false },
+        { name: '`ZP team unequip <id>` / `ZP teamunequip <id>`', value: 'Remove a plating from a team card.', inline: false },
+        { name: '`ZP fight @user` / `ZP fi @user`',      value: `Challenge a player to a turn-based team battle! ${config.FIGHT_COOLDOWN_SECONDS}s cooldown.`, inline: false },
         { name: '`ZP duofight @user` / `ZP df @user`',   value: 'Fight alongside your duo partner — your combined teams take on the opponent!', inline: false },
       )
       .setFooter({ text: 'Page 4 of 7 • ZP help' }),
@@ -818,7 +818,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
           ].join('\n'),
           inline: false,
         },
-        { name: '`ZP accept <tradeId>` / `ZP a <id>`',    value: 'Accept a pending trade offer.', inline: false },
+        { name: '`ZP accept <tradeId>` / `ZP a <id>` / `ZP ac <id>`', value: 'Accept a pending trade offer.', inline: false },
         { name: '`ZP decline <tradeId>` / `ZP dec <id>`', value: 'Decline or cancel a trade.', inline: false },
         { name: '`ZP trades` / `ZP trs`',                 value: 'List all pending trade offers addressed to you.', inline: false },
       )
@@ -833,7 +833,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         { name: '**Clan Commands**', value: '\u200b', inline: false },
         { name: '`ZP clancreate <name>` / `ZP cc <name>`', value: 'Create a new clan. You become the owner.', inline: false },
         { name: '`ZP clan`',              value: 'View your clan info, members, and fund.', inline: false },
-        { name: '`ZP clanadd @user` / `ZP ca @user`',   value: '(Owner) Invite a player to your clan.', inline: false },
+        { name: '`ZP clanadd @user` / `ZP cla @user`',  value: '(Owner) Invite a player to your clan.', inline: false },
         { name: '`ZP clanremove @user` / `ZP cr @user`', value: '(Owner) Remove a player from your clan.', inline: false },
         { name: '`ZP clanleave` / `ZP cl`',              value: 'Leave your current clan.', inline: false },
         { name: '`ZP clandelete` / `ZP cd`',             value: '(Owner) Permanently delete your clan.', inline: false },
@@ -1171,7 +1171,17 @@ client.on('messageCreate', async (message) => {
   if (!message.content.toLowerCase().startsWith(prefix)) return;
 
   const args    = message.content.slice(config.PREFIX.length).trim().split(/\s+/);
-  const command = args.shift()?.toLowerCase();
+  let command   = args.shift()?.toLowerCase();
+
+  // Normalize no-space compound commands e.g. ZP teamadd → ZP team add
+  const COMPOUND_PREFIXES = ['team'];
+  for (const cpfx of COMPOUND_PREFIXES) {
+    if (command?.startsWith(cpfx) && command.length > cpfx.length) {
+      args.unshift(command.slice(cpfx.length));
+      command = cpfx;
+      break;
+    }
+  }
   const userId  = message.author.id;
   const guildId = message.guild?.id;
 
@@ -1225,9 +1235,9 @@ client.on('messageCreate', async (message) => {
   }
 
   // ── pull | p ─────────────────────────────────────────────
-  if (command === 'pull' || command === 'p') {
+  if (command === 'pull' || command === 'p' || command === 'pu') {
     if (args.filter(a => !a.startsWith('<@')).length > 0)
-      return message.reply('`ZP pull` takes no arguments. Just use `ZP pull` or `ZP p`.');
+      return message.reply('`ZP pull` takes no arguments. Just use `ZP pull`, `ZP p`, or `ZP pu`.');
     const { charges, lastRefill } = getCharges(userId);
 
     if (charges <= 0) {
@@ -1329,7 +1339,7 @@ client.on('messageCreate', async (message) => {
   }
 
   // ── reset ─────────────────────────────────────────────────
-  if (command === 'reset' || command === 'r') {
+  if (command === 'reset' || command === 'rs') {
     const inventory = inv.loadInventory();
     const tokens = inv.getCandyTokens(inventory, userId);
     if (tokens <= 0) {
@@ -1342,7 +1352,7 @@ client.on('messageCreate', async (message) => {
   }
 
   // ── wish ─────────────────────────────────────────────────
-  if (command === 'wish' || command === 'w') {
+  if (command === 'wish' || command === 'wi') {
     const cardId = args[0]?.toLowerCase();
     if (!cardId) {
       const inventory = inv.loadInventory();
@@ -1461,7 +1471,7 @@ client.on('messageCreate', async (message) => {
   }
 
   // ── buy ───────────────────────────────────────────────────
-  if (command === 'buy' || command === 'b') {
+  if (command === 'buy' || command === 'bu') {
     const STARS_PER_TOKEN = 1000;
     const YEN_PER_TOKEN   = 10000;
 
@@ -1720,7 +1730,7 @@ client.on('messageCreate', async (message) => {
   }
 
   // ── card | c ─────────────────────────────────────────────
-  if (command === 'card' || command === 'c') {
+  if (command === 'card' || command === 'c' || command === 'ca') {
     const cardId = args[0];
     if (!cardId) return message.reply('Usage: `ZP card <cardId>` or `ZP c <cardId>`');
 
@@ -2001,7 +2011,7 @@ client.on('messageCreate', async (message) => {
   }
 
   // ── kill ─────────────────────────────────────────────────
-  if (command === 'kill' || command === 'k') {
+  if (command === 'kill' || command === 'ki') {
     // Usage: ZP kill <killerCardId> <targetShardId>:<count>
     const killerCardId = args[0]?.toLowerCase();
     const shardArg     = args[1];
@@ -2152,7 +2162,7 @@ client.on('messageCreate', async (message) => {
   }
 
   // ── vote ─────────────────────────────────────────────────
-  if (command === 'vote' || command === 'v') {
+  if (command === 'vote' || command === 'vo') {
     const embed = new EmbedBuilder()
       .setColor(0xFFD700)
       .setTitle('🗳️ Vote for the Bot!')
@@ -2186,7 +2196,7 @@ client.on('messageCreate', async (message) => {
   }
 
   // ── team ─────────────────────────────────────────────────
-  if (command === 'team' || command === 't') {
+  if (command === 'team' || command === 'tm') {
     const sub = args[0]?.toLowerCase();
 
     if (!sub || sub === 'view') {
@@ -2378,7 +2388,7 @@ client.on('messageCreate', async (message) => {
   }
 
   // ── fight @user ───────────────────────────────────────────
-  if (command === 'fight' || command === 'f') {
+  if (command === 'fight' || command === 'fi') {
     const opponent = message.mentions.users.first();
     if (!opponent) return message.reply('Usage: `ZP fight @user` — mention someone to challenge!');
     if (opponent.id === userId) return message.reply('You cannot fight yourself!');
@@ -2576,7 +2586,7 @@ client.on('messageCreate', async (message) => {
   }
 
   // ── accept | a ────────────────────────────────────────────
-  if (command === 'accept' || command === 'a') {
+  if (command === 'accept' || command === 'a' || command === 'ac') {
     const tradeId = args[0];
     if (!tradeId) return message.reply('Usage: `ZP accept <tradeId>`');
 
@@ -2705,7 +2715,7 @@ client.on('messageCreate', async (message) => {
   }
 
   // ── clanadd ───────────────────────────────────────────────
-  if (command === 'clanadd' || command === 'ca') {
+  if (command === 'clanadd' || command === 'cla') {
     const target = message.mentions.users.first();
     if (!target) return message.reply('Usage: `ZP clanadd @user`');
     if (target.id === userId) return message.reply('You cannot add yourself.');
