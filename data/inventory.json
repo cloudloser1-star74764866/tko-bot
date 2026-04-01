@@ -235,44 +235,45 @@
         }
       ],
       "characterShards": {
-        "bakugo_e": 13,
-        "link_r": 20,
+        "bakugo_e": 15,
+        "link_r": 35,
         "zeno_ur": 2,
-        "goku_r": 16,
+        "goku_r": 24,
         "gear5_luffy_lt": 5,
         "ultra_goku_lt": 7,
         "sage_naruto_lt": 7,
-        "eren_r": 17,
-        "luffy_r": 18,
-        "deku_r": 20,
-        "pikachu_r": 21,
-        "ichigo_r": 21,
-        "naruto_r": 13,
-        "vegeta_e": 9,
-        "levi_e": 9,
+        "eren_r": 39,
+        "luffy_r": 40,
+        "deku_r": 43,
+        "pikachu_r": 34,
+        "ichigo_r": 35,
+        "naruto_r": 27,
+        "vegeta_e": 10,
+        "levi_e": 12,
         "kaguya_ur": 3,
-        "spike_r": 14,
+        "spike_r": 37,
         "killua_e": 7,
         "genos_l": 1,
         "saitama_my": 1,
         "sasuke_e": 14,
-        "zoro_e": 10,
+        "zoro_e": 11,
         "shanks_l": 4,
-        "goku_ssj4_l": 1,
+        "goku_ssj4_l": 2,
         "arceus_ur": 1,
         "hisoka_l": 3,
-        "allmight_l": 1,
-        "cloud_r": 10,
-        "kratos_e": 8,
-        "sephiroth_e": 9
+        "allmight_l": 2,
+        "cloud_r": 30,
+        "kratos_e": 9,
+        "sephiroth_e": 9,
+        "itachi_l": 1
       },
       "platings": {
         "diamond": 1,
-        "bronze": 1
+        "bronze": 2
       },
       "yen": 0,
       "stars": 0,
-      "candyTokens": 0
+      "candyTokens": 90
     },
     "1488543846257262712": {
       "cards": [],
@@ -403,8 +404,8 @@
   },
   "pullCharges": {
     "833025999897755689": {
-      "charges": 0,
-      "lastRefill": 1775006702551
+      "charges": 20,
+      "lastRefill": 1775006888304
     },
     "921838182927040602": {
       "charges": 0,

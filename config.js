@@ -13,12 +13,12 @@ module.exports = {
   // ── Pull Rates ────────────────────────────────────────────
   // Must add up to exactly 100
   PULL_RATES: {
-    R:  89.507, // Rare        89.507% (~9 in 10 pulls)
-    E:   8.6,   // Epic         8.6%   (~1 in 12 pulls)
-    L:   1.2,   // Legendary    1.2%   (~1 in 83 pulls)
-    MY:  0.5,   // Mythical     0.5%   (1 in 200 pulls)
-    UR:  0.143, // Ultra-Rare   0.143% (1 in 700 pulls)
-    LT:  0.05,  // Limited      0.05%  (1 in 2,000 pulls)
+    R:  87.6, // Rare        87.6%  (~9 in 10 pulls)
+    E:   8.6, // Epic         8.6%  (~1 in 12 pulls)
+    L:   1.2, // Legendary    1.2%  (~1 in 83 pulls)
+    MY:  2,   // Mythical     2%    (1 in 50 pulls)
+    UR:  0.5, // Ultra-Rare   0.5%  (1 in 200 pulls)
+    LT:  0.1, // Limited      0.1%  (1 in 1,000 pulls)
   },
 
   // ── Plating ───────────────────────────────────────────────
