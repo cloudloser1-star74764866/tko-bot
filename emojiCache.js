@@ -1,5 +1,7 @@
-const fs   = require('fs');
-const path = require('path');
+const fs    = require('fs');
+const path  = require('path');
+const https = require('https');
+const http  = require('http');
 
 const FILE = path.join(__dirname, 'data', 'emoji_cache.json');
 
@@ -42,81 +44,134 @@ function removeEmoji(cardId) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+/** Fetch a URL and return a Buffer, following up to 5 redirects */
+function fetchBuffer(url, redirectsLeft = 5) {
+  return new Promise((resolve, reject) => {
+    const lib = url.startsWith('https') ? https : http;
+    const req = lib.get(url, { timeout: 15000 }, res => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        if (redirectsLeft <= 0) return reject(new Error('Too many redirects'));
+        return resolve(fetchBuffer(res.headers.location, redirectsLeft - 1));
+      }
+      if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end',  () => resolve(Buffer.concat(chunks)));
+      res.on('error', reject);
+    });
+    req.on('error',   reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error('Request timed out')); });
+  });
+}
+
+/** Upload one emoji to a guild, with a hard 20-second timeout */
+async function uploadEmoji(guild, name, imageBuffer) {
+  const upload  = guild.emojis.create({ attachment: imageBuffer, name });
+  const timeout = new Promise((_, rej) =>
+    setTimeout(() => rej(new Error('Upload timed out after 20s')), 20000)
+  );
+  return Promise.race([upload, timeout]);
+}
+
 /**
- * At bot startup: upload each card's image as a custom emoji, split across
- * the 3 EMOJI_SERVERS (up to 50 per server). Already-cached cards are skipped.
+ * Log cache status on bot startup.
+ * Does NOT upload anything — use buildEmojiCache.js for that.
+ */
+function logCacheStatus(cards) {
+  const cache   = load();
+  const cached  = cards.filter(c => cache[c.id]).length;
+  const missing = cards.length - cached;
+  console.log(`😀 Emoji cache: ${cached}/${cards.length} cards ready.${missing > 0 ? ` (${missing} missing — run buildEmojiCache.js to upload)` : ''}`);
+}
+
+/**
+ * Upload any cards not yet in the emoji cache.
+ * Already-cached cards are skipped. Uses buffer download + timeout so it never hangs.
  * imgCache is the imageCache module (passed in to avoid circular deps).
  */
 async function syncEmojis(client, cards, imgCache) {
   const cache = load();
-  console.log(`Emoji sync: checking ${cards.length} cards across ${EMOJI_SERVERS.length} servers...`);
+  const todo  = cards.filter(c => !cache[c.id]);
+
+  console.log(`😀 Emoji sync: ${cards.length - todo.length} already cached, ${todo.length} to upload...`);
+
+  if (todo.length === 0) {
+    console.log('😀 Emoji sync: all cards cached, nothing to do.');
+    return;
+  }
+
+  const guilds      = [];
+  const emojiCounts = [];
+  for (const id of EMOJI_SERVERS) {
+    try {
+      const g = await client.guilds.fetch(id);
+      const e = await g.emojis.fetch();
+      guilds.push(g);
+      emojiCounts.push(e.size);
+    } catch (err) {
+      console.warn(`😀 Emoji sync: could not fetch guild ${id}: ${err.message}`);
+    }
+  }
 
   let uploaded = 0;
-  let skipped  = 0;
   let failed   = 0;
 
-  for (let i = 0; i < cards.length; i++) {
-    const card = cards[i];
+  for (let i = 0; i < todo.length; i++) {
+    const card = todo[i];
 
-    if (cache[card.id]) {
-      skipped++;
-      continue;
-    }
-
-    let imageUrl = imgCache.getImage(card.id) ?? card.image ?? null;
-
+    const imageUrl = imgCache.getImage(card.id) ?? card.image ?? null;
     if (!imageUrl) {
-      console.log(`😀 Emoji sync: no cached image for ${card.id}, trying fallback sources...`);
-      imageUrl = await imgCache.fetchFallbackImage(card.id, card.name);
-    }
-
-    if (!imageUrl) {
-      console.warn(`😀 Emoji sync: no image found for ${card.id}, skipping.`);
+      console.warn(`😀 Emoji sync: no image for ${card.id}, skipping.`);
       failed++;
       continue;
     }
 
-    // Try each server starting from the preferred one; fall back if full
-    const preferredIndex = Math.min(Math.floor(i / CARDS_PER_SERVER), EMOJI_SERVERS.length - 1);
-    let uploadedOk = false;
+    let imageBuffer;
+    try {
+      imageBuffer = await fetchBuffer(imageUrl);
+    } catch (e) {
+      console.error(`😀 Emoji sync: image download failed for ${card.id}: ${e.message}`);
+      failed++;
+      continue;
+    }
 
-    for (let si = preferredIndex; si < EMOJI_SERVERS.length; si++) {
-      const serverId = EMOJI_SERVERS[si];
+    const emojiName = card.id.replace(/[^a-zA-Z0-9_]/g, '_').padEnd(2, '_');
+    let uploadedOk  = false;
+
+    for (let gi = 0; gi < guilds.length; gi++) {
+      if (emojiCounts[gi] >= 50) continue;
       try {
-        const guild = await client.guilds.fetch(serverId);
-        const emojiName = card.id.length >= 2 ? card.id : card.id + '_';
-        const emoji = await guild.emojis.create({ attachment: imageUrl, name: emojiName });
+        const emoji = await uploadEmoji(guilds[gi], emojiName, imageBuffer);
         cache[card.id] = { name: emoji.name, id: emoji.id };
         save(cache);
+        emojiCounts[gi]++;
         uploaded++;
-        await sleep(500);
         uploadedOk = true;
+        await sleep(600);
         break;
       } catch (err) {
-        if (err.message && err.message.includes('Maximum number of emojis reached')) {
-          console.warn(`😀 Emoji sync: server ${serverId} full, trying next...`);
+        if (err.message && err.message.toLowerCase().includes('maximum number of emojis')) {
+          emojiCounts[gi] = 50;
           continue;
         }
-        console.error(`😀 Emoji sync: failed to upload ${card.id} → server ${serverId}: ${err.message}`);
+        console.error(`😀 Emoji sync: failed ${card.id} on server ${gi + 1}: ${err.message}`);
         break;
       }
     }
 
-    if (!uploadedOk) {
-      failed++;
-    }
+    if (!uploadedOk) failed++;
   }
 
-  console.log(`😀 Emoji sync done: ${uploaded} uploaded, ${skipped} already cached, ${failed} failed.`);
+  console.log(`😀 Emoji sync done: ${uploaded} uploaded, ${failed} failed.`);
 }
 
 /**
- * Delete every custom emoji from all EMOJI_SERVERS, then wipe the local cache.
- * Call this before re-syncing to get fresh emojis from updated images.
+ * Delete every custom emoji from all EMOJI_SERVERS and wipe the local cache.
+ * WARNING: Only call this when explicitly instructed to rebuild from scratch.
  */
 async function deleteAllEmojis(client) {
   const cache = {};
-  save(cache); // clear cache file immediately
+  save(cache);
 
   let deleted = 0;
   let errors  = 0;
@@ -126,7 +181,6 @@ async function deleteAllEmojis(client) {
       const guild  = await client.guilds.fetch(serverId);
       const emojis = await guild.emojis.fetch();
       console.log(`🗑️  Deleting ${emojis.size} emojis from server ${serverId}...`);
-
       for (const [, emoji] of emojis) {
         try {
           await guild.emojis.delete(emoji.id);
@@ -146,4 +200,4 @@ async function deleteAllEmojis(client) {
   console.log(`🗑️  Emoji wipe done: ${deleted} deleted, ${errors} errors.`);
 }
 
-module.exports = { load, save, getEmoji, setEmoji, removeEmoji, syncEmojis, deleteAllEmojis, EMOJI_SERVERS };
+module.exports = { load, save, getEmoji, setEmoji, removeEmoji, logCacheStatus, syncEmojis, deleteAllEmojis, EMOJI_SERVERS };

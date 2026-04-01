@@ -1,1 +1,558 @@
-{}
+{
+  "naruto": {
+    "name": "naruto",
+    "id": "1488884785098133575"
+  },
+  "goku": {
+    "name": "goku",
+    "id": "1488884789200031744"
+  },
+  "luffy": {
+    "name": "luffy",
+    "id": "1488884793188941895"
+  },
+  "ichigo": {
+    "name": "ichigo",
+    "id": "1488884797177598143"
+  },
+  "deku": {
+    "name": "deku",
+    "id": "1488884801405583532"
+  },
+  "link": {
+    "name": "link",
+    "id": "1488885474574733432"
+  },
+  "cloud": {
+    "name": "cloud",
+    "id": "1488885478361923655"
+  },
+  "eren": {
+    "name": "eren",
+    "id": "1488885482472472667"
+  },
+  "pikachu": {
+    "name": "pikachu",
+    "id": "1488885487081881731"
+  },
+  "spike": {
+    "name": "spike",
+    "id": "1488885491205148873"
+  },
+  "rukia": {
+    "name": "rukia",
+    "id": "1488885495177019467"
+  },
+  "renji": {
+    "name": "renji",
+    "id": "1488885499270529065"
+  },
+  "uryu": {
+    "name": "uryu",
+    "id": "1488885503251058760"
+  },
+  "orihime": {
+    "name": "orihime",
+    "id": "1488885507202089204"
+  },
+  "chad": {
+    "name": "chad",
+    "id": "1488885511283151019"
+  },
+  "joseph": {
+    "name": "joseph",
+    "id": "1488885515586633818"
+  },
+  "caesar": {
+    "name": "caesar",
+    "id": "1488885519633879121"
+  },
+  "noriaki": {
+    "name": "noriaki",
+    "id": "1488885523459215561"
+  },
+  "nami": {
+    "name": "nami",
+    "id": "1488885527192014940"
+  },
+  "usopp": {
+    "name": "usopp",
+    "id": "1488885531164020846"
+  },
+  "chopper": {
+    "name": "chopper",
+    "id": "1488885534825648232"
+  },
+  "sanji": {
+    "name": "sanji",
+    "id": "1488885539095449700"
+  },
+  "robin": {
+    "name": "robin",
+    "id": "1488885543000477726"
+  },
+  "asta": {
+    "name": "asta",
+    "id": "1488885548759257211"
+  },
+  "noelle": {
+    "name": "noelle",
+    "id": "1488885553821651014"
+  },
+  "yuno": {
+    "name": "yuno",
+    "id": "1488885557634404395"
+  },
+  "tanjiro": {
+    "name": "tanjiro",
+    "id": "1488885561757405384"
+  },
+  "nezuko": {
+    "name": "nezuko",
+    "id": "1488885565343400064"
+  },
+  "zenitsu": {
+    "name": "zenitsu",
+    "id": "1488885569282117664"
+  },
+  "inosuke": {
+    "name": "inosuke",
+    "id": "1488885573782601930"
+  },
+  "edward": {
+    "name": "edward",
+    "id": "1488885578350071888"
+  },
+  "alphonse": {
+    "name": "alphonse",
+    "id": "1488885582187725041"
+  },
+  "winry": {
+    "name": "winry",
+    "id": "1488885585845289043"
+  },
+  "kirito": {
+    "name": "kirito",
+    "id": "1488885664803197121"
+  },
+  "asuna": {
+    "name": "asuna",
+    "id": "1488885668884250696"
+  },
+  "itadori": {
+    "name": "itadori",
+    "id": "1488885673443459182"
+  },
+  "nobara": {
+    "name": "nobara",
+    "id": "1488885677897810162"
+  },
+  "natsu": {
+    "name": "natsu",
+    "id": "1488885682297639025"
+  },
+  "gray": {
+    "name": "gray",
+    "id": "1488885687351771360"
+  },
+  "erza": {
+    "name": "erza",
+    "id": "1488885691172524267"
+  },
+  "light": {
+    "name": "light",
+    "id": "1488885694951723203"
+  },
+  "l": {
+    "name": "l_",
+    "id": "1488885699540160657"
+  },
+  "mob": {
+    "name": "mob",
+    "id": "1488885704535838730"
+  },
+  "reigen": {
+    "name": "reigen",
+    "id": "1488885708801183794"
+  },
+  "gon": {
+    "name": "gon",
+    "id": "1488885713075310592"
+  },
+  "kurapika": {
+    "name": "kurapika",
+    "id": "1488885717189918770"
+  },
+  "denji": {
+    "name": "denji",
+    "id": "1488885721191415862"
+  },
+  "power": {
+    "name": "power",
+    "id": "1488885725708554410"
+  },
+  "loid": {
+    "name": "loid",
+    "id": "1488885729869303919"
+  },
+  "yor": {
+    "name": "yor",
+    "id": "1488885733782454424"
+  },
+  "anya": {
+    "name": "anya",
+    "id": "1488885737524035584"
+  },
+  "subaru": {
+    "name": "subaru",
+    "id": "1488885742196494398"
+  },
+  "emilia": {
+    "name": "emilia",
+    "id": "1488885747300696105"
+  },
+  "gintoki": {
+    "name": "gintoki",
+    "id": "1488885754959630398"
+  },
+  "inuyasha": {
+    "name": "inuyasha",
+    "id": "1488885759741132962"
+  },
+  "okabe": {
+    "name": "okabe",
+    "id": "1488885763776053400"
+  },
+  "yusuke": {
+    "name": "yusuke",
+    "id": "1488885775285096530"
+  },
+  "sakura": {
+    "name": "sakura",
+    "id": "1488885779680985220"
+  },
+  "ippo": {
+    "name": "ippo",
+    "id": "1488885783849992202"
+  },
+  "sagiri": {
+    "name": "sagiri",
+    "id": "1488885788056883483"
+  },
+  "albedo": {
+    "name": "albedo",
+    "id": "1488885792813092935"
+  },
+  "near": {
+    "name": "near",
+    "id": "1488885797133488158"
+  },
+  "sasuke": {
+    "name": "sasuke",
+    "id": "1488885801218605177"
+  },
+  "vegeta": {
+    "name": "vegeta",
+    "id": "1488885805140410378"
+  },
+  "zoro": {
+    "name": "zoro",
+    "id": "1488885808974008423"
+  },
+  "bakugo": {
+    "name": "bakugo",
+    "id": "1488885813696794705"
+  },
+  "levi": {
+    "name": "levi",
+    "id": "1488885825289715795"
+  },
+  "kratos": {
+    "name": "kratos",
+    "id": "1488885830205444368"
+  },
+  "sephiroth": {
+    "name": "sephiroth",
+    "id": "1488885834366062743"
+  },
+  "killua": {
+    "name": "killua",
+    "id": "1488885838312902666"
+  },
+  "byakuya": {
+    "name": "byakuya",
+    "id": "1488885842339430521"
+  },
+  "grimmjow": {
+    "name": "grimmjow",
+    "id": "1488885846076821548"
+  },
+  "ulquiorra": {
+    "name": "ulquiorra",
+    "id": "1488885850463797250"
+  },
+  "jotaro": {
+    "name": "jotaro",
+    "id": "1488885855253954794"
+  },
+  "giorno": {
+    "name": "giorno",
+    "id": "1488885858705739798"
+  },
+  "josuke": {
+    "name": "josuke",
+    "id": "1488885863973650492"
+  },
+  "ace": {
+    "name": "ace",
+    "id": "1488885868004376597"
+  },
+  "law": {
+    "name": "law",
+    "id": "1488885871976644859"
+  },
+  "kid": {
+    "name": "kid",
+    "id": "1488885875981947011"
+  },
+  "yami": {
+    "name": "yami",
+    "id": "1488885880285560982"
+  },
+  "julius": {
+    "name": "julius",
+    "id": "1488885886002401483"
+  },
+  "rengoku": {
+    "name": "rengoku",
+    "id": "1488885890477457571"
+  },
+  "tengen": {
+    "name": "tengen",
+    "id": "1488885895590576218"
+  },
+  "roy": {
+    "name": "roy",
+    "id": "1488885899503865889"
+  },
+  "armstrong": {
+    "name": "armstrong",
+    "id": "1488885903848902856"
+  },
+  "gojo": {
+    "name": "gojo",
+    "id": "1488885907414057235"
+  },
+  "todo": {
+    "name": "todo",
+    "id": "1488885911700635749"
+  },
+  "laxus": {
+    "name": "laxus",
+    "id": "1488885916276625526"
+  },
+  "gildarts": {
+    "name": "gildarts",
+    "id": "1488885920412471296"
+  },
+  "hiei": {
+    "name": "hiei",
+    "id": "1488885924229025825"
+  },
+  "kurama": {
+    "name": "kurama",
+    "id": "1488885927832064031"
+  },
+  "rem": {
+    "name": "rem",
+    "id": "1488885932173299894"
+  },
+  "ban": {
+    "name": "ban",
+    "id": "1488885936250163373"
+  },
+  "thorfinn": {
+    "name": "thorfinn",
+    "id": "1488885940821823508"
+  },
+  "askeladd": {
+    "name": "askeladd",
+    "id": "1488885944659480749"
+  },
+  "lelouch": {
+    "name": "lelouch",
+    "id": "1488885949118287944"
+  },
+  "kamina": {
+    "name": "kamina",
+    "id": "1488885954537193562"
+  },
+  "makima": {
+    "name": "makima",
+    "id": "1488885959176224939"
+  },
+  "sebastian": {
+    "name": "sebastian",
+    "id": "1488885963764662406"
+  },
+  "itachi": {
+    "name": "itachi",
+    "id": "1488885967828815884"
+  },
+  "shanks": {
+    "name": "shanks",
+    "id": "1488885972761448529"
+  },
+  "allmight": {
+    "name": "allmight",
+    "id": "1488885976683249837"
+  },
+  "genos": {
+    "name": "genos",
+    "id": "1488885981493854528"
+  },
+  "hisoka": {
+    "name": "hisoka",
+    "id": "1488885986095009952"
+  },
+  "aizen": {
+    "name": "aizen",
+    "id": "1488885990385782826"
+  },
+  "gin": {
+    "name": "gin",
+    "id": "1488885994726883378"
+  },
+  "dio": {
+    "name": "dio",
+    "id": "1488885998489174046"
+  },
+  "mihawk": {
+    "name": "mihawk",
+    "id": "1488886002385682605"
+  },
+  "licht": {
+    "name": "licht",
+    "id": "1488886006316011630"
+  },
+  "father": {
+    "name": "father",
+    "id": "1488886010036092968"
+  },
+  "yuta": {
+    "name": "yuta",
+    "id": "1488886013903372398"
+  },
+  "mavis": {
+    "name": "mavis",
+    "id": "1488886018060058835"
+  },
+  "netero": {
+    "name": "netero",
+    "id": "1488886021876744305"
+  },
+  "simon": {
+    "name": "simon",
+    "id": "1488886025802612826"
+  },
+  "rimuru": {
+    "name": "rimuru",
+    "id": "1488886029875155085"
+  },
+  "madara": {
+    "name": "madara",
+    "id": "1488886033754886275"
+  },
+  "beerus": {
+    "name": "beerus",
+    "id": "1488886037567508761"
+  },
+  "whitebeard": {
+    "name": "whitebeard",
+    "id": "1488886042147950592"
+  },
+  "saitama": {
+    "name": "saitama",
+    "id": "1488886047055286322"
+  },
+  "mewtwo": {
+    "name": "mewtwo",
+    "id": "1488886051174088855"
+  },
+  "yhwach": {
+    "name": "yhwach",
+    "id": "1488886054785126451"
+  },
+  "kira": {
+    "name": "kira",
+    "id": "1488886058828562513"
+  },
+  "kaido": {
+    "name": "kaido",
+    "id": "1488886063039778927"
+  },
+  "muzan": {
+    "name": "muzan",
+    "id": "1488886067145740460"
+  },
+  "sukuna": {
+    "name": "sukuna",
+    "id": "1488886071105163476"
+  },
+  "acnologia": {
+    "name": "acnologia",
+    "id": "1488886074972569690"
+  },
+  "escanor": {
+    "name": "escanor",
+    "id": "1488886079250501752"
+  },
+  "kaguya": {
+    "name": "kaguya",
+    "id": "1488886084623401093"
+  },
+  "zeno": {
+    "name": "zeno",
+    "id": "1488886091581886666"
+  },
+  "joyboy": {
+    "name": "joyboy",
+    "id": "1488886095457554515"
+  },
+  "arceus": {
+    "name": "arceus",
+    "id": "1488886100528205927"
+  },
+  "blackbeard": {
+    "name": "blackbeard",
+    "id": "1488886104416321607"
+  },
+  "dio_wr": {
+    "name": "dio_wr",
+    "id": "1488886108845768866"
+  },
+  "ultra_goku": {
+    "name": "ultra_goku",
+    "id": "1488886115321516224"
+  },
+  "gear5_luffy": {
+    "name": "gear5_luffy",
+    "id": "1488886119406895190"
+  },
+  "goku_ssj4": {
+    "name": "goku_ssj4",
+    "id": "1488886489424330882"
+  },
+  "ichigo_bankai": {
+    "name": "ichigo_bankai",
+    "id": "1488886493417050143"
+  },
+  "sage_naruto": {
+    "name": "sage_naruto",
+    "id": "1488886497758281828"
+  },
+  "sukuna_fp": {
+    "name": "sukuna_fp",
+    "id": "1488886612598329505"
+  }
+}

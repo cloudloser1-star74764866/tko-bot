@@ -18,9 +18,11 @@ const SEED = {
   madara_my:       'https://s4.anilist.co/file/anilistcdn/character/large/b53901-HnRKSoHMG5Vg.png',
   kaguya_ur:       'https://static.wikia.nocookie.net/naruto/images/6/6c/Kaguya_%C5%8Ctsutsuki.png/revision/latest',
   sage_naruto_lt:  'https://static.wikia.nocookie.net/naruto/images/e/e9/Six_Paths_Sage_Mode_Naruto.png/revision/latest',
+  sage_naruto:     'https://s4.anilist.co/file/anilistcdn/character/large/b17-phjcWCkRuIhu.png',
   // Dragon Ball
   goku_r:          'https://s4.anilist.co/file/anilistcdn/character/large/246-wsRRr6z1kii8.png',
   goku_ssj4_l:     'https://s4.anilist.co/file/anilistcdn/character/large/246-wsRRr6z1kii8.png',
+  goku_ssj4:       'https://s4.anilist.co/file/anilistcdn/character/large/246-wsRRr6z1kii8.png',
   ultra_goku_lt:   'https://static.wikia.nocookie.net/dragonball/images/b/b9/Ultra_Instinct_Goku.png/revision/latest?cb=20180930060236',
   vegeta_e:        'https://s4.anilist.co/file/anilistcdn/character/large/b913-NIFkKazWM8VO.png',
   beerus_my:       'https://s4.anilist.co/file/anilistcdn/character/large/b76348-pGWrznfxgPIV.png',
@@ -45,6 +47,7 @@ const SEED = {
   // Bleach
   ichigo_r:        'https://s4.anilist.co/file/anilistcdn/character/large/b5-a7bkJgjhhigE.png',
   ichigo_bankai_ur:'https://s4.anilist.co/file/anilistcdn/character/large/b5-a7bkJgjhhigE.png',
+  ichigo_bankai:   'https://s4.anilist.co/file/anilistcdn/character/large/b5-a7bkJgjhhigE.png',
   // Attack on Titan
   levi_e:          'https://static.wikia.nocookie.net/shingekinokyojin/images/9/94/Levi_Ackerman_character_image.png/revision/latest',
   // Black Clover
@@ -68,6 +71,7 @@ const SEED = {
   // The Legend of Zelda
   link_r:          'https://static.wikia.nocookie.net/zelda_gamepedia_en/images/4/47/TLoZ_Series_Link_Render.png/revision/latest',
   sukuna_fp_lt:    'https://static.wikia.nocookie.net/jujutsu-kaisen/images/2/29/Sukuna%27s_Four_Arms.png/revision/latest',
+  sukuna_fp:       'https://s4.anilist.co/file/anilistcdn/character/large/b133701-LzIhoiiIwE48.jpg',
   // Chainsaw Man — Power (AniList placeholder was wrong; using MAL image)
   power_r:         'https://myanimelist.net/images/characters/7/494969.jpg',
   // Demon Slayer — Rengoku (cached MAL URL was wrong character; fixed)

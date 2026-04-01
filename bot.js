@@ -943,7 +943,7 @@ client.once('ready', () => {
   console.log(`✅ test Bot online as ${client.user.tag}`);
   client.user.setActivity('ZP help', { type: 0 });
   imgCache.refreshMissing().catch(err => console.error('Image cache refresh error:', err));
-  emojiCache.syncEmojis(client, CARDS, imgCache).catch(err => console.error('Emoji sync error:', err));
+  emojiCache.logCacheStatus(CARDS);
 });
 
 // ── Button Interactions ───────────────────────────────────
