@@ -53,6 +53,12 @@
 //    ZP givestars [@user] <amount>
 //    ZP givecandytokens [@user] <amount>
 //    ZP giveitem @user <itemId>
+//    ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [pulls:<n>]
+//    ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [pulls:<n>]
+//    ZP deletecode <name>
+//    ZP listcodes
+//  User:
+//    ZP redeem <code>
 // ============================================================
 
 require('dotenv').config();
@@ -85,6 +91,38 @@ let adminRarityOverride  = null;
 let adminPlatingOverride = null;
 
 function isAdmin(userId) { return userId === ADMIN_ID; }
+
+function parseRewardArgs(argList) {
+  const rewards = { yen: 0, stars: 0, candyTokens: 0, pulls: 0, platings: {} };
+  for (const arg of argList) {
+    const lower = arg.toLowerCase();
+    if (lower.startsWith('yen:'))          { rewards.yen          = Math.max(0, parseInt(arg.slice(4), 10)  || 0); }
+    else if (lower.startsWith('stars:'))   { rewards.stars        = Math.max(0, parseInt(arg.slice(6), 10)  || 0); }
+    else if (lower.startsWith('candytokens:')) { rewards.candyTokens = Math.max(0, parseInt(arg.slice(12), 10) || 0); }
+    else if (lower.startsWith('pulls:'))   { rewards.pulls        = Math.max(0, parseInt(arg.slice(6), 10)  || 0); }
+    else if (lower.startsWith('plating:')) {
+      const parts = lower.slice(8).split(':');
+      const tier   = parts[0];
+      const amount = Math.max(0, parseInt(parts[1], 10) || 0);
+      if (tier && amount > 0) rewards.platings[tier] = amount;
+    }
+  }
+  return rewards;
+}
+
+function formatRewards(r) {
+  const parts = [];
+  if (r.yen          > 0) parts.push(`💴 ¥${r.yen.toLocaleString()} Yen`);
+  if (r.stars        > 0) parts.push(`⭐ ${r.stars.toLocaleString()} Stars`);
+  if (r.candyTokens  > 0) parts.push(`🍬 ${r.candyTokens} Candy Token${r.candyTokens === 1 ? '' : 's'}`);
+  if (r.pulls        > 0) parts.push(`🎴 ${r.pulls} Pull Charge${r.pulls === 1 ? '' : 's'}`);
+  if (r.platings) {
+    for (const [tier, amount] of Object.entries(r.platings)) {
+      if (amount > 0) parts.push(`🪙 ${amount}x ${tier} Plating`);
+    }
+  }
+  return parts.length ? parts.join(', ') : 'None';
+}
 
 function pullCardForced(rarity) {
   const pool = CARDS.filter(c => c.rarity === rarity);
@@ -903,6 +941,10 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
               `\`ZP givecandytokens [@user] <amount>\` — Give Candy Tokens to a user`,
               `\`ZP refresh\` — Delete all server emojis and re-sync from scratch`,
               `\`ZP giveitem @user <itemId>\` — Give a limited item to a player`,
+              `\`ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [pulls:<n>]\` — Create a redeemable code`,
+              `\`ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [pulls:<n>]\` — Edit a code's rewards`,
+              `\`ZP deletecode <name>\` — Delete a code`,
+              `\`ZP listcodes\` — List all active codes`,
             ].join('\n'),
             inline: false,
           },
@@ -2898,6 +2940,57 @@ client.on('messageCreate', async (message) => {
     return message.reply(`Your duo partnership has been disbanded.`);
   }
 
+  // ── redeem ────────────────────────────────────────────────
+  if (command === 'redeem') {
+    const codeInput = args[0];
+    if (!codeInput) return message.reply('Usage: `ZP redeem <code>`');
+
+    const inventory = inv.loadInventory();
+    const entry = inv.findRedeemCodeByCode(inventory, codeInput);
+    if (!entry) return message.reply(`❌ Code \`${codeInput.toUpperCase()}\` is not valid.`);
+
+    if (inv.hasRedeemedCode(inventory, userId, entry.name)) {
+      return message.reply(`❌ You have already redeemed the **${entry.name}** code.`);
+    }
+
+    const r = entry.rewards;
+    const lines = [];
+
+    if (r.yen   > 0) { inv.addYen(inventory, userId, r.yen);           lines.push(`💴 **¥${r.yen.toLocaleString()} Yen**`); }
+    if (r.stars > 0) { inv.addStars(inventory, userId, r.stars);       lines.push(`⭐ **${r.stars.toLocaleString()} Stars**`); }
+    if (r.candyTokens > 0) { inv.addCandyTokens(inventory, userId, r.candyTokens); lines.push(`🍬 **${r.candyTokens} Candy Token${r.candyTokens === 1 ? '' : 's'}**`); }
+    if (r.pulls > 0) {
+      const { charges } = getChargeInfo(userId);
+      const newCharges = Math.min(charges + r.pulls, config.MAX_PULL_CHARGES);
+      setCharges(userId, newCharges, Date.now());
+      lines.push(`🎴 **${r.pulls} Pull Charge${r.pulls === 1 ? '' : 's'}**`);
+    }
+    if (r.platings) {
+      for (const [tier, amount] of Object.entries(r.platings)) {
+        if (amount > 0) {
+          inv.addPlatings(inventory, userId, tier, amount);
+          const tierInfo = platingById(tier);
+          lines.push(`${tierInfo ? tierInfo.emoji : '🪙'} **${amount}x ${tierInfo ? tierInfo.label : tier} Plating**`);
+        }
+      }
+    }
+
+    if (lines.length === 0) return message.reply(`❌ That code has no rewards configured yet.`);
+
+    inv.markCodeRedeemed(inventory, userId, entry.name);
+    inv.saveInventory(inventory);
+
+    return message.reply({
+      embeds: [
+        new EmbedBuilder()
+          .setColor(0x00FFD1)
+          .setTitle('🎉 Code Redeemed!')
+          .setDescription(`You redeemed the **${entry.name}** code and received:\n\n${lines.join('\n')}`)
+          .setFooter({ text: `Code: ${entry.code}` }),
+      ],
+    });
+  }
+
   // ── Bot Admin commands ─────────────────────────────────────
   if (!isAdmin(userId)) return;
 
@@ -2988,6 +3081,72 @@ client.on('messageCreate', async (message) => {
     inv.addItem(inventory, target.id, itemId);
     inv.saveInventory(inventory);
     return message.reply(`Gave **${item.emoji} ${item.name}** to **${target.username}**.`);
+  }
+
+  // ── createcode ────────────────────────────────────────────
+  if (command === 'createcode') {
+    const name     = args[0];
+    const code     = args[1];
+    const rewardArgs = args.slice(2);
+    if (!name || !code) return message.reply('Usage: `ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [pulls:<n>]`');
+
+    const rewards  = parseRewardArgs(rewardArgs);
+    const inventory = inv.loadInventory();
+    const created  = inv.createRedeemCode(inventory, name, code, rewards);
+    if (!created) return message.reply(`❌ A code named **${name}** already exists. Use \`ZP editcode\` to update it.`);
+    inv.saveInventory(inventory);
+
+    const codeEntry = inv.getRedeemCodes(inventory)[name.toLowerCase()];
+    return message.reply(`✅ Code **${name}** created!\n**Code:** \`${codeEntry.code}\`\n**Rewards:** ${formatRewards(rewards)}`);
+  }
+
+  // ── editcode ──────────────────────────────────────────────
+  if (command === 'editcode') {
+    const name       = args[0];
+    const rewardArgs = args.slice(1);
+    if (!name) return message.reply('Usage: `ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [pulls:<n>]`');
+
+    const rewards   = parseRewardArgs(rewardArgs);
+    const inventory = inv.loadInventory();
+    const updated   = inv.updateRedeemCode(inventory, name, rewards);
+    if (!updated) return message.reply(`❌ No code named **${name}** found. Use \`ZP createcode\` to create it.`);
+    inv.saveInventory(inventory);
+
+    return message.reply(`✅ Code **${name}** updated!\n**Rewards:** ${formatRewards(rewards)}`);
+  }
+
+  // ── deletecode ────────────────────────────────────────────
+  if (command === 'deletecode') {
+    const name = args[0];
+    if (!name) return message.reply('Usage: `ZP deletecode <name>`');
+
+    const inventory = inv.loadInventory();
+    const deleted   = inv.deleteRedeemCode(inventory, name);
+    if (!deleted) return message.reply(`❌ No code named **${name}** found.`);
+    inv.saveInventory(inventory);
+
+    return message.reply(`✅ Code **${name}** has been deleted.`);
+  }
+
+  // ── listcodes ─────────────────────────────────────────────
+  if (command === 'listcodes') {
+    const inventory = inv.loadInventory();
+    const codes     = Object.values(inv.getRedeemCodes(inventory));
+    if (codes.length === 0) return message.reply('No redeem codes exist yet. Create one with `ZP createcode`.');
+
+    const lines = codes.map(c =>
+      `**${c.name}** — Code: \`${c.code}\` — Rewards: ${formatRewards(c.rewards)} — Redeemed by: ${c.redeemedBy.length} user${c.redeemedBy.length === 1 ? '' : 's'}`
+    );
+
+    return message.reply({
+      embeds: [
+        new EmbedBuilder()
+          .setColor(0xFF0000)
+          .setTitle('🔧 Active Redeem Codes')
+          .setDescription(lines.join('\n'))
+          .setFooter({ text: `${codes.length} code${codes.length === 1 ? '' : 's'} total` }),
+      ],
+    });
   }
 });
 

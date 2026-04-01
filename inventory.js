@@ -10,16 +10,17 @@ const DATA_FILE = path.join(__dirname, 'data', 'inventory.json');
 // ── Persistence ───────────────────────────────────────────
 
 function loadInventory() {
-  if (!fs.existsSync(DATA_FILE)) return { users: {}, pullCharges: {}, clans: {}, duos: {}, guilds: {} };
+  if (!fs.existsSync(DATA_FILE)) return { users: {}, pullCharges: {}, clans: {}, duos: {}, guilds: {}, redeemCodes: {} };
   try {
     const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-    if (!data.pullCharges) data.pullCharges = {};
-    if (!data.clans)       data.clans       = {};
-    if (!data.duos)        data.duos        = {};
-    if (!data.guilds)      data.guilds      = {};
+    if (!data.pullCharges)  data.pullCharges  = {};
+    if (!data.clans)        data.clans        = {};
+    if (!data.duos)         data.duos         = {};
+    if (!data.guilds)       data.guilds       = {};
+    if (!data.redeemCodes)  data.redeemCodes  = {};
     return data;
   }
-  catch { return { users: {}, pullCharges: {}, clans: {}, duos: {}, guilds: {} }; }
+  catch { return { users: {}, pullCharges: {}, clans: {}, duos: {}, guilds: {}, redeemCodes: {} }; }
 }
 
 function saveInventory(data) {
@@ -519,6 +520,56 @@ function disbandDuo(inventory, duoId) {
   return true;
 }
 
+// ── Redeem Code Operations ────────────────────────────────
+
+function createRedeemCode(inventory, name, code, rewards) {
+  const key = name.toLowerCase();
+  if (inventory.redeemCodes[key]) return false;
+  inventory.redeemCodes[key] = {
+    name: name,
+    code: code.toUpperCase(),
+    rewards: rewards || {},
+    redeemedBy: [],
+  };
+  return true;
+}
+
+function updateRedeemCode(inventory, name, rewards) {
+  const key = name.toLowerCase();
+  if (!inventory.redeemCodes[key]) return false;
+  inventory.redeemCodes[key].rewards = rewards;
+  return true;
+}
+
+function deleteRedeemCode(inventory, name) {
+  const key = name.toLowerCase();
+  if (!inventory.redeemCodes[key]) return false;
+  delete inventory.redeemCodes[key];
+  return true;
+}
+
+function getRedeemCodes(inventory) {
+  return inventory.redeemCodes;
+}
+
+function findRedeemCodeByCode(inventory, code) {
+  const upper = code.toUpperCase();
+  return Object.values(inventory.redeemCodes).find(c => c.code === upper) ?? null;
+}
+
+function hasRedeemedCode(inventory, userId, codeName) {
+  const key = codeName.toLowerCase();
+  return inventory.redeemCodes[key]?.redeemedBy.includes(userId) ?? false;
+}
+
+function markCodeRedeemed(inventory, userId, codeName) {
+  const key = codeName.toLowerCase();
+  if (!inventory.redeemCodes[key]) return false;
+  if (inventory.redeemCodes[key].redeemedBy.includes(userId)) return false;
+  inventory.redeemCodes[key].redeemedBy.push(userId);
+  return true;
+}
+
 // ── Guild Settings ────────────────────────────────────────
 
 function ensureGuild(inventory, guildId) {
@@ -583,4 +634,6 @@ module.exports = {
   getDuo, getUserDuo, createDuo, disbandDuo,
   getGuildSettings, addAllowedChannel, removeAllowedChannel, clearAllowedChannels,
   disallowCommand, allowCommand,
+  createRedeemCode, updateRedeemCode, deleteRedeemCode, getRedeemCodes,
+  findRedeemCodeByCode, hasRedeemedCode, markCodeRedeemed,
 };
