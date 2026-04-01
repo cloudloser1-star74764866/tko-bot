@@ -547,6 +547,35 @@ function lookupCard(cardId) {
   return CARDS.find(c => c.id.toLowerCase() === cardId.toLowerCase()) ?? null;
 }
 
+function resolveCard(query, pool = CARDS) {
+  if (!query) return null;
+  const q = query.toLowerCase().trim();
+  if (!q) return null;
+
+  const exact = pool.find(c => c.id.toLowerCase() === q);
+  if (exact) return exact;
+
+  const qUnderscore = q.replace(/\s+/g, '_');
+  if (qUnderscore !== q) {
+    const u = pool.find(c => c.id.toLowerCase() === qUnderscore);
+    if (u) return u;
+  }
+
+  const qCompact = q.replace(/[\s_-]+/g, '');
+  const compact  = pool.find(c => c.id.toLowerCase().replace(/_/g, '').includes(qCompact));
+  if (compact) return compact;
+
+  const words = q.split(/[\s_-]+/).filter(w => w.length > 0);
+  if (words.length === 0) return null;
+
+  const wordMatch = pool.filter(c => {
+    const hay = `${c.id.toLowerCase()} ${c.name.toLowerCase()} ${c.series.toLowerCase()}`;
+    return words.every(w => hay.includes(w));
+  });
+
+  return wordMatch[0] ?? null;
+}
+
 function applyFilter(cards, filter) {
   if (!filter) return cards;
   const rarity = normalizeRarity(filter);
@@ -1596,13 +1625,13 @@ client.on('messageCreate', async (message) => {
 
   // ── wish ─────────────────────────────────────────────────
   if (command === 'wish' || command === 'wi') {
-    const cardId = args[0]?.toLowerCase();
-    if (!cardId) {
+    const cardQuery = args.filter(a => !a.startsWith('<@')).join(' ');
+    if (!cardQuery) {
       const inventory = inv.loadInventory();
       const wish      = inv.getWish(inventory, userId);
       if (!wish) {
         return message.reply(
-          `You have no wish set. Use \`ZP wish <cardId>\` to wish for a card.\n` +
+          `You have no wish set. Use \`ZP wish <name or id>\` to wish for a card.\n` +
           `After **${inv.WISH_THRESHOLD} pulls**, you are guaranteed to receive it!`
         );
       }
@@ -1624,9 +1653,9 @@ client.on('messageCreate', async (message) => {
       return message.reply({ embeds: [embed] });
     }
 
-    const card = lookupCard(cardId);
+    const card = resolveCard(cardQuery);
     if (!card) {
-      return message.reply(`No card found with id \`${cardId}\`. Use \`ZP all\` to browse available cards.`);
+      return message.reply(`No card found matching \`${cardQuery}\`. Use \`ZP all\` to browse available cards.`);
     }
 
     if (card.rarity === 'UR' || card.rarity === 'LT') {
@@ -2045,11 +2074,11 @@ client.on('messageCreate', async (message) => {
 
   // ── card | c ─────────────────────────────────────────────
   if (command === 'card' || command === 'c' || command === 'ca') {
-    const cardId = args[0];
-    if (!cardId) return message.reply('Usage: `ZP card <cardId>` or `ZP c <cardId>`');
+    const cardQuery = args.filter(a => !a.startsWith('<@')).join(' ');
+    if (!cardQuery) return message.reply('Usage: `ZP card <name or id>` — e.g. `ZP card gear5` or `ZP c naruto`');
 
-    const card = lookupCard(cardId);
-    if (!card) return message.reply(`No card found with id \`${cardId}\`. Check \`ZP col\` for your card IDs.`);
+    const card = resolveCard(cardQuery);
+    if (!card) return message.reply(`No card found matching \`${cardQuery}\`. Try \`ZP all\` to browse cards.`);
 
     const inventory  = inv.loadInventory();
     const owned      = inv.hasCard(inventory, userId, card.id);
@@ -2091,11 +2120,11 @@ client.on('messageCreate', async (message) => {
 
   // ── mycard | mc ───────────────────────────────────────────
   if (command === 'mycard' || command === 'mc' || command === 'mci') {
-    const cardId = args[0];
-    if (!cardId) return message.reply('Usage: `ZP mycard <cardId>` or `ZP mc <cardId>`');
+    const cardQuery = args.filter(a => !a.startsWith('<@')).join(' ');
+    if (!cardQuery) return message.reply('Usage: `ZP mycard <name or id>` — e.g. `ZP mc gear5 luffy`');
 
-    const card = lookupCard(cardId);
-    if (!card) return message.reply(`No card found with id \`${cardId}\`.`);
+    const card = resolveCard(cardQuery);
+    if (!card) return message.reply(`No card found matching \`${cardQuery}\`.`);
 
     const inventory = inv.loadInventory();
     if (!inv.hasCard(inventory, userId, card.id)) {
@@ -2151,11 +2180,11 @@ client.on('messageCreate', async (message) => {
 
   // ── cardinfo | ci ─────────────────────────────────────────
   if (command === 'cardinfo' || command === 'ci') {
-    const cardId = args[0];
-    if (!cardId) return message.reply('Usage: `ZP cardinfo <cardId>` or `ZP ci <cardId>`');
+    const cardQuery = args.filter(a => !a.startsWith('<@')).join(' ');
+    if (!cardQuery) return message.reply('Usage: `ZP cardinfo <name or id>` — e.g. `ZP ci gear5`');
 
-    const card = lookupCard(cardId);
-    if (!card) return message.reply(`No card found with id \`${cardId}\`. Use \`ZP all\` to browse cards.`);
+    const card = resolveCard(cardQuery);
+    if (!card) return message.reply(`No card found matching \`${cardQuery}\`. Use \`ZP all\` to browse cards.`);
 
     const meta  = rarityMeta(card.rarity);
     const stats = getCardStats(card, 1);
@@ -2189,25 +2218,25 @@ client.on('messageCreate', async (message) => {
     const raw = args[0];
     if (!raw) {
       return message.reply(
-        'Usage: `ZP absorb shard:<cardId>:<count>`\n' +
-        'Example: `ZP absorb shard:naruto_r:5` — spend 5 Naruto shards to gain 5 levels.'
+        'Usage: `ZP absorb shard:<name or id>:<count>`\n' +
+        'Example: `ZP absorb shard:naruto:5` — spend 5 Naruto shards to gain 5 levels.'
       );
     }
 
     const parts = raw.split(':');
     if (parts.length !== 3 || parts[0].toLowerCase() !== 'shard') {
-      return message.reply('Invalid format. Usage: `ZP absorb shard:<cardId>:<count>`');
+      return message.reply('Invalid format. Usage: `ZP absorb shard:<name or id>:<count>`');
     }
 
-    const cardId = parts[1].toLowerCase();
-    const count  = parseInt(parts[2], 10);
+    const cardQuery = parts[1];
+    const count     = parseInt(parts[2], 10);
     if (isNaN(count) || count < 1) {
       return message.reply('Count must be a positive number.');
     }
 
-    const card = lookupCard(cardId);
+    const card = resolveCard(cardQuery);
     if (!card) {
-      return message.reply(`No card found with id \`${cardId}\`. Check \`ZP col\` for valid IDs.`);
+      return message.reply(`No card found matching \`${cardQuery}\`. Check \`ZP col\` for valid IDs.`);
     }
 
     const inventory = inv.loadInventory();
@@ -2275,20 +2304,22 @@ client.on('messageCreate', async (message) => {
 
   // ── increaselevelcap | ilc ────────────────────────────────
   if (command === 'increaselevelcap' || command === 'ilc') {
-    const cardId = args[0]?.toLowerCase();
-    const count  = parseInt(args[1], 10);
+    const lastArg  = args[args.length - 1];
+    const count    = parseInt(lastArg, 10);
+    const cardArgs = !isNaN(count) && count > 0 ? args.slice(0, -1) : [];
+    const cardQuery = cardArgs.filter(a => !a.startsWith('<@')).join(' ');
 
-    if (!cardId || isNaN(count) || count < 1) {
+    if (!cardQuery || isNaN(count) || count < 1) {
       return message.reply(
-        'Usage: `ZP increaselevelcap <cardId> <amount>` or `ZP ilc <cardId> <amount>`\n' +
+        'Usage: `ZP increaselevelcap <name or id> <amount>` or `ZP ilc <name or id> <amount>`\n' +
         'Each level above 100 costs **1 Limit Breaker** + **100 Prestige Points** on that card.\n' +
         'Earn Limit Breakers from `ZP conquest`. Earn prestige points from `ZP kill`.\n' +
-        'Example: `ZP ilc naruto_r 2` — raise Naruto R\'s cap from 100 to 102 (costs 2 LBs + 200 PP).'
+        'Example: `ZP ilc gear5 2` — raise Gear 5 Luffy\'s cap from 100 to 102 (costs 2 LBs + 200 PP).'
       );
     }
 
-    const card = lookupCard(cardId);
-    if (!card) return message.reply(`No card found with id \`${cardId}\`.`);
+    const card = resolveCard(cardQuery);
+    if (!card) return message.reply(`No card found matching \`${cardQuery}\`.`);
 
     const inventory = inv.loadInventory();
 
@@ -2370,11 +2401,11 @@ client.on('messageCreate', async (message) => {
       return message.reply('Count must be a positive number.');
     }
 
-    const killerCard = lookupCard(killerCardId);
-    if (!killerCard) return message.reply(`No card found with id \`${killerCardId}\`.`);
+    const killerCard = resolveCard(killerCardId);
+    if (!killerCard) return message.reply(`No card found matching \`${killerCardId}\`.`);
 
-    const targetCard = lookupCard(targetShardId);
-    if (!targetCard) return message.reply(`No card found with shard id \`${targetShardId}\`.`);
+    const targetCard = resolveCard(targetShardId);
+    if (!targetCard) return message.reply(`No card found matching \`${targetShardId}\`.`);
 
     const inventory = inv.loadInventory();
 
@@ -2569,11 +2600,11 @@ client.on('messageCreate', async (message) => {
 
     // ── ZP team add ───────────────────────────────────────
     if (sub === 'add') {
-      const cardId = args[1]?.toLowerCase();
-      if (!cardId) return message.reply('Usage: `ZP team add <cardId>`');
+      const cardQuery = args.slice(1).filter(a => !a.startsWith('<@')).join(' ');
+      if (!cardQuery) return message.reply('Usage: `ZP team add <name or id>` — e.g. `ZP team add gear5`');
 
-      const card = lookupCard(cardId);
-      if (!card) return message.reply(`No card found with id \`${cardId}\`.`);
+      const card = resolveCard(cardQuery);
+      if (!card) return message.reply(`No card found matching \`${cardQuery}\`.`);
 
       const inventory = inv.loadInventory();
       if (!inv.hasCard(inventory, userId, card.id)) {
@@ -2590,11 +2621,11 @@ client.on('messageCreate', async (message) => {
 
     // ── ZP team remove ────────────────────────────────────
     if (sub === 'remove') {
-      const cardId = args[1]?.toLowerCase();
-      if (!cardId) return message.reply('Usage: `ZP team remove <cardId>`');
+      const cardQuery = args.slice(1).filter(a => !a.startsWith('<@')).join(' ');
+      if (!cardQuery) return message.reply('Usage: `ZP team remove <name or id>`');
 
-      const card = lookupCard(cardId);
-      if (!card) return message.reply(`No card found with id \`${cardId}\`.`);
+      const card = resolveCard(cardQuery);
+      if (!card) return message.reply(`No card found matching \`${cardQuery}\`.`);
 
       const inventory = inv.loadInventory();
       const slot      = inv.removeFromTeam(inventory, userId, card.id);
@@ -2613,12 +2644,12 @@ client.on('messageCreate', async (message) => {
 
     // ── ZP team equip ─────────────────────────────────────
     if (sub === 'equip') {
-      const cardId     = args[1]?.toLowerCase();
-      const platingStr = args[2]?.toLowerCase();
-      if (!cardId || !platingStr) return message.reply('Usage: `ZP team equip <cardId> <plating>` — valid platings: `bronze` `silver` `gold` `diamond`');
+      const platingStr = args[args.length - 1]?.toLowerCase();
+      const cardQuery  = args.slice(1, -1).filter(a => !a.startsWith('<@')).join(' ');
+      if (!cardQuery || !platingStr) return message.reply('Usage: `ZP team equip <name or id> <plating>` — valid platings: `bronze` `silver` `gold` `diamond`\nExample: `ZP team equip gear5 luffy gold`');
 
-      const card    = lookupCard(cardId);
-      if (!card)    return message.reply(`No card found with id \`${cardId}\`.`);
+      const card    = resolveCard(cardQuery);
+      if (!card)    return message.reply(`No card found matching \`${cardQuery}\`.`);
 
       const tier    = platingById(platingStr);
       if (!tier)    return message.reply(`Unknown plating \`${platingStr}\`. Valid: \`bronze\` \`silver\` \`gold\` \`diamond\``);
@@ -2635,11 +2666,11 @@ client.on('messageCreate', async (message) => {
 
     // ── ZP team unequip ───────────────────────────────────
     if (sub === 'unequip') {
-      const cardId = args[1]?.toLowerCase();
-      if (!cardId) return message.reply('Usage: `ZP team unequip <cardId>`');
+      const cardQuery = args.slice(1).filter(a => !a.startsWith('<@')).join(' ');
+      if (!cardQuery) return message.reply('Usage: `ZP team unequip <name or id>`');
 
-      const card = lookupCard(cardId);
-      if (!card) return message.reply(`No card found with id \`${cardId}\`.`);
+      const card = resolveCard(cardQuery);
+      if (!card) return message.reply(`No card found matching \`${cardQuery}\`.`);
 
       const inventory = inv.loadInventory();
       const tier      = inv.unequipPlatingFromTeam(inventory, userId, card.id);
@@ -2653,11 +2684,11 @@ client.on('messageCreate', async (message) => {
 
   // ── add (shortcut for team add) ───────────────────────────
   if (command === 'add') {
-    const cardId = args[0]?.toLowerCase();
-    if (!cardId) return message.reply('Usage: `ZP add <cardId>`');
+    const cardQuery = args.filter(a => !a.startsWith('<@')).join(' ');
+    if (!cardQuery) return message.reply('Usage: `ZP add <name or id>` — e.g. `ZP add gear5 luffy`');
 
-    const card = lookupCard(cardId);
-    if (!card) return message.reply(`No card found with id \`${cardId}\`.`);
+    const card = resolveCard(cardQuery);
+    if (!card) return message.reply(`No card found matching \`${cardQuery}\`.`);
 
     const inventory = inv.loadInventory();
     if (!inv.hasCard(inventory, userId, card.id)) {
@@ -2674,11 +2705,11 @@ client.on('messageCreate', async (message) => {
 
   // ── remove (shortcut for team remove) ────────────────────
   if (command === 'remove' || command === 'rm') {
-    const cardId = args[0]?.toLowerCase();
-    if (!cardId) return message.reply('Usage: `ZP remove <cardId>`');
+    const cardQuery = args.filter(a => !a.startsWith('<@')).join(' ');
+    if (!cardQuery) return message.reply('Usage: `ZP remove <name or id>` — e.g. `ZP remove gear5`');
 
-    const card = lookupCard(cardId);
-    if (!card) return message.reply(`No card found with id \`${cardId}\`.`);
+    const card = resolveCard(cardQuery);
+    if (!card) return message.reply(`No card found matching \`${cardQuery}\`.`);
 
     const inventory = inv.loadInventory();
     const slot      = inv.removeFromTeam(inventory, userId, card.id);
@@ -2701,13 +2732,13 @@ client.on('messageCreate', async (message) => {
     const cardId2 = args[1]?.toLowerCase();
 
     if (!cardId1 || !cardId2) {
-      return message.reply('Usage: `ZP swap <cardId1> <cardId2>` — swaps the positions of two cards on your team.');
+      return message.reply('Usage: `ZP swap <id1> <id2>` — swaps the positions of two cards on your team.\nExample: `ZP swap gear5 sage_naruto`');
     }
 
-    const card1 = lookupCard(cardId1);
-    const card2 = lookupCard(cardId2);
-    if (!card1) return message.reply(`No card found with id \`${cardId1}\`.`);
-    if (!card2) return message.reply(`No card found with id \`${cardId2}\`.`);
+    const card1 = resolveCard(cardId1);
+    const card2 = resolveCard(cardId2);
+    if (!card1) return message.reply(`No card found matching \`${cardId1}\`.`);
+    if (!card2) return message.reply(`No card found matching \`${cardId2}\`.`);
 
     const inventory = inv.loadInventory();
     const success   = inv.swapTeamPositions(inventory, userId, card1.id, card2.id);
@@ -3234,16 +3265,16 @@ client.on('messageCreate', async (message) => {
 
   // ── conquestsend ──────────────────────────────────────────
   if (command === 'conquestsend' || command === 'cs') {
-    const cardId = args[0]?.toLowerCase();
-    if (!cardId) {
+    const cardQuery = args.filter(a => !a.startsWith('<@')).join(' ');
+    if (!cardQuery) {
       return message.reply(
-        'Usage: `ZP conquestsend <cardId>`\n' +
+        'Usage: `ZP conquestsend <name or id>` — e.g. `ZP cs gear5 luffy`\n' +
         'Send a card on a 2-hour conquest. Recall it with `ZP conquestrecall` to earn **1 Limit Breaker** and **1–10 Candy Tokens**.'
       );
     }
 
-    const card = lookupCard(cardId);
-    if (!card) return message.reply(`No card found with id \`${cardId}\`.`);
+    const card = resolveCard(cardQuery);
+    if (!card) return message.reply(`No card found matching \`${cardQuery}\`.`);
 
     const inventory = inv.loadInventory();
     if (!inv.hasCard(inventory, userId, card.id)) {
