@@ -627,8 +627,12 @@ client.on('messageCreate', async (message) => {
     const shardEntries   = Object.entries(charShards).filter(([, n]) => n > 0);
     const platingsObj    = inv.getPlatings(inventory, target.id);
     const platingEntries = Object.entries(platingsObj).filter(([, n]) => n > 0);
+    const yen            = inv.getYen(inventory, target.id);
+    const stars          = inv.getStars(inventory, target.id);
 
-    if (shardEntries.length === 0 && platingEntries.length === 0) {
+    const hasAnything = shardEntries.length > 0 || platingEntries.length > 0 || yen > 0 || stars > 0;
+
+    if (!hasAnything) {
       return message.reply(
         `${target.id === userId ? 'You have' : `**${target.username}** has`} nothing in your inventory yet. Pull duplicates to earn character shards, and hope for a plating drop!`
       );
@@ -637,6 +641,11 @@ client.on('messageCreate', async (message) => {
     const embed = new EmbedBuilder()
       .setColor(0x9B59B6)
       .setTitle(`🎒 ${target.username}'s Inventory`);
+
+    embed.addFields(
+      { name: '💴 Yen',   value: `¥${yen.toLocaleString()}`,   inline: true },
+      { name: '⭐ Stars', value: `${stars.toLocaleString()}`,   inline: true },
+    );
 
     if (platingEntries.length > 0) {
       const totalPlatings = platingEntries.reduce((s, [, n]) => s + n, 0);
