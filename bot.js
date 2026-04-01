@@ -279,16 +279,122 @@ function addAllItems(inventory, userId, items) {
 // ── Fight cooldown ────────────────────────────────────────
 
 const fightCooldowns = new Map(); // userId -> timestamp
+const activeBattles  = new Map(); // battleId -> battleState
 
 function getFightCooldownSecs(userId) {
-  const last = fightCooldowns.get(userId) ?? 0;
-  const elapsed = (Date.now() - last) / 1000;
+  const last      = fightCooldowns.get(userId) ?? 0;
+  const elapsed   = (Date.now() - last) / 1000;
   const remaining = config.FIGHT_COOLDOWN_SECONDS - elapsed;
   return remaining > 0 ? Math.ceil(remaining) : 0;
 }
 
 function setFightCooldown(userId) {
   fightCooldowns.set(userId, Date.now());
+}
+
+// ── Battle helpers ─────────────────────────────────────────
+
+/** Convert a resolved team slot into a live battle card with HP & DMG. */
+function buildBattleCard(slot) {
+  const card    = slot.card ?? lookupCard(slot.cardId);
+  if (!card) return null;
+  const level   = slot.level ?? 1;
+  const stats   = getCardStats(card, level);
+  const plating = slot.plating ? config.PLATING_TIERS.find(t => t.id === slot.plating) : null;
+  const mult    = plating ? plating.statMult : 1;
+  const hp      = Math.round(stats.hp  * mult);
+  const dmg     = Math.round(stats.dmg * mult);
+  const meta    = rarityMeta(card.rarity);
+  return {
+    cardId:   card.id,
+    name:     card.name,
+    level,
+    plating:  slot.plating ?? null,
+    platEmoji: plating?.emoji ?? '',
+    rarEmoji: meta.emoji,
+    hp,
+    maxHp:    hp,
+    dmgMin:   Math.round(dmg * 0.8),
+    dmgMax:   Math.round(dmg * 1.2),
+    dmg,
+    alive:    true,
+  };
+}
+
+/** Render a 10-block HP bar. */
+function hpBar(current, max) {
+  const pct    = max <= 0 ? 0 : Math.max(0, Math.min(1, current / max));
+  const filled = Math.round(pct * 10);
+  const block  = pct > 0.5 ? '🟩' : pct > 0.25 ? '🟨' : '🟥';
+  return block.repeat(filled) + '⬛'.repeat(10 - filled);
+}
+
+/** Render a single card's battle display lines. */
+function cardBattleLine(bc) {
+  if (!bc.alive) {
+    return `~~⇒ ${bc.rarEmoji} **${bc.name}** | Lv. ${bc.level}~~\n💀 Defeated`;
+  }
+  return [
+    hpBar(bc.hp, bc.maxHp),
+    `⇒ ${bc.rarEmoji}${bc.platEmoji} **${bc.name}** | Lv. ${bc.level}`,
+    `❤️ ${bc.hp.toLocaleString()}/${bc.maxHp.toLocaleString()} | ⚔️ ${bc.dmgMin}–${bc.dmgMax}`,
+  ].join('\n');
+}
+
+/** Build the battle embed showing both teams' current state. */
+function buildBattleEmbed(state, log = null) {
+  const oppLines = state.defenderCards.map(cardBattleLine).join('\n\n');
+  const atkLines = state.attackerCards.map(cardBattleLine).join('\n\n');
+  const allAtkDead = state.attackerCards.every(b => !b.alive);
+  const allDefDead = state.defenderCards.every(b => !b.alive);
+
+  const parts = [
+    `**═════ ${state.defenderName}'s Team ═════**`,
+    oppLines,
+    '',
+    `**═════ ${state.attackerName}'s Team ═════**`,
+    atkLines,
+  ];
+  if (log) parts.push('', log);
+  if (!allAtkDead && !allDefDead) {
+    parts.push('', '*Use the buttons to fight!*');
+  }
+
+  return new EmbedBuilder()
+    .setColor(0xFF4757)
+    .setTitle('⚔️ Team Battle')
+    .setDescription(parts.join('\n'));
+}
+
+/** Build button rows for the attacker's alive cards + Run Away. */
+function buildBattleComponents(state) {
+  const rows = [];
+  const alive = state.attackerCards
+    .map((bc, i) => ({ bc, i }))
+    .filter(({ bc }) => bc.alive);
+
+  // Up to 4 card buttons per row
+  for (let r = 0; r < alive.length; r += 4) {
+    const row = new ActionRowBuilder().addComponents(
+      alive.slice(r, r + 4).map(({ bc, i }) =>
+        new ButtonBuilder()
+          .setCustomId(`battle|${state.battleId}|${i}`)
+          .setLabel(bc.name.length > 20 ? bc.name.slice(0, 18) + '…' : bc.name)
+          .setStyle(ButtonStyle.Success)
+      )
+    );
+    rows.push(row);
+  }
+
+  rows.push(
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`battle|${state.battleId}|run`)
+        .setLabel('Run Away')
+        .setStyle(ButtonStyle.Danger)
+    )
+  );
+  return rows;
 }
 
 // ── Team / Fight helpers ──────────────────────────────────
@@ -560,7 +666,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         { name: '`ZP team remove <cardId>`',              value: 'Remove a card from your team. Any equipped plating is returned to your inventory.', inline: false },
         { name: '`ZP team equip <cardId> <plating>`',    value: 'Equip a plating from your inventory onto a team card. The plating is **consumed** until unequipped. Valid: `bronze` `silver` `gold` `diamond`', inline: false },
         { name: '`ZP team unequip <cardId>`',             value: 'Remove a plating from a team card and return it to your inventory.', inline: false },
-        { name: '`ZP fight @user`',                       value: `Challenge a player! Both need a full **${inv.TEAM_SIZE}-card team**. A random roll decides the winner who earns **100–1,000 💴 Yen** and **10–100 ⭐ Stars**. ${config.FIGHT_COOLDOWN_SECONDS}s cooldown.`, inline: false },
+        { name: '`ZP fight @user`',                       value: `Start a **turn-based battle**! Both players need a full **${inv.TEAM_SIZE}-card team**. Click your card buttons to attack — each card hits the opponent's frontline card. The opponent retaliates automatically. Last team standing wins **100–1,000 💴 Yen** and **10–100 ⭐ Stars**. ${config.FIGHT_COOLDOWN_SECONDS}s cooldown.`, inline: false },
       )
       .setFooter({ text: 'Page 3 of 5 • ZP help' }),
 
@@ -684,6 +790,89 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isButton()) return;
 
   const parts = interaction.customId.split('|');
+
+  // ── Battle button handler ─────────────────────────────────
+  if (parts[0] === 'battle') {
+    const [, battleId, action] = parts;
+    const state = activeBattles.get(battleId);
+
+    if (!state) {
+      return interaction.update({ components: [], embeds: interaction.message.embeds });
+    }
+    if (interaction.user.id !== state.attackerId) {
+      return interaction.reply({ content: '❌ Only the challenger controls this battle.', ephemeral: true });
+    }
+    if (Date.now() > state.expiry) {
+      activeBattles.delete(battleId);
+      return interaction.update({ components: [], embeds: interaction.message.embeds });
+    }
+
+    // ── Run Away ──────────────────────────────────────────
+    if (action === 'run') {
+      activeBattles.delete(battleId);
+      const embed = buildBattleEmbed(state, `🏃 **${state.attackerName}** ran away from the battle!`);
+      return interaction.update({ embeds: [embed], components: [] });
+    }
+
+    // ── Attack ────────────────────────────────────────────
+    const atkIdx   = parseInt(action, 10);
+    const attacker = state.attackerCards[atkIdx];
+    if (!attacker?.alive) {
+      return interaction.reply({ content: '❌ That card is already defeated!', ephemeral: true });
+    }
+
+    const target = state.defenderCards.find(bc => bc.alive);
+    if (!target) {
+      activeBattles.delete(battleId);
+      return interaction.update({ components: [], embeds: interaction.message.embeds });
+    }
+
+    // Player attacks first alive defender card
+    const dmgDealt  = Math.round(attacker.dmg * (0.8 + Math.random() * 0.4));
+    target.hp       = Math.max(0, target.hp - dmgDealt);
+    if (target.hp === 0) target.alive = false;
+
+    let log = `⚔️ **${attacker.name}** attacked **${target.name}** for **${dmgDealt.toLocaleString()}** damage!`;
+    if (!target.alive) log += ` **${target.name}** was defeated! 💀`;
+
+    // Check if attacker wins
+    if (state.defenderCards.every(bc => !bc.alive)) {
+      activeBattles.delete(battleId);
+      const inventory   = inv.loadInventory();
+      const yenEarned   = Math.floor(config.FIGHT_YEN_MIN  + Math.random() * (config.FIGHT_YEN_MAX  - config.FIGHT_YEN_MIN + 1));
+      const starsEarned = Math.floor(config.FIGHT_STAR_MIN + Math.random() * (config.FIGHT_STAR_MAX - config.FIGHT_STAR_MIN + 1));
+      inv.addYen(inventory, state.attackerId, yenEarned);
+      inv.addStars(inventory, state.attackerId, starsEarned);
+      inv.saveInventory(inventory);
+      log += `\n\n🏆 **${state.attackerName}** wins!\n💴 +¥${yenEarned.toLocaleString()} Yen  ⭐ +${starsEarned.toLocaleString()} Stars`;
+      const embed = buildBattleEmbed(state, log);
+      return interaction.update({ embeds: [embed], components: [] });
+    }
+
+    // Defender retaliation — first alive defender hits first alive attacker
+    const retaliator = state.defenderCards.find(bc => bc.alive);
+    const atkTarget  = state.attackerCards.find(bc => bc.alive);
+    if (retaliator && atkTarget) {
+      const retDmg  = Math.round(retaliator.dmg * (0.8 + Math.random() * 0.4));
+      atkTarget.hp  = Math.max(0, atkTarget.hp - retDmg);
+      if (atkTarget.hp === 0) atkTarget.alive = false;
+      log += `\n💥 **${retaliator.name}** retaliated against **${atkTarget.name}** for **${retDmg.toLocaleString()}** damage!`;
+      if (!atkTarget.alive) log += ` **${atkTarget.name}** was defeated! 💀`;
+    }
+
+    // Check if defender wins
+    if (state.attackerCards.every(bc => !bc.alive)) {
+      activeBattles.delete(battleId);
+      log += `\n\n💀 **${state.defenderName}** wins! **${state.attackerName}** was defeated!`;
+      const embed = buildBattleEmbed(state, log);
+      return interaction.update({ embeds: [embed], components: [] });
+    }
+
+    // Battle continues
+    const embed      = buildBattleEmbed(state, log);
+    const components = buildBattleComponents(state);
+    return interaction.update({ embeds: [embed], components });
+  }
 
   // ── Help button handler ───────────────────────────────────
   if (parts[0] === 'help') {
@@ -1332,14 +1521,15 @@ client.on('messageCreate', async (message) => {
     if (opponent.id === userId) return message.reply('❌ You cannot fight yourself.');
     if (opponent.bot)           return message.reply('❌ You cannot fight a bot.');
 
-    // Cooldown check
     const coolSecs = getFightCooldownSecs(userId);
     if (coolSecs > 0) {
       return message.reply(`⏳ You're on cooldown! You can fight again in **${coolSecs}s**.`);
     }
 
-    const inventory = inv.loadInventory();
+    const existing = [...activeBattles.values()].find(b => b.attackerId === userId);
+    if (existing) return message.reply('❌ You already have an active battle in progress! Finish it first.');
 
+    const inventory  = inv.loadInventory();
     const atkTeamRaw = inv.getTeam(inventory, userId);
     const defTeamRaw = inv.getTeam(inventory, opponent.id);
 
@@ -1347,79 +1537,30 @@ client.on('messageCreate', async (message) => {
       return message.reply(`❌ Your team only has **${atkTeamRaw.length}/${inv.TEAM_SIZE}** cards. Use \`ZP team add <cardId>\` to fill it up.`);
     }
     if (defTeamRaw.length < inv.TEAM_SIZE) {
-      return message.reply(`❌ **${opponent.username}** only has **${defTeamRaw.length}/${inv.TEAM_SIZE}** cards on their team. They need a full team to fight.`);
+      return message.reply(`❌ **${opponent.username}** only has **${defTeamRaw.length}/${inv.TEAM_SIZE}** cards on their team.`);
     }
 
     const atkTeam = resolveTeamSlots(atkTeamRaw, inventory, userId);
     const defTeam = resolveTeamSlots(defTeamRaw, inventory, opponent.id);
 
-    const atkBase  = atkTeam.reduce((s, slot) => s + slotPower(slot), 0);
-    const defBase  = defTeam.reduce((s, slot) => s + slotPower(slot), 0);
-
-    // Each side rolls a ±15% random multiplier
-    const atkRoll  = 0.85 + Math.random() * 0.30;
-    const defRoll  = 0.85 + Math.random() * 0.30;
-    const atkFinal = atkBase * atkRoll;
-    const defFinal = defBase * defRoll;
-
-    const attackerWins = atkFinal >= defFinal;
-    const winnerId     = attackerWins ? userId         : opponent.id;
-    const loserId      = attackerWins ? opponent.id    : userId;
-    const winnerName   = attackerWins ? message.author.username : opponent.username;
-    const loserName    = attackerWins ? opponent.username : message.author.username;
-    const winnerTeam   = attackerWins ? atkTeam : defTeam;
-    const loserTeam    = attackerWins ? defTeam : atkTeam;
-
-    const yenEarned   = Math.floor(config.FIGHT_YEN_MIN  + Math.random() * (config.FIGHT_YEN_MAX  - config.FIGHT_YEN_MIN + 1));
-    const starsEarned = Math.floor(config.FIGHT_STAR_MIN + Math.random() * (config.FIGHT_STAR_MAX - config.FIGHT_STAR_MIN + 1));
-
-    inv.addYen(inventory, winnerId, yenEarned);
-    inv.addStars(inventory, winnerId, starsEarned);
-    inv.saveInventory(inventory);
+    const battleId = `${userId}_${Date.now()}`;
+    const state = {
+      battleId,
+      attackerId:    userId,
+      defenderId:    opponent.id,
+      attackerName:  message.author.username,
+      defenderName:  opponent.username,
+      attackerCards: atkTeam.map(buildBattleCard).filter(Boolean),
+      defenderCards: defTeam.map(buildBattleCard).filter(Boolean),
+      expiry:        Date.now() + 5 * 60 * 1000,
+    };
 
     setFightCooldown(userId);
+    activeBattles.set(battleId, state);
 
-    function teamLines(slots) {
-      return slots.map(slot => {
-        if (!slot.card) return `• ~~${slot.cardId}~~`;
-        const meta    = rarityMeta(slot.card.rarity);
-        const plating = slot.plating ? config.PLATING_TIERS.find(t => t.id === slot.plating) : null;
-        const platStr = plating ? ` ${plating.emoji}` : '';
-        return `${meta.emoji}${platStr} **${slot.card.name}** Lv.${slot.level}`;
-      }).join('\n');
-    }
-
-    const topPlating = winnerTeam
-      .map(s => s.plating ? config.PLATING_TIERS.find(t => t.id === s.plating) : null)
-      .filter(Boolean)
-      .sort((a, b) => b.statMult - a.statMult)[0];
-
-    const embedColor = topPlating?.color ?? 0x00FFD1;
-
-    const embed = new EmbedBuilder()
-      .setColor(embedColor)
-      .setTitle(`⚔️ Battle Result`)
-      .setDescription(`**${winnerName}** defeated **${loserName}**!`)
-      .addFields(
-        {
-          name:   `🏆 ${winnerName}'s Team — ⚡ ${Math.round(attackerWins ? atkBase : defBase).toLocaleString()} power`,
-          value:  teamLines(winnerTeam),
-          inline: true,
-        },
-        {
-          name:   `💀 ${loserName}'s Team — ⚡ ${Math.round(attackerWins ? defBase : atkBase).toLocaleString()} power`,
-          value:  teamLines(loserTeam),
-          inline: true,
-        },
-        {
-          name:  '🎁 Rewards',
-          value: `💴 **¥${yenEarned.toLocaleString()}** Yen\n⭐ **${starsEarned.toLocaleString()}** Stars`,
-          inline: false,
-        },
-      )
-      .setFooter({ text: `${config.FIGHT_COOLDOWN_SECONDS}s fight cooldown • Team power includes level & plating bonuses` });
-
-    return message.reply({ content: `${opponent}`, embeds: [embed] });
+    const embed      = buildBattleEmbed(state, `⚔️ **${message.author.username}** challenged **${opponent.username}**! Click a card button to attack!`);
+    const components = buildBattleComponents(state);
+    return message.reply({ content: `${opponent}`, embeds: [embed], components });
   }
 
   // ── trade ─────────────────────────────────────────────────

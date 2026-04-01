@@ -569,6 +569,14 @@
           "rarity": "LT",
           "level": 100,
           "obtainedAt": "2026-04-01T02:52:01.405Z"
+        },
+        {
+          "id": "gray_r",
+          "name": "Gray Fullbuster",
+          "series": "Fairy Tail",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T08:04:40.833Z"
         }
       ],
       "characterShards": {
@@ -772,8 +780,8 @@
   },
   "pullCharges": {
     "833025999897755689": {
-      "charges": 20,
-      "lastRefill": 1775012277449
+      "charges": 19,
+      "lastRefill": 1775030667449
     },
     "921838182927040602": {
       "charges": 0,
