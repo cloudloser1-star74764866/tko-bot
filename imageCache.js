@@ -74,6 +74,21 @@ const SEED = {
   rengoku_e:       'https://myanimelist.net/images/characters/10/423443.jpg',
   // Death Note — Near (cached MAL URL was for a different character 'Nir'; fixed)
   near_l:          'https://myanimelist.net/images/characters/13/77339.jpg',
+  // Bleach — AniList search misses; seeded directly
+  uryu_r:          'https://s4.anilist.co/file/anilistcdn/character/large/b7-wlGHiMpTJyOe.png',
+  aizen_l:         'https://s4.anilist.co/file/anilistcdn/character/large/b59-P4IUZA4bE5SL.png',
+  // Demon Slayer — Tanjiro
+  tanjiro_r:       'https://s4.anilist.co/file/anilistcdn/character/large/b127216-WV2YX8OHdvVq.png',
+  // Jujutsu Kaisen — Sukuna
+  sukuna_my:       'https://s4.anilist.co/file/anilistcdn/character/large/b127215-wd0O99BrxNku.png',
+  // Sword Art Online — Asuna
+  asuna_r:         'https://s4.anilist.co/file/anilistcdn/character/large/b36828-S2kOnUSJO6jZ.png',
+  // Cowboy Bebop — Spike
+  spike_r:         'https://s4.anilist.co/file/anilistcdn/character/large/b1-kAQO5FWbVHHi.png',
+  // Pokemon — artwork from pokemondb (AniList doesn't index these)
+  pikachu_r:       'https://img.pokemondb.net/artwork/large/pikachu.jpg',
+  mewtwo_my:       'https://img.pokemondb.net/artwork/large/mewtwo.jpg',
+  arceus_ur:       'https://img.pokemondb.net/artwork/large/arceus.jpg',
 };
 
 // ── AniList search terms for remaining cards ─────────────────

@@ -1831,6 +1831,65 @@
       "yen": 0,
       "stars": 0,
       "candyTokens": 10
+    },
+    "689152429341933780": {
+      "cards": [
+        {
+          "id": "edward",
+          "name": "Edward Elric",
+          "series": "Fullmetal Alchemist: Brotherhood",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T10:55:09.961Z"
+        },
+        {
+          "id": "light",
+          "name": "Light Yagami",
+          "series": "Death Note",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T10:55:16.024Z"
+        },
+        {
+          "id": "yusuke",
+          "name": "Yusuke Urameshi",
+          "series": "Yu Yu Hakusho",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T10:55:31.572Z"
+        },
+        {
+          "id": "natsu",
+          "name": "Natsu Dragneel",
+          "series": "Fairy Tail",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T10:55:44.721Z"
+        },
+        {
+          "id": "reigen",
+          "name": "Reigen Arataka",
+          "series": "Mob Psycho 100",
+          "rarity": "R",
+          "level": 1,
+          "obtainedAt": "2026-04-01T10:55:49.821Z"
+        }
+      ],
+      "characterShards": {},
+      "platings": {},
+      "team": [],
+      "yen": 0,
+      "stars": 0,
+      "candyTokens": 0,
+      "wish": null,
+      "levelCaps": {},
+      "prestigePoints": {},
+      "privacy": false,
+      "clanId": null,
+      "duoId": null,
+      "totalPulls": 5,
+      "totalKills": 0,
+      "items": {}
     }
   },
   "pullCharges": {
@@ -1849,6 +1908,10 @@
     "893911945374203994": {
       "charges": 1,
       "lastRefill": 1775036465086
+    },
+    "689152429341933780": {
+      "charges": 16,
+      "lastRefill": 1775040939960
     }
   },
   "clans": {},

@@ -7,6 +7,7 @@ const EMOJI_SERVERS = [
   '1488816245116768379',
   '1488815993416454166',
   '1488684823286648932',
+  '1488853555388612711',
 ];
 
 const CARDS_PER_SERVER = 50;
@@ -62,9 +63,7 @@ async function syncEmojis(client, cards, imgCache) {
       continue;
     }
 
-    const serverIndex = Math.min(Math.floor(i / CARDS_PER_SERVER), EMOJI_SERVERS.length - 1);
-    const serverId    = EMOJI_SERVERS[serverIndex];
-    const imageUrl    = imgCache.getImage(card.id) ?? card.image ?? null;
+    const imageUrl = imgCache.getImage(card.id) ?? card.image ?? null;
 
     if (!imageUrl) {
       console.warn(`😀 Emoji sync: no image for ${card.id}, skipping.`);
@@ -72,15 +71,32 @@ async function syncEmojis(client, cards, imgCache) {
       continue;
     }
 
-    try {
-      const guild = await client.guilds.fetch(serverId);
-      const emoji = await guild.emojis.create({ attachment: imageUrl, name: card.id });
-      cache[card.id] = { name: emoji.name, id: emoji.id };
-      save(cache);
-      uploaded++;
-      await sleep(500);
-    } catch (err) {
-      console.error(`😀 Emoji sync: failed to upload ${card.id} → server ${serverId}: ${err.message}`);
+    // Try each server starting from the preferred one; fall back if full
+    const preferredIndex = Math.min(Math.floor(i / CARDS_PER_SERVER), EMOJI_SERVERS.length - 1);
+    let uploadedOk = false;
+
+    for (let si = preferredIndex; si < EMOJI_SERVERS.length; si++) {
+      const serverId = EMOJI_SERVERS[si];
+      try {
+        const guild = await client.guilds.fetch(serverId);
+        const emoji = await guild.emojis.create({ attachment: imageUrl, name: card.id });
+        cache[card.id] = { name: emoji.name, id: emoji.id };
+        save(cache);
+        uploaded++;
+        await sleep(500);
+        uploadedOk = true;
+        break;
+      } catch (err) {
+        if (err.message && err.message.includes('Maximum number of emojis reached')) {
+          console.warn(`😀 Emoji sync: server ${serverId} full, trying next...`);
+          continue;
+        }
+        console.error(`😀 Emoji sync: failed to upload ${card.id} → server ${serverId}: ${err.message}`);
+        break;
+      }
+    }
+
+    if (!uploadedOk) {
       failed++;
     }
   }
