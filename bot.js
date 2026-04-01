@@ -37,40 +37,59 @@ const client = new Client({
 // ── Admin ─────────────────────────────────────────────────
 const ADMIN_ID = '833025999897755689';
 
-// When set to a valid rarity key (e.g. 'LT'), the admin's pulls are
-// forced to that rarity. Does NOT affect any other user.
 let adminRarityOverride = null;
 
 function isAdmin(userId) {
   return userId === ADMIN_ID;
 }
 
-/** Pull a card guaranteed to be of the given rarity. */
 function pullCardForced(rarity) {
   const pool = CARDS.filter(c => c.rarity === rarity);
   return pool.length ? pool[Math.floor(Math.random() * pool.length)] : CARDS[0];
 }
 
-// ── Per-user pull charges (token bucket, disk-backed) ────
-// Charges are stored in inventory.json so they survive restarts.
+// ── Pull charges (in-memory Map, persisted to disk) ───────
+// Fast in-memory lookups; only written to disk when charges change.
+// Map<userId, { charges: number, lastRefill: number }>
+const pullCharges = new Map();
+
+/** Seed the in-memory Map from the saved inventory file at startup. */
+function initPullCharges() {
+  const data = inv.loadInventory();
+  for (const [userId, bucket] of Object.entries(data.pullCharges || {})) {
+    pullCharges.set(userId, bucket);
+  }
+}
+
+/** Debounced async disk write — batches rapid-fire pulls into one write. */
+let persistTimer = null;
+function schedulePersist() {
+  if (persistTimer) clearTimeout(persistTimer);
+  persistTimer = setTimeout(() => {
+    const data = inv.loadInventory();
+    data.pullCharges = Object.fromEntries(pullCharges);
+    inv.saveInventory(data);
+    persistTimer = null;
+  }, 500);
+}
 
 function getCharges(userId) {
   const now      = Date.now();
   const regenMs  = config.PULL_COOLDOWN_SECONDS * 1000;
   const max      = config.MAX_PULL_CHARGES;
-  const inventory = inv.loadInventory();
-  const stored   = inv.loadPullCharges(inventory, userId) ?? { charges: max, lastRefill: now };
+  const bucket   = pullCharges.get(userId) ?? { charges: max, lastRefill: now };
 
-  const elapsed    = now - stored.lastRefill;
+  const elapsed    = now - bucket.lastRefill;
   const gained     = Math.floor(elapsed / regenMs);
-  const charges    = Math.min(max, stored.charges + gained);
-  const lastRefill = stored.lastRefill + gained * regenMs;
+  const charges    = Math.min(max, bucket.charges + gained);
+  const lastRefill = bucket.lastRefill + gained * regenMs;
 
-  return { charges, lastRefill, inventory };
+  return { charges, lastRefill };
 }
 
-function setCharges(userId, charges, lastRefill, inventory) {
-  inv.savePullCharges(inventory, userId, charges, lastRefill);
+function setCharges(userId, charges, lastRefill) {
+  pullCharges.set(userId, { charges, lastRefill });
+  schedulePersist();
 }
 
 // ── Helpers ───────────────────────────────────────────────
@@ -102,6 +121,7 @@ function lookupCard(cardId) {
 // ── Ready ─────────────────────────────────────────────────
 
 client.once('ready', () => {
+  initPullCharges();
   console.log(`✅ test Bot online as ${client.user.tag}`);
   client.user.setActivity('ZP help', { type: 0 });
 });
@@ -145,7 +165,6 @@ client.on('messageCreate', async (message) => {
       })
       .setFooter({ text: 'Dupes become character shards stored in your inventory. Trades expire after 5 minutes.' });
 
-    // Admin-only section — only visible to the admin user
     if (isAdmin(userId)) {
       const rarityKeys = Object.keys(config.RARITY_META).join(' | ');
       embed.addFields({
@@ -165,21 +184,23 @@ client.on('messageCreate', async (message) => {
 
   // ── pull | p ─────────────────────────────────────────────
   if (command === 'pull' || command === 'p') {
-    const { charges, lastRefill, inventory } = getCharges(userId);
+    const { charges, lastRefill } = getCharges(userId);
 
     if (charges <= 0) {
       const secsUntilNext = Math.ceil(config.PULL_COOLDOWN_SECONDS - (Date.now() - lastRefill) / 1000);
       return message.reply(`⏳ No pulls left! Next charge in **${secsUntilNext}s**. Charges refill 1 every **${config.PULL_COOLDOWN_SECONDS}s** (max **${config.MAX_PULL_CHARGES}**).`);
     }
 
-    // Admin rarity override applies only to the admin user
+    // Update charges in memory + schedule disk write
+    setCharges(userId, charges - 1, lastRefill);
+
     const card = (isAdmin(userId) && adminRarityOverride)
       ? pullCardForced(adminRarityOverride)
       : pullCard();
 
-    const { isDupe, cardName } = inv.addCardToInventory(inventory, userId, card, config.SHARD_VALUES);
-    // Save charges and card data together in one write
-    setCharges(userId, charges - 1, lastRefill, inventory);
+    const inventory = inv.loadInventory();
+    const { isDupe } = inv.addCardToInventory(inventory, userId, card, config.SHARD_VALUES);
+    inv.saveInventory(inventory);
 
     const meta = rarityMeta(card.rarity);
     const remaining = charges - 1;
@@ -438,7 +459,6 @@ client.on('messageCreate', async (message) => {
   // ── Admin-only commands ───────────────────────────────────
   if (isAdmin(userId)) {
 
-    // ZP setrarity <rarity | reset>
     if (command === 'setrarity') {
       const target = args[0]?.toUpperCase();
       if (!target) {
@@ -448,29 +468,21 @@ client.on('messageCreate', async (message) => {
         const rarityKeys = Object.keys(config.RARITY_META).join(' | ');
         return message.reply(`Usage: \`ZP setrarity <${rarityKeys} | reset>\`\n${current}`);
       }
-
       if (target === 'RESET') {
         adminRarityOverride = null;
         return message.reply('🔧 Rarity override cleared — back to normal pull rates.');
       }
-
       if (!config.RARITY_META[target]) {
-        const rarityKeys = Object.keys(config.RARITY_META).join(', ');
-        return message.reply(`❌ Unknown rarity \`${target}\`. Valid options: ${rarityKeys}`);
+        return message.reply(`❌ Unknown rarity \`${target}\`. Valid options: ${Object.keys(config.RARITY_META).join(', ')}`);
       }
-
       adminRarityOverride = target;
       const meta = rarityMeta(target);
       return message.reply(`🔧 Rarity locked to **${meta.emoji} ${meta.label}** — all your pulls will be this rarity until you \`ZP setrarity reset\`.`);
     }
 
-    // ZP giveshards <amount>
     if (command === 'giveshards') {
       const amount = parseInt(args[0], 10);
-      if (isNaN(amount) || amount <= 0) {
-        return message.reply('Usage: `ZP giveshards <amount>`');
-      }
-
+      if (isNaN(amount) || amount <= 0) return message.reply('Usage: `ZP giveshards <amount>`');
       const inventory = inv.loadInventory();
       inv.addShards(inventory, userId, amount);
       inv.saveInventory(inventory);
@@ -478,11 +490,8 @@ client.on('messageCreate', async (message) => {
       return message.reply(`🔧 Added **${amount} trade shards**. New balance: **${total}**.`);
     }
 
-    // ZP resetcooldown
     if (command === 'resetcooldown') {
-      const now = Date.now();
-      const inventory = inv.loadInventory();
-      setCharges(userId, config.MAX_PULL_CHARGES, now, inventory);
+      setCharges(userId, config.MAX_PULL_CHARGES, Date.now());
       return message.reply(`🔧 Pull charges restored to **${config.MAX_PULL_CHARGES}**.`);
     }
   }

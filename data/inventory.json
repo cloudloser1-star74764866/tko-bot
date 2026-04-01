@@ -127,13 +127,28 @@
           "series": "One Piece",
           "rarity": "LT",
           "obtainedAt": "2026-03-31T23:53:58.355Z"
+        },
+        {
+          "id": "vegeta_e",
+          "name": "Vegeta",
+          "series": "Dragon Ball Z",
+          "rarity": "E",
+          "obtainedAt": "2026-03-31T23:57:32.598Z"
         }
       ],
-      "shards": 10,
+      "shards": 11,
       "characterShards": {
         "bakugo_e": 1,
-        "link_r": 1
+        "link_r": 1,
+        "zeno_ur": 1,
+        "goku_r": 1
       }
+    }
+  },
+  "pullCharges": {
+    "833025999897755689": {
+      "charges": 18,
+      "lastRefill": 1775001479789
     }
   }
 }
