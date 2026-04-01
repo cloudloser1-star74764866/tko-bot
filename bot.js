@@ -2947,6 +2947,14 @@ client.on('messageCreate', async (message) => {
     return message.reply(`Gave **${amount}** Candy Token${amount === 1 ? '' : 's'} to **${target.username}**.`);
   }
 
+  // ── emojirefresh ──────────────────────────────────────────
+  if (command === 'emojirefresh') {
+    await message.reply('Starting emoji refresh: deleting all emojis and re-syncing...');
+    await emojiCache.deleteAllEmojis(client);
+    await emojiCache.syncEmojis(client, CARDS, imgCache);
+    return message.reply('Emoji refresh complete.');
+  }
+
   // ── giveitem ──────────────────────────────────────────────
   if (command === 'giveitem') {
     const target = message.mentions.users.first();
