@@ -53,18 +53,34 @@ module.exports = {
   },
 
   // ── Raid ──────────────────────────────────────────────────
-  // Chance per single pull to receive a Raid Ticket (0.01 = 1%).
-  RAID_TICKET_CHANCE: 0.01,
+  // Drop chance per single pull for each ticket tier.
+  RAID_TICKET_CHANCES: {
+    raid_ticket:          0.0015,   // 0.15%
+    mythical_raid_ticket: 0.00075,  // 0.075%
+    omega_raid_ticket:    0.0005,   // 0.05%
+    hellish_raid_ticket:  0.0001,   // 0.01%
+  },
+
+  // Tier definitions: boss pool, stat multiplier applied to Lv-100 card stats.
+  RAID_TICKET_TIERS: [
+    { id: 'raid_ticket',          label: 'Raid Ticket',          emoji: '🎟️', color: 0xFF6B6B, bossPools: ['R','E','L'], statMult: 4, useCmd: 'ZP raid'         },
+    { id: 'mythical_raid_ticket', label: 'Mythical Raid Ticket', emoji: '🌙', color: 0xFF4757, bossPools: ['MY'],        statMult: 5, useCmd: 'ZP raid mythical' },
+    { id: 'omega_raid_ticket',    label: 'Omega Raid Ticket',    emoji: '⚡', color: 0x00FFF0, bossPools: ['UR'],         statMult: 5, useCmd: 'ZP raid omega'   },
+    { id: 'hellish_raid_ticket',  label: 'Hellish Raid Ticket',  emoji: '💀', color: 0xFF0000, bossPools: ['LT'],         statMult: 4, useCmd: 'ZP raid hellish' },
+  ],
 
   // ── Items ─────────────────────────────────────────────────
   // Items usable via `ZP use <id>` (or their custom useCmd).
   ITEMS: [
-    { id: 'liberation',  name: 'Liberation',        emoji: '',   cardId: 'gear5_luffy_lt',      desc: 'Awakens the power of the Sun God within Luffy.' },
-    { id: 'tattoos',     name: "Sukuna's Tattoos",   emoji: '',   cardId: 'sukuna_fp_lt',        desc: 'Cursed marks of the King of Curses in their full glory.' },
-    { id: 'instincts',   name: "Goku's Instincts",   emoji: '',   cardId: 'ultra_goku_lt',       desc: 'The divine technique of pure autonomous movement.' },
-    { id: 'ramen',       name: 'Ramen',              emoji: '',   cardId: 'sage_naruto_lt',      desc: 'A bowl of ramen carrying the chakra of the Sage of Six Paths.' },
-    { id: 'drugs',       name: 'Drugs',              emoji: '💊', cardId: 'daniel_park_ui_lt',   desc: 'An unknown substance that awakens Ultra Instinct in Daniel Park.' },
-    { id: 'raid_ticket', name: 'Raid Ticket',        emoji: '🎟️', cardId: null, useCmd: 'ZP raid', desc: '1% drop from pulls. Challenge a Limited card Raid Boss for rare loot!' },
+    { id: 'liberation',          name: 'Liberation',            emoji: '',   cardId: 'gear5_luffy_lt',    desc: 'Awakens the power of the Sun God within Luffy.' },
+    { id: 'tattoos',             name: "Sukuna's Tattoos",       emoji: '',   cardId: 'sukuna_fp_lt',      desc: 'Cursed marks of the King of Curses in their full glory.' },
+    { id: 'instincts',           name: "Goku's Instincts",       emoji: '',   cardId: 'ultra_goku_lt',     desc: 'The divine technique of pure autonomous movement.' },
+    { id: 'ramen',               name: 'Ramen',                  emoji: '',   cardId: 'sage_naruto_lt',    desc: 'A bowl of ramen carrying the chakra of the Sage of Six Paths.' },
+    { id: 'drugs',               name: 'Drugs',                  emoji: '💊', cardId: 'daniel_park_ui_lt', desc: 'An unknown substance that awakens Ultra Instinct in Daniel Park.' },
+    { id: 'raid_ticket',         name: 'Raid Ticket',           emoji: '🎟️', cardId: null, useCmd: 'ZP raid',         desc: '0.15% drop. Fight a Rare–Legendary Raid Boss!' },
+    { id: 'mythical_raid_ticket',name: 'Mythical Raid Ticket',  emoji: '🌙', cardId: null, useCmd: 'ZP raid mythical', desc: '0.075% drop. Fight a Mythical Raid Boss!' },
+    { id: 'omega_raid_ticket',   name: 'Omega Raid Ticket',     emoji: '⚡', cardId: null, useCmd: 'ZP raid omega',   desc: '0.05% drop. Fight an Ultra Rare Raid Boss!' },
+    { id: 'hellish_raid_ticket', name: 'Hellish Raid Ticket',   emoji: '💀', cardId: null, useCmd: 'ZP raid hellish', desc: '0.01% drop. Fight a Limited Raid Boss for massive rewards!' },
   ],
 
   // ── Rarity Metadata (display) ────────────────────────────

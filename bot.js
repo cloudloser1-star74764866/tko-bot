@@ -448,53 +448,80 @@ function buildRaidEmbed(state, log = null) {
   if (log) parts.push('', log);
   if (!allAtkDead && boss.alive) parts.push('', '*Choose a card to attack with!*');
 
+  const tier  = config.RAID_TICKET_TIERS.find(t => t.id === state.raidTicketTier);
+  const color = tier?.color ?? 0xFF69B4;
+
   const embed = new EmbedBuilder()
-    .setColor(0xFF69B4)
-    .setTitle('🔥 Raid Battle')
+    .setColor(color)
+    .setTitle(`${tier?.emoji ?? '🔥'} ${tier?.label ?? 'Raid'} Battle`)
     .setDescription(parts.join('\n'));
 
   if (state.bossImg) embed.setThumbnail(state.bossImg);
   return embed;
 }
 
-function generateRaidReward(state, inventory) {
-  const userId = state.attackerId;
-  const boss   = state.raidBossCard;
-  const roll   = Math.random();
+// Reward config per ticket tier
+const RAID_REWARD_CONFIG = {
+  raid_ticket: {
+    cardChance: 0.10, yenMin: 10000,  yenMax: 25000,  cardPool: ['R','E','L'], lbMin: 1, lbMax: 2,  cardCount: [1,3],
+  },
+  mythical_raid_ticket: {
+    cardChance: 0.15, yenMin: 25000,  yenMax: 60000,  cardPool: ['E','L','MY'], lbMin: 1, lbMax: 3,  cardCount: [1,3],
+  },
+  omega_raid_ticket: {
+    cardChance: 0.20, yenMin: 50000,  yenMax: 100000, cardPool: ['L','MY','UR'], lbMin: 2, lbMax: 4, cardCount: [1,4],
+  },
+  hellish_raid_ticket: {
+    cardChance: 0.30, yenMin: 100000, yenMax: 200000, cardPool: ['L','MY','UR'], lbMin: 3, lbMax: 5, cardCount: [1,5],
+  },
+};
 
-  if (roll < 0.25) {
+function generateRaidReward(state, inventory) {
+  const userId   = state.attackerId;
+  const boss     = state.raidBossCard;
+  const tierId   = state.raidTicketTier ?? 'hellish_raid_ticket';
+  const cfg      = RAID_REWARD_CONFIG[tierId] ?? RAID_REWARD_CONFIG['hellish_raid_ticket'];
+  const roll     = Math.random();
+
+  // Boss card / item drop
+  if (roll < cfg.cardChance) {
     const bossItem = config.ITEMS.find(i => i.cardId === boss.id);
     if (bossItem) {
       inv.addItem(inventory, userId, bossItem.id);
       return `${bossItem.emoji} **${bossItem.name}** dropped! Use \`${bossItem.useCmd ?? `ZP use ${bossItem.id}`}\` to claim **${boss.name}**!`;
     }
-    const yen = Math.floor(10000 + Math.random() * 90001);
+    // Non-LT bosses: add card directly
+    const { isDupe } = inv.addCardToInventory(inventory, userId, boss);
+    const meta = rarityMeta(boss.rarity);
+    return `${meta.emoji} **${boss.name}** joined your collection!${isDupe ? ' *(+1 shard)*' : ''}`;
+  }
+
+  // Yen
+  const yenRange = cfg.yenMax - cfg.yenMin;
+  if (roll < cfg.cardChance + 0.40) {
+    const yen = Math.floor(cfg.yenMin + Math.random() * (yenRange + 1));
     inv.addYen(inventory, userId, yen);
     return `💰 **¥${yen.toLocaleString()} Yen** dropped!`;
   }
 
-  if (roll < 0.50) {
-    const yen = Math.floor(10000 + Math.random() * 90001);
-    inv.addYen(inventory, userId, yen);
-    return `💰 **¥${yen.toLocaleString()} Yen** dropped!`;
-  }
-
-  if (roll < 0.75) {
-    const rarities = ['L', 'MY', 'UR'];
-    const count    = Math.floor(1 + Math.random() * 5);
-    const lines    = [];
+  // Random cards
+  if (roll < cfg.cardChance + 0.65) {
+    const [cMin, cMax] = cfg.cardCount;
+    const count = Math.floor(cMin + Math.random() * (cMax - cMin + 1));
+    const lines = [];
     for (let i = 0; i < count; i++) {
-      const rarity       = rarities[Math.floor(Math.random() * rarities.length)];
-      const droppedCard  = pullCardForced(rarity);
-      const { isDupe }   = inv.addCardToInventory(inventory, userId, droppedCard);
-      const meta         = rarityMeta(droppedCard.rarity);
-      const emoji        = emojiCache.getEmoji(droppedCard.id) ?? '';
-      lines.push(`${meta.emoji} **${droppedCard.name}**${emoji ? ' ' + emoji : ''}${isDupe ? ' *(+1 shard)*' : ''}`);
+      const rarity      = cfg.cardPool[Math.floor(Math.random() * cfg.cardPool.length)];
+      const dropped     = pullCardForced(rarity);
+      const { isDupe }  = inv.addCardToInventory(inventory, userId, dropped);
+      const meta        = rarityMeta(dropped.rarity);
+      const emoji       = emojiCache.getEmoji(dropped.id) ?? '';
+      lines.push(`${meta.emoji} **${dropped.name}**${emoji ? ' ' + emoji : ''}${isDupe ? ' *(+1 shard)*' : ''}`);
     }
     return `🎴 **${count} card${count === 1 ? '' : 's'}** dropped!\n${lines.join('\n')}`;
   }
 
-  const lbCount = Math.floor(1 + Math.random() * 5);
+  // Limit Breakers
+  const lbCount = Math.floor(cfg.lbMin + Math.random() * (cfg.lbMax - cfg.lbMin + 1));
   inv.addLimitBreakers(inventory, userId, lbCount);
   return `💎 **${lbCount} Limit Breaker${lbCount === 1 ? '' : 's'}** dropped!`;
 }
@@ -613,7 +640,7 @@ function cardEmbed(card, title, footer, level = 1, personalCap = null) {
 
 // ── Pull embeds ───────────────────────────────────────────
 
-function singlePullEmbed(card, isDupe, plating, chargeInfo, authorUsername, raidTicket = false) {
+function singlePullEmbed(card, isDupe, plating, chargeInfo, authorUsername, droppedTickets = []) {
   const meta  = rarityMeta(card.rarity);
   const stats = getCardStats(card, 1);
   const img   = imgCache.getImage(card.id) ?? card.image ?? null;
@@ -629,7 +656,10 @@ function singlePullEmbed(card, isDupe, plating, chargeInfo, authorUsername, raid
     descLines.push(`Already owned — **+1 ${cardEmoji ? cardEmoji + ' ' : ''}${card.name} Shard** obtained`);
   }
   if (plating) descLines.push(`**${plating.label} Plating** dropped!`);
-  if (raidTicket) descLines.push(`🎟️ **Raid Ticket** dropped! Use \`ZP raid\` to fight a Limited Boss!`);
+  for (const ticketId of droppedTickets) {
+    const rTier = config.RAID_TICKET_TIERS.find(t => t.id === ticketId);
+    if (rTier) descLines.push(`${rTier.emoji} **${rTier.label}** dropped! Use \`${rTier.useCmd}\` to fight a boss!`);
+  }
 
   const embed = new EmbedBuilder()
     .setColor(plating?.color ?? (isDupe ? 0x888888 : meta.color))
@@ -682,13 +712,19 @@ function allPullEmbed(results, charges, withReset, authorUsername, overrideNote)
 
   const newCount  = results.filter(r => !r.isDupe).length;
   const dupeCount = results.filter(r =>  r.isDupe).length;
-  const ticketCount = results.filter(r => r.raidTicket).length;
+  const allDropped = results.flatMap(r => r.droppedTickets ?? []);
+  const ticketTotals = {};
+  for (const t of allDropped) ticketTotals[t] = (ticketTotals[t] || 0) + 1;
+  const ticketFooterParts = Object.entries(ticketTotals).map(([id, n]) => {
+    const rTier = config.RAID_TICKET_TIERS.find(t => t.id === id);
+    return rTier ? `${rTier.emoji} ${n}x ${rTier.label}` : null;
+  }).filter(Boolean);
   const footerParts = [
     `Total Pulls: ${charges}/${charges}`,
     newCount  ? `✨ ${newCount} new` : null,
     dupeCount ? `${dupeCount} shard${dupeCount === 1 ? '' : 's'}` : null,
     platings.length ? `${platings.length} plating${platings.length === 1 ? '' : 's'}` : null,
-    ticketCount ? `🎟️ ${ticketCount} Raid Ticket${ticketCount === 1 ? '' : 's'}` : null,
+    ...ticketFooterParts,
     withReset ? `Pulls reset to ${charges}` : null,
     overrideNote || null,
   ].filter(Boolean).join('  •  ');
@@ -976,7 +1012,14 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         { name: '`ZP team unequip <id>` / `ZP teamunequip <id>`', value: 'Remove a plating from a team card.', inline: false },
         { name: '`ZP fight @user` / `ZP fi @user`',      value: `Challenge a player to a turn-based team battle! ${config.FIGHT_COOLDOWN_SECONDS}s cooldown.`, inline: false },
         { name: '`ZP duofight @user` / `ZP df @user`',   value: 'Fight alongside your duo partner — your combined teams take on the opponent!', inline: false },
-        { name: '`ZP raid`',                              value: `Spend a **🎟️ Raid Ticket** to fight a random Limited card Raid Boss (HP: 10,000–30,000). Drops one of: the Limited card item, ¥10k–100k Yen, 1–5 Legendary–Ultra Rare cards, or 1–5 Limit Breakers. Tickets drop at **${config.RAID_TICKET_CHANCE * 100}%** per pull.`, inline: false },
+        { name: '`ZP raid` / `ZP raid mythical` / `ZP raid omega` / `ZP raid hellish`',
+          value: [
+            'Spend a raid ticket to fight a random Boss. Tier determines boss rarity, stats, and rewards.',
+            '🎟️ **Raid** (0.15% drop) — Rare–Legendary boss, 4× Lv100 stats → ¥10k–25k, low card chance',
+            '🌙 **Mythical** (0.075% drop) — Mythical boss, 5× Lv100 stats → ¥25k–60k, medium card chance',
+            '⚡ **Omega** (0.05% drop) — Ultra Rare boss, 5× Lv100 stats → ¥50k–100k, higher card chance',
+            '💀 **Hellish** (0.01% drop) — Limited boss, 4× Lv100 stats → ¥100k–200k, Limit Breakers, medium card chance',
+          ].join('\n'), inline: false },
       )
       .setFooter({ text: 'Page 4 of 7 • ZP help' }),
 
@@ -1089,6 +1132,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
             value: [
               '`ZP refresh` – Delete all server emojis and re-sync from scratch',
               '`ZP giveitem @user <itemId>` – Give a limited item to a player',
+              '`ZP giveraidticket @user <tier> [amount]` – Give raid tickets (tiers: `normal` `mythical` `omega` `hellish`)',
               '`ZP giveshards @user <cardId> <amount>` – Give character shards to a player',
               '`ZP givelimitbreaker [@user] <amount>` – Give Limit Breakers to a player',
               '`ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]` – Create a redeemable code',
@@ -1479,11 +1523,16 @@ client.on('messageCreate', async (message) => {
     // Track wish progress
     const wishCount = inv.incrementWishPulls(inventory, uid);
 
-    // 1% chance to drop a Raid Ticket
-    const raidTicket = Math.random() < config.RAID_TICKET_CHANCE;
-    if (raidTicket) inv.addItem(inventory, uid, 'raid_ticket');
+    // Roll independently for each raid ticket tier
+    const droppedTickets = [];
+    for (const [ticketId, chance] of Object.entries(config.RAID_TICKET_CHANCES)) {
+      if (Math.random() < chance) {
+        inv.addItem(inventory, uid, ticketId);
+        droppedTickets.push(ticketId);
+      }
+    }
 
-    return { card, isDupe, plating, wishCount, raidTicket };
+    return { card, isDupe, plating, wishCount, droppedTickets };
   }
 
   /**
@@ -1520,8 +1569,8 @@ client.on('messageCreate', async (message) => {
     setCharges(userId, charges - 1, lastRefill);
 
     const inventory                              = inv.loadInventory();
-    const { card, isDupe, plating, raidTicket } = executeSinglePull(inventory, userId);
-    const wishGrant                              = checkAndGrantWish(inventory, userId);
+    const { card, isDupe, plating, droppedTickets } = executeSinglePull(inventory, userId);
+    const wishGrant                                  = checkAndGrantWish(inventory, userId);
     inv.saveInventory(inventory);
 
     const remaining  = charges - 1;
@@ -1529,7 +1578,7 @@ client.on('messageCreate', async (message) => {
       ? `${remaining} pull${remaining === 1 ? '' : 's'} remaining`
       : `No pulls left — next charge in ${config.PULL_COOLDOWN_SECONDS}s`;
 
-    const embed = singlePullEmbed(card, isDupe, plating, chargeInfo, message.author.username, raidTicket);
+    const embed = singlePullEmbed(card, isDupe, plating, chargeInfo, message.author.username, droppedTickets);
     await message.reply({ embeds: [embed] });
 
     if (wishGrant) {
@@ -1953,7 +2002,7 @@ client.on('messageCreate', async (message) => {
     const entries   = Object.entries(userItems).filter(([, n]) => n > 0);
 
     if (entries.length === 0) {
-      return message.reply(`${target.id === userId ? 'You have' : `**${target.username}** has`} no items. Raid Tickets drop at **1%** per pull; other items are granted by admins!`);
+      return message.reply(`${target.id === userId ? 'You have' : `**${target.username}** has`} no items. Raid Tickets drop from pulls (🎟️ 0.15%, 🌙 0.075%, ⚡ 0.05%, 💀 0.01%). Other items are granted by admins!`);
     }
 
     const lines = entries.map(([itemId, count]) => {
@@ -2011,40 +2060,67 @@ client.on('messageCreate', async (message) => {
 
   // ── raid ──────────────────────────────────────────────────
   if (command === 'raid') {
+    // Determine which ticket tier was requested
+    const tierArg = args[0]?.toLowerCase();
+    const TIER_ALIASES = {
+      normal: 'raid_ticket', raid: 'raid_ticket', ticket: 'raid_ticket',
+      mythical: 'mythical_raid_ticket', my: 'mythical_raid_ticket',
+      omega: 'omega_raid_ticket', ur: 'omega_raid_ticket',
+      hellish: 'hellish_raid_ticket', hell: 'hellish_raid_ticket', lt: 'hellish_raid_ticket',
+    };
+    const ticketId = TIER_ALIASES[tierArg] ?? (tierArg ? null : 'raid_ticket');
+
+    if (!ticketId) {
+      const tierList = config.RAID_TICKET_TIERS.map(t => `\`${t.useCmd}\` — ${t.emoji} ${t.label}`).join('\n');
+      return message.reply(`Unknown raid tier \`${tierArg}\`. Available:\n${tierList}`);
+    }
+
+    const tier     = config.RAID_TICKET_TIERS.find(t => t.id === ticketId);
     const inventory = inv.loadInventory();
 
-    if (!inv.removeItem(inventory, userId, 'raid_ticket')) {
-      return message.reply(`You don't have a **🎟️ Raid Ticket**! Tickets have a **${config.RAID_TICKET_CHANCE * 100}%** chance to drop from each pull.`);
+    if (!inv.removeItem(inventory, userId, ticketId)) {
+      const chances  = config.RAID_TICKET_CHANCES;
+      const pct      = ((chances[ticketId] ?? 0) * 100).toFixed(3);
+      return message.reply(`You don't have a **${tier.emoji} ${tier.label}**! They drop at **${pct}%** per pull.`);
     }
 
     const team = inv.getTeam(inventory, userId);
     if (team.length < 1) {
-      inv.addItem(inventory, userId, 'raid_ticket');
+      inv.addItem(inventory, userId, ticketId);
       inv.saveInventory(inventory);
-      return message.reply(`You need at least **1 card** in your team to start a raid! Use \`ZP add <cardId>\` to fill your team first.`);
+      return message.reply(`You need at least **1 card** in your team to start a raid! Use \`ZP add <name or id>\` to fill your team first.`);
     }
 
-    const ltCards  = CARDS.filter(c => c.rarity === 'LT');
-    const bossCard = ltCards[Math.floor(Math.random() * ltCards.length)];
-    const bossHp   = Math.floor(10000 + Math.random() * 20001);
-    const bossDmg  = Math.floor(1000  + Math.random() * 1001);
-    const bossImg  = imgCache.getImage(bossCard.id) ?? bossCard.image ?? null;
+    // Pick a random boss from this tier's pool
+    const bossPool = CARDS.filter(c => tier.bossPools.includes(c.rarity));
+    if (!bossPool.length) {
+      inv.addItem(inventory, userId, ticketId);
+      inv.saveInventory(inventory);
+      return message.reply(`No cards found for ${tier.label} boss pool. Contact an admin!`);
+    }
+    const bossCard = bossPool[Math.floor(Math.random() * bossPool.length)];
     const bossMeta = rarityMeta(bossCard.rarity);
 
+    // Boss stats = card's Lv-100 stats × tier multiplier
+    const lv100Stats = getCardStats(bossCard, 100);
+    const bossHp     = Math.round(lv100Stats.hp  * tier.statMult);
+    const bossDmg    = Math.round(lv100Stats.dmg * tier.statMult);
+    const bossImg    = imgCache.getImage(bossCard.id) ?? bossCard.image ?? null;
+
     const bossBC = {
-      cardId:  bossCard.id,
-      name:    bossCard.name,
-      level:   1,
-      plating: null,
+      cardId:    bossCard.id,
+      name:      bossCard.name,
+      level:     1,
+      plating:   null,
       platEmoji: '',
       rarEmoji:  bossMeta.emoji,
-      hp:      bossHp,
-      maxHp:   bossHp,
-      dmgMin:  Math.round(bossDmg * 0.8),
-      dmgMax:  Math.round(bossDmg * 1.2),
-      dmg:     bossDmg,
-      technique: false,
-      alive:   true,
+      hp:        bossHp,
+      maxHp:     bossHp,
+      dmgMin:    Math.round(bossDmg * 0.8),
+      dmgMax:    Math.round(bossDmg * 1.2),
+      dmg:       bossDmg,
+      technique: bossCard.technique ?? false,
+      alive:     true,
     };
 
     const resolvedTeam  = resolveTeamSlots(team, inventory, userId);
@@ -2055,19 +2131,21 @@ client.on('messageCreate', async (message) => {
     const battleId = `raid_${userId}_${Date.now()}`;
     const state = {
       battleId,
-      isRaid:       true,
-      attackerId:   userId,
-      attackerName: message.author.username,
+      isRaid:         true,
+      raidTicketTier: ticketId,
+      attackerId:     userId,
+      attackerName:   message.author.username,
       attackerCards,
-      defenderName: bossCard.name,
-      defenderCards: [bossBC],
+      defenderName:   bossCard.name,
+      defenderCards:  [bossBC],
       bossImg,
-      raidBossCard: bossCard,
+      raidBossCard:   bossCard,
       expiry: Date.now() + 10 * 60 * 1000,
     };
     activeBattles.set(battleId, state);
 
-    const embed      = buildRaidEmbed(state, `🎟️ **Raid Ticket** consumed! A **${bossMeta.emoji} ${bossCard.name}** Raid Boss appeared!\n**HP:** ${bossHp.toLocaleString()} | **DMG:** ${bossDmg.toLocaleString()}–${Math.round(bossDmg * 1.2).toLocaleString()}`);
+    const openLog = `${tier.emoji} **${tier.label}** consumed! A **${bossMeta.emoji} ${bossCard.name}** Raid Boss appeared!\n**HP:** ${bossHp.toLocaleString()} | **DMG:** ${bossDmg.toLocaleString()}–${Math.round(bossDmg * 1.2).toLocaleString()}`;
+    const embed      = buildRaidEmbed(state, openLog);
     const components = buildBattleComponents(state);
     return message.reply({ embeds: [embed], components });
   }
@@ -3506,6 +3584,36 @@ client.on('messageCreate', async (message) => {
     inv.addItem(inventory, target.id, itemId);
     inv.saveInventory(inventory);
     return message.reply(`Gave **${item.emoji} ${item.name}** to **${target.username}**.`);
+  }
+
+  // ── giveraidticket ────────────────────────────────────────
+  if (command === 'giveraidticket' || command === 'grt') {
+    const target = message.mentions.users.first();
+    const nonMention = args.filter(a => !a.startsWith('<@'));
+    const tierArg = nonMention[0]?.toLowerCase();
+    const amount  = parseInt(nonMention[1] ?? '1', 10);
+
+    const TIER_ALIASES_ADMIN = {
+      normal: 'raid_ticket', raid: 'raid_ticket', ticket: 'raid_ticket',
+      mythical: 'mythical_raid_ticket', my: 'mythical_raid_ticket',
+      omega: 'omega_raid_ticket', ur: 'omega_raid_ticket',
+      hellish: 'hellish_raid_ticket', hell: 'hellish_raid_ticket', lt: 'hellish_raid_ticket',
+    };
+    const ticketId = TIER_ALIASES_ADMIN[tierArg];
+
+    if (!target || !ticketId || isNaN(amount) || amount <= 0) {
+      return message.reply(
+        'Usage: `ZP giveraidticket @user <tier> [amount]`\n' +
+        'Tiers: `normal` `mythical` `omega` `hellish`\n' +
+        'Example: `ZP giveraidticket @user hellish 3`'
+      );
+    }
+
+    const tier = config.RAID_TICKET_TIERS.find(t => t.id === ticketId);
+    const inventory = inv.loadInventory();
+    for (let i = 0; i < amount; i++) inv.addItem(inventory, target.id, ticketId);
+    inv.saveInventory(inventory);
+    return message.reply(`Gave **${amount}× ${tier.emoji} ${tier.label}** to **${target.username}**.`);
   }
 
   // ── giveshards ────────────────────────────────────────────
