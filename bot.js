@@ -506,6 +506,170 @@ function buildCollectionPage(authorId, targetUser, cards, page, filter, inventor
 
 // ── Ready ─────────────────────────────────────────────────
 
+// ── Help pages ────────────────────────────────────────────
+
+const HELP_TIMEOUT_MS = 120_000;
+
+function buildHelpPage(authorId, page, showAdmin, expiry) {
+  const rarityList  = Object.entries(config.RARITY_META)
+    .map(([k, v]) => `${v.emoji} **${v.label}** \`${k}\``)
+    .join('\n');
+  const platingList = config.PLATING_TIERS
+    .map(t => `${t.emoji} **${t.label}** — ×${t.statMult} battle stats (+${Math.round((t.statMult - 1) * 100)}%)`)
+    .join('\n');
+
+  const pages = [
+    // ── Page 0: Pulling ──────────────────────────────────
+    new EmbedBuilder()
+      .setColor(0x00FFD1)
+      .setTitle('📖 Help — 🎴 Pulling (1/5)')
+      .setDescription('Pull random character cards from anime, manga, and games!')
+      .addFields(
+        { name: '`ZP pull` / `ZP p`',              value: `Pull a random card. You have up to **${config.MAX_PULL_CHARGES}** charges; +1 regenerates every **${config.PULL_COOLDOWN_SECONDS}s**.`, inline: false },
+        { name: '`ZP allpull` / `ZP ap`',           value: 'Spend **all** your current pull charges at once and see a full summary of results.', inline: false },
+        { name: '`ZP allpull reset` / `ZP ap reset`', value: '🍬 Spend all charges then instantly refill back to max. Costs **1 Candy Token**.', inline: false },
+        { name: '`ZP reset`',                        value: '🍬 Use a **Candy Token** to instantly refill your pulls to max without spending them first.', inline: false },
+      )
+      .setFooter({ text: 'Page 1 of 5 • ZP help' }),
+
+    // ── Page 1: Collection & Cards ────────────────────────
+    new EmbedBuilder()
+      .setColor(0x4A90D9)
+      .setTitle('📖 Help — 🗂️ Collection & Cards (2/5)')
+      .setDescription('Browse your collection, inspect cards, level them up, and check your currencies.')
+      .addFields(
+        { name: '`ZP collection` / `ZP col`',        value: 'Browse your card collection one card at a time with Prev/Next buttons.', inline: false },
+        { name: '`ZP col [rarity or keyword]`',       value: 'Filter by rarity code (e.g. `LT`, `MY`) or a name/series keyword.', inline: false },
+        { name: '`ZP col @user [filter]`',            value: "Browse another player's collection.", inline: false },
+        { name: '`ZP all` / `ZP all [filter]`',      value: 'Browse **every card in the game**, sorted by rarity then name. Same filter options as `col`.', inline: false },
+        { name: '`ZP card <cardId>` / `ZP c <id>`',  value: 'Inspect a specific card — shows level, stats, shards, and an absorb hint.', inline: false },
+        { name: '`ZP absorb shard:<id>:<count>`',     value: 'Spend character shards to level up a card. **1 shard = 1 level**, max **Lv. 100**. Each level gives **+2% stats**.', inline: false },
+        { name: '`ZP inventory` / `ZP inv`',         value: 'View your character shards, platings, Yen, Stars, and Candy Tokens.', inline: false },
+        { name: '`ZP balance` / `ZP bal`',           value: 'Check your 💴 Yen and ⭐ Stars. Add `@user` to check someone else.', inline: false },
+      )
+      .setFooter({ text: 'Page 2 of 5 • ZP help' }),
+
+    // ── Page 2: Team & Battle ─────────────────────────────
+    new EmbedBuilder()
+      .setColor(0xFF4757)
+      .setTitle('📖 Help — ⚔️ Team & Battle (3/5)')
+      .setDescription(`Build a team of **${inv.TEAM_SIZE} cards** and fight other players for Yen and Stars!\n\n**Plating battle bonuses:**\n${platingList}`)
+      .addFields(
+        { name: '`ZP team`',                              value: 'View your battle team. Shows each card\'s level, equipped plating, and power score. Add `@user` to see someone else\'s team.', inline: false },
+        { name: '`ZP team add <cardId>`',                 value: `Add one of your owned cards to your team (max ${inv.TEAM_SIZE}).`, inline: false },
+        { name: '`ZP team remove <cardId>`',              value: 'Remove a card from your team. Any equipped plating is returned to your inventory.', inline: false },
+        { name: '`ZP team equip <cardId> <plating>`',    value: 'Equip a plating from your inventory onto a team card. The plating is **consumed** until unequipped. Valid: `bronze` `silver` `gold` `diamond`', inline: false },
+        { name: '`ZP team unequip <cardId>`',             value: 'Remove a plating from a team card and return it to your inventory.', inline: false },
+        { name: '`ZP fight @user`',                       value: `Challenge a player! Both need a full **${inv.TEAM_SIZE}-card team**. A random roll decides the winner who earns **100–1,000 💴 Yen** and **10–100 ⭐ Stars**. ${config.FIGHT_COOLDOWN_SECONDS}s cooldown.`, inline: false },
+      )
+      .setFooter({ text: 'Page 3 of 5 • ZP help' }),
+
+    // ── Page 3: Trading ───────────────────────────────────
+    new EmbedBuilder()
+      .setColor(0xF1C40F)
+      .setTitle('📖 Help — 🤝 Trading (4/5)')
+      .setDescription('Trade shards, platings, Yen, and Stars with other players. Omit `for <ask>` to send a free gift.')
+      .addFields(
+        {
+          name: '`ZP trade @user <offer> [for <ask>]`',
+          value: [
+            'Send a trade offer or instant gift.',
+            '**Item formats:** `shard:<cardId>:<amount>` • `plating:<tier>:<amount>` • `yen:<amount>` • `stars:<amount>`',
+            '**Multiple items:** separate with commas — e.g. `shard:naruto_r:3,yen:200`',
+            '**Examples:**',
+            '`ZP trade @Alice shard:naruto_r:5` — free gift',
+            '`ZP trade @Alice yen:500 for stars:100` — currency swap',
+            '`ZP trade @Alice shard:goku_r:3 for plating:gold:1` — shard for plating',
+          ].join('\n'),
+          inline: false,
+        },
+        { name: '`ZP accept <tradeId>` / `ZP a <id>`',    value: 'Accept a pending trade offer sent to you.', inline: false },
+        { name: '`ZP decline <tradeId>` / `ZP dec <id>`', value: 'Decline or cancel a trade (works for both sides).', inline: false },
+        { name: '`ZP trades`',                             value: 'List all pending trade/gift offers currently addressed to you.', inline: false },
+      )
+      .setFooter({ text: 'Page 4 of 5 • Trades expire after 5 minutes' }),
+
+    // ── Page 4: Reference ─────────────────────────────────
+    new EmbedBuilder()
+      .setColor(0x9B59B6)
+      .setTitle('📖 Help — 📚 Reference (5/5)')
+      .setDescription('Quick reference for rarities, platings, and currencies.')
+      .addFields(
+        { name: '✨ Rarities', value: rarityList, inline: false },
+        {
+          name: '🪙 Platings',
+          value: config.PLATING_TIERS.map(t => `${t.emoji} **${t.label}** — 0.1% pull drop`).join('\n') +
+            '\nEquip to team cards for combat bonuses. Tradeable.',
+          inline: false,
+        },
+        {
+          name: '💰 Currencies',
+          value: [
+            '💴 **Yen** — earned from fights & events. Traded between players.',
+            '⭐ **Stars** — earned from fights & events. Traded between players.',
+            '🍬 **Candy Tokens** — given by admins. Resets pull charges.',
+          ].join('\n'),
+          inline: false,
+        },
+        {
+          name: '📊 Card Power Formula',
+          value: 'Power = (HP + DMG) × level bonus × plating multiplier\nLevel bonus: ×(1 + 0.02 × (level − 1)) — so Lv.50 = ×1.98, Lv.100 = ×2.98',
+          inline: false,
+        },
+      )
+      .setFooter({ text: 'Page 5 of 5 • ZP help' }),
+  ];
+
+  // Admin page appended only for admins
+  if (showAdmin) {
+    const tierIds = config.PLATING_TIERS.map(t => t.id).join(' | ');
+    pages.push(
+      new EmbedBuilder()
+        .setColor(0xFF6B35)
+        .setTitle('📖 Help — 🔧 Admin Commands (6/6)')
+        .addFields({
+          name: 'Admin-only',
+          value: [
+            `\`ZP setrarity <${Object.keys(config.RARITY_META).join(' | ')}>\` — Force all pulls to a specific rarity`,
+            `\`ZP setrarity reset\` — Clear rarity override`,
+            `\`ZP setplating <${tierIds}>\` — Force every pull to drop a specific plating`,
+            `\`ZP setplating reset\` — Clear plating override`,
+            `\`ZP resetcooldown\` — Restore your pull charges to max`,
+            `\`ZP giveyen [@user] <amount>\` — Add Yen to yourself or a user`,
+            `\`ZP givestars [@user] <amount>\` — Add Stars to yourself or a user`,
+            `\`ZP givecandytokens [@user] <amount>\` — Give 🍬 Candy Tokens to yourself or a user`,
+          ].join('\n'),
+          inline: false,
+        })
+        .setFooter({ text: `Page ${pages.length + 1} of ${pages.length + 1} • Admin only` })
+    );
+  }
+
+  const totalPages = pages.length;
+  const p = Math.max(0, Math.min(page, totalPages - 1));
+  const embed = pages[p];
+
+  const base = `help|${authorId}|${expiry}|%p%|${showAdmin ? '1' : '0'}`;
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(base.replace('%p%', p - 1))
+      .setLabel('◀ Prev')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(p === 0),
+    new ButtonBuilder()
+      .setCustomId(`help|${authorId}|${expiry}|close|${showAdmin ? '1' : '0'}`)
+      .setLabel('✕ Close')
+      .setStyle(ButtonStyle.Danger),
+    new ButtonBuilder()
+      .setCustomId(base.replace('%p%', p + 1))
+      .setLabel('Next ▶')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(p === totalPages - 1),
+  );
+
+  return { embed, components: [row] };
+}
+
 client.once('ready', () => {
   initPullCharges();
   console.log(`✅ test Bot online as ${client.user.tag}`);
@@ -520,6 +684,27 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isButton()) return;
 
   const parts = interaction.customId.split('|');
+
+  // ── Help button handler ───────────────────────────────────
+  if (parts[0] === 'help') {
+    // Format: help|authorId|expiry|page|showAdmin
+    const [, authorId, expiryStr, pageStr, adminFlag] = parts;
+    const expiry    = parseInt(expiryStr, 10);
+    const showAdmin = adminFlag === '1';
+
+    if (interaction.user.id !== authorId) {
+      return interaction.reply({ content: '❌ These buttons are not for you.', ephemeral: true });
+    }
+    if (Date.now() > expiry) {
+      return interaction.update({ components: [], embeds: interaction.message.embeds });
+    }
+    if (pageStr === 'close') {
+      return interaction.update({ components: [] });
+    }
+    const page = parseInt(pageStr, 10);
+    const { embed, components } = buildHelpPage(authorId, page, showAdmin, expiry);
+    return interaction.update({ embeds: [embed], components });
+  }
 
   // ── ZP all button handler ─────────────────────────────────
   if (parts[0] === 'zpa') {
@@ -599,76 +784,10 @@ client.on('messageCreate', async (message) => {
 
   // ── help | h ─────────────────────────────────────────────
   if (!command || command === 'help' || command === 'h') {
-    const rarityList = Object.entries(config.RARITY_META)
-      .map(([k, v]) => `${v.emoji} **${v.label}** (${k})`)
-      .join('  •  ');
-    const platingList = config.PLATING_TIERS.map(t => `${t.emoji} **${t.label}**`).join('  •  ');
-
-    const embed = new EmbedBuilder()
-      .setColor(0x00FFD1)
-      .setTitle('📖 test Bot — Commands')
-      .setDescription('Pull anime & game character cards, collect them, and trade shards, platings & currencies!')
-      .addFields(
-        { name: '`ZP pull` / `ZP p`',                          value: `Pull a random card (${config.MAX_PULL_CHARGES} charges, +1 every ${config.PULL_COOLDOWN_SECONDS}s)`, inline: false },
-        { name: '`ZP allpull` / `ZP ap`',                      value: 'Spend all pull charges at once and see a full summary',                          inline: false },
-        { name: '`ZP allpull reset` / `ZP ap reset`',          value: '🍬 Spend all charges then instantly reset to 20 (costs 1 Candy Token)',          inline: false },
-        { name: '`ZP reset`',                                   value: '🍬 Use a Candy Token to instantly reset your pulls back to 20',                  inline: false },
-        { name: '`ZP collection` / `ZP col`',                  value: 'Browse your card collection one card at a time',                                 inline: false },
-        { name: '`ZP col [rarity or name]`',                   value: 'Filter by rarity code (e.g. `LT`) or name/series keyword',                       inline: false },
-        { name: '`ZP col @user [filter]`',                     value: "Browse another player's collection",                                              inline: false },
-        { name: '`ZP all` / `ZP all [filter]`',               value: 'Browse every card in the game (sorted by rarity, then name). Filter by rarity code or name/series keyword', inline: false },
-        { name: '`ZP inventory` / `ZP inv`',                   value: 'View your character shards, platings, Yen and Stars',                             inline: false },
-        { name: '`ZP balance` / `ZP bal`',                     value: 'Check your 💴 Yen and ⭐ Stars balance (add @user to check theirs)',              inline: false },
-        { name: '`ZP card <cardId>` / `ZP c <cardId>`',        value: 'Inspect a specific card by ID',                                                   inline: false },
-        { name: '`ZP absorb shard:<cardId>:<count>`',           value: 'Spend character shards to level up a card (1 shard = 1 level, max Lv. 100, +2% stats per level)', inline: false },
-        { name: '`ZP team`',                                    value: 'View your battle team (or `ZP team @user` to view someone else\'s)',                             inline: false },
-        { name: '`ZP team add <cardId>`',                       value: 'Add a card to your team (max 4 cards)',                                                         inline: false },
-        { name: '`ZP team remove <cardId>`',                    value: 'Remove a card from your team (returns any equipped plating)',                                    inline: false },
-        { name: '`ZP team equip <cardId> <plating>`',           value: 'Equip a plating to a team card for a stat boost in battle (consumes the plating)',               inline: false },
-        { name: '`ZP team unequip <cardId>`',                   value: 'Remove a plating from a team card (returns it to your inventory)',                               inline: false },
-        { name: '`ZP fight @user`',                             value: `Challenge a player to a team battle! Both need ${inv.TEAM_SIZE} cards. Winner earns 100–1,000 💴 Yen and 10–100 ⭐ Stars`, inline: false },
-        {
-          name: '`ZP trade @user <offer> [for <ask>]`',
-          value: [
-            'Send a trade or instant gift. Omit `for <ask>` to gift instantly. Separate multiple items with commas.',
-            '**Item formats:** `shard:<cardId>:<amount>` • `plating:<tier>:<amount>` • `yen:<amount>` • `stars:<amount>`',
-            '**Examples:**',
-            '`ZP trade @Alice shard:naruto_r:3,yen:200` — instant gift of multiple items',
-            '`ZP trade @Alice yen:500 for stars:100` — single-item swap (requires acceptance)',
-            '`ZP trade @Alice shard:naruto_r:3,plating:gold:1 for yen:1000,stars:50` — multi-item trade',
-          ].join('\n'),
-          inline: false,
-        },
-        { name: '`ZP accept <tradeId>` / `ZP a <tradeId>`',    value: 'Accept a trade offer addressed to you',                                          inline: false },
-        { name: '`ZP decline <tradeId>` / `ZP dec <tradeId>`', value: 'Decline or cancel a trade',                                                      inline: false },
-        { name: '`ZP trades`',                                  value: 'View pending trade/gift offers sent to you',                                     inline: false },
-      )
-      .addFields(
-        { name: '✨ Rarities',  value: rarityList,                                                                        inline: false },
-        { name: '🪙 Platings', value: platingList + `\n0.1% chance per pull • Dupes give character shards`,              inline: false },
-        { name: '💰 Currencies', value: '💴 **Yen** and ⭐ **Stars** — earned via events & traded between players',      inline: false },
-      )
-      .setFooter({ text: 'Dupes earn character shards. Trades expire after 5 minutes.' });
-
-    if (isAdmin(userId)) {
-      const tierIds = config.PLATING_TIERS.map(t => t.id).join(' | ');
-      embed.addFields({
-        name: '🔧 Admin Commands',
-        value: [
-          `\`ZP setrarity <${Object.keys(config.RARITY_META).join(' | ')}>\` — Force pulls to a rarity`,
-          `\`ZP setrarity reset\` — Clear rarity override`,
-          `\`ZP setplating <${tierIds}>\` — Force pulls to always drop a plating of that tier`,
-          `\`ZP setplating reset\` — Clear plating override`,
-          `\`ZP resetcooldown\` — Restore pull charges to max`,
-          `\`ZP giveyen [@user] <amount>\` — Add Yen to yourself or a user`,
-          `\`ZP givestars [@user] <amount>\` — Add Stars to yourself or a user`,
-          `\`ZP givecandytokens [@user] <amount>\` — Give 🍬 Candy Tokens to yourself or a user`,
-        ].join('\n'),
-        inline: false,
-      });
-    }
-
-    return message.reply({ embeds: [embed] });
+    const expiry    = Date.now() + HELP_TIMEOUT_MS;
+    const showAdmin = isAdmin(userId);
+    const { embed, components } = buildHelpPage(userId, 0, showAdmin, expiry);
+    return message.reply({ embeds: [embed], components });
   }
 
   // ── Shared pull logic ────────────────────────────────────
