@@ -35,6 +35,9 @@ function ensureUser(inventory, userId) {
   if (typeof u.stars        !== 'number') u.stars        = 0;
   if (typeof u.candyTokens  !== 'number') u.candyTokens  = 0;
   if ('shards' in u)                    delete u.shards;
+  for (const card of u.cards) {
+    if (typeof card.level !== 'number') card.level = 1;
+  }
 }
 
 // ── Card Operations ───────────────────────────────────────
@@ -53,6 +56,7 @@ function addCardToInventory(inventory, userId, card) {
     name:       card.name,
     series:     card.series,
     rarity:     card.rarity,
+    level:      1,
     obtainedAt: new Date().toISOString(),
   });
   return { isDupe: false, cardName: card.name };
@@ -75,6 +79,24 @@ function hasCard(inventory, userId, cardId) {
 function getCards(inventory, userId) {
   ensureUser(inventory, userId);
   return inventory.users[userId].cards;
+}
+
+// ── Card Level Operations ─────────────────────────────────
+
+const MAX_CARD_LEVEL = 100;
+
+function getCardLevel(inventory, userId, cardId) {
+  ensureUser(inventory, userId);
+  const card = inventory.users[userId].cards.find(c => c.id === cardId);
+  return card ? (card.level ?? 1) : null;
+}
+
+function setCardLevel(inventory, userId, cardId, level) {
+  ensureUser(inventory, userId);
+  const card = inventory.users[userId].cards.find(c => c.id === cardId);
+  if (!card) return false;
+  card.level = Math.max(1, Math.min(MAX_CARD_LEVEL, level));
+  return true;
 }
 
 // ── Character Shard Operations ────────────────────────────
@@ -201,6 +223,7 @@ module.exports = {
   loadInventory, saveInventory,
   loadPullCharges, savePullCharges,
   addCardToInventory, removeCardFromInventory, hasCard, getCards,
+  MAX_CARD_LEVEL, getCardLevel, setCardLevel,
   getCharacterShards, addCharacterShards, removeCharacterShards,
   getPlatings, addPlating, addPlatings, removePlating,
   getYen, addYen, removeYen,

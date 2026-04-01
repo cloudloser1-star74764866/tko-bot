@@ -10,6 +10,7 @@
 //    ZP all [filter]                        – filter all cards by rarity or name
 //    ZP inventory  (inv)                    – view character shards & platings
 //    ZP card <id>  (c <id>)                 – inspect a card
+//    ZP absorb shard:<id>:<count>           – level up a card using its shards
 //    ZP trade @user <offer> for <ask>       – offer a trade
 //    ZP accept <tradeId>  (a)               – accept a trade offer
 //    ZP decline <tradeId>  (dec)            – decline / cancel a trade
@@ -118,19 +119,23 @@ function platingById(id) {
 // ── Card stats ────────────────────────────────────────────
 
 /**
- * Returns deterministic { hp, dmg } for a card based on its ID.
- * Same card always gets the same stats; they scale within the
- * rarity's range defined in config.STAT_RANGES.
+ * Returns deterministic { hp, dmg } for a card based on its ID and level.
+ * Base stats are fixed by the card ID; each level above 1 adds 2%.
  */
-function getCardStats(card) {
+function getCardStats(card, level = 1) {
   // Simple deterministic hash of the card ID
   let hash = 0;
   for (const ch of card.id) hash = (hash * 31 + ch.charCodeAt(0)) & 0xffffffff;
   const t = (hash >>> 0) % 1000 / 1000; // 0.000 – 0.999
   const range = config.STAT_RANGES[card.rarity] ?? config.STAT_RANGES['R'];
-  const hp  = Math.round(range.hpMin  + t * (range.hpMax  - range.hpMin));
-  const dmg = Math.round(range.dmgMin + t * (range.dmgMax - range.dmgMin));
-  return { hp, dmg };
+  const baseHp  = Math.round(range.hpMin  + t * (range.hpMax  - range.hpMin));
+  const baseDmg = Math.round(range.dmgMin + t * (range.dmgMax - range.dmgMin));
+  const lvl = Math.max(1, Math.min(inv.MAX_CARD_LEVEL, level ?? 1));
+  const mult = 1 + 0.02 * (lvl - 1);
+  return {
+    hp:  Math.round(baseHp  * mult),
+    dmg: Math.round(baseDmg * mult),
+  };
 }
 
 // ── Trade item helpers ────────────────────────────────────
@@ -273,18 +278,21 @@ function rarityMeta(rarity) {
   return config.RARITY_META[rarity] ?? { label: rarity, emoji: '❔', color: 0xffffff, stars: '' };
 }
 
-function cardEmbed(card, title, footer) {
+function cardEmbed(card, title, footer, level = 1) {
   const meta  = rarityMeta(card.rarity);
-  const stats = getCardStats(card);
+  const lvl   = Math.max(1, Math.min(inv.MAX_CARD_LEVEL, level ?? 1));
+  const stats = getCardStats(card, lvl);
+  const levelLabel = lvl >= inv.MAX_CARD_LEVEL ? `✨ **MAX** (${lvl})` : `Lv. ${lvl}`;
   const embed = new EmbedBuilder()
     .setColor(meta.color)
     .setTitle(title ?? `${meta.emoji} ${card.name}`)
     .addFields(
-      { name: 'Series', value: card.series,                    inline: true },
-      { name: 'Rarity', value: `${meta.emoji} ${meta.label}`, inline: true },
-      { name: 'Stars',  value: meta.stars || '—',              inline: true },
-      { name: '❤️ Health', value: `${stats.hp}`,              inline: true },
-      { name: '⚔️ Damage', value: `${stats.dmg}`,             inline: true },
+      { name: 'Series',      value: card.series,                    inline: true },
+      { name: 'Rarity',      value: `${meta.emoji} ${meta.label}`, inline: true },
+      { name: 'Stars',       value: meta.stars || '—',              inline: true },
+      { name: '📊 Level',    value: levelLabel,                     inline: true },
+      { name: '❤️ Health',   value: `${stats.hp}`,                 inline: true },
+      { name: '⚔️ Damage',   value: `${stats.dmg}`,                inline: true },
     );
   const img = imgCache.getImage(card.id) ?? card.image ?? null;
   if (img)    embed.setThumbnail(img);
@@ -401,10 +409,12 @@ function buildCollectionPage(authorId, targetUser, cards, page, filter, inventor
   page = Math.max(0, Math.min(page, filtered.length - 1));
   const card      = filtered[page];
   const meta      = rarityMeta(card.rarity);
-  const stats     = getCardStats(card);
+  const cardLevel = card.level ?? 1;
+  const stats     = getCardStats(card, cardLevel);
   const shards    = inv.getCharacterShards(inventory, targetUser.id)[card.id] ?? 0;
   const filterTag = filter ? ` • Filter: "${filter}"` : '';
   const shardTag  = shards > 0 ? ` • 🔮 ×${shards} shard${shards === 1 ? '' : 's'}` : '';
+  const levelLabel = cardLevel >= inv.MAX_CARD_LEVEL ? `✨ MAX (${cardLevel})` : `Lv. ${cardLevel}`;
 
   const embed = new EmbedBuilder()
     .setColor(meta.color)
@@ -414,6 +424,7 @@ function buildCollectionPage(authorId, targetUser, cards, page, filter, inventor
       { name: 'Series',      value: card.series,                    inline: true },
       { name: 'Rarity',      value: `${meta.emoji} ${meta.label}`, inline: true },
       { name: 'Stars',       value: meta.stars || '—',              inline: true },
+      { name: '📊 Level',    value: levelLabel,                     inline: true },
       { name: '❤️ Health',   value: `${stats.hp}`,                 inline: true },
       { name: '⚔️ Damage',   value: `${stats.dmg}`,                inline: true },
       { name: '🪪 Card ID',  value: `\`${card.id}\``,              inline: true },
@@ -561,6 +572,7 @@ client.on('messageCreate', async (message) => {
         { name: '`ZP inventory` / `ZP inv`',                   value: 'View your character shards, platings, Yen and Stars',                             inline: false },
         { name: '`ZP balance` / `ZP bal`',                     value: 'Check your 💴 Yen and ⭐ Stars balance (add @user to check theirs)',              inline: false },
         { name: '`ZP card <cardId>` / `ZP c <cardId>`',        value: 'Inspect a specific card by ID',                                                   inline: false },
+        { name: '`ZP absorb shard:<cardId>:<count>`',           value: 'Spend character shards to level up a card (1 shard = 1 level, max Lv. 100, +2% stats per level)', inline: false },
         {
           name: '`ZP trade @user <offer> [for <ask>]`',
           value: [
@@ -893,11 +905,100 @@ client.on('messageCreate', async (message) => {
     const inventory = inv.loadInventory();
     const owned     = inv.hasCard(inventory, userId, card.id);
     const shards    = inv.getCharacterShards(inventory, userId)[card.id] ?? 0;
-    const embed     = cardEmbed(card);
+    const level     = owned ? (inv.getCardLevel(inventory, userId, card.id) ?? 1) : 1;
+    const embed     = cardEmbed(card, undefined, undefined, level);
+    const shardInfo = shards > 0 ? ` • 🔮 ×${shards} shard${shards === 1 ? '' : 's'}` : '';
+    const lvlInfo   = owned ? ` • 📊 Lv. ${level}` : '';
+    const absorbHint = owned && shards > 0 && level < inv.MAX_CARD_LEVEL
+      ? ` • Use \`ZP absorb shard:${card.id}:${shards}\` to level up!`
+      : '';
     const status    = owned
-      ? `✅ In your collection${shards > 0 ? ` • 🔮 ×${shards} shard${shards === 1 ? '' : 's'}` : ''}`
+      ? `✅ In your collection${lvlInfo}${shardInfo}${absorbHint}`
       : '❌ Not in your collection';
     embed.setFooter({ text: status });
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── absorb ───────────────────────────────────────────────
+  if (command === 'absorb') {
+    const raw = args[0];
+    if (!raw) {
+      return message.reply(
+        '❌ Usage: `ZP absorb shard:<cardId>:<count>`\n' +
+        'Example: `ZP absorb shard:naruto_r:5` — spend 5 Naruto shards to gain 5 levels.'
+      );
+    }
+
+    const parts = raw.split(':');
+    if (parts.length !== 3 || parts[0].toLowerCase() !== 'shard') {
+      return message.reply('❌ Invalid format. Usage: `ZP absorb shard:<cardId>:<count>`');
+    }
+
+    const cardId = parts[1].toLowerCase();
+    const count  = parseInt(parts[2], 10);
+    if (isNaN(count) || count < 1) {
+      return message.reply('❌ Count must be a positive number.');
+    }
+
+    const card = lookupCard(cardId);
+    if (!card) {
+      return message.reply(`❌ No card found with id \`${cardId}\`. Check \`ZP col\` for valid IDs.`);
+    }
+
+    const inventory = inv.loadInventory();
+
+    if (!inv.hasCard(inventory, userId, card.id)) {
+      return message.reply(`❌ You don't own **${card.name}**. You must collect the card before levelling it up.`);
+    }
+
+    const currentLevel = inv.getCardLevel(inventory, userId, card.id) ?? 1;
+
+    if (currentLevel >= inv.MAX_CARD_LEVEL) {
+      return message.reply(`✨ **${card.name}** is already at the maximum level (${inv.MAX_CARD_LEVEL})!`);
+    }
+
+    const shards = inv.getCharacterShards(inventory, userId)[card.id] ?? 0;
+    if (shards < count) {
+      return message.reply(`❌ You only have **${shards}** ${card.name} shard${shards === 1 ? '' : 's'} but tried to absorb **${count}**.`);
+    }
+
+    const levelsGained  = Math.min(count, inv.MAX_CARD_LEVEL - currentLevel);
+    const shardsSpent   = levelsGained;
+    const newLevel      = currentLevel + levelsGained;
+
+    inv.removeCharacterShards(inventory, userId, card.id, shardsSpent);
+    inv.setCardLevel(inventory, userId, card.id, newLevel);
+    inv.saveInventory(inventory);
+
+    const meta     = rarityMeta(card.rarity);
+    const oldStats = getCardStats(card, currentLevel);
+    const newStats = getCardStats(card, newLevel);
+    const maxNote  = newLevel >= inv.MAX_CARD_LEVEL ? '\n✨ **MAX LEVEL REACHED!**' : '';
+
+    const embed = new EmbedBuilder()
+      .setColor(meta.color)
+      .setTitle(`📈 ${card.name} levelled up!`)
+      .setDescription(
+        `**${currentLevel}** → **${newLevel}** *(+${levelsGained} level${levelsGained === 1 ? '' : 's'})*${maxNote}`
+      )
+      .addFields(
+        { name: '🔮 Shards Spent',  value: `${shardsSpent}`,                                              inline: true },
+        { name: '🔮 Shards Left',   value: `${shards - shardsSpent}`,                                     inline: true },
+        { name: '\u200b',           value: '\u200b',                                                      inline: true },
+        { name: '❤️ HP',            value: `${oldStats.hp} → **${newStats.hp}**`,                        inline: true },
+        { name: '⚔️ Damage',        value: `${oldStats.dmg} → **${newStats.dmg}**`,                      inline: true },
+      );
+
+    const img = imgCache.getImage(card.id) ?? card.image ?? null;
+    if (img) embed.setThumbnail(img);
+
+    if (levelsGained < count) {
+      embed.setFooter({ text: `Only ${levelsGained} of ${count} shards used — card is now at max level.` });
+    } else {
+      const remaining = inv.MAX_CARD_LEVEL - newLevel;
+      embed.setFooter({ text: remaining > 0 ? `${remaining} more level${remaining === 1 ? '' : 's'} to MAX` : 'MAX LEVEL!' });
+    }
+
     return message.reply({ embeds: [embed] });
   }
 
