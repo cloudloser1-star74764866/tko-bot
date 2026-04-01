@@ -8,7 +8,8 @@
 //    ZP collection @user [filter]           – view someone else's cards
 //    ZP all                                 – browse every card in the game
 //    ZP all [filter]                        – filter all cards by rarity or name
-//    ZP inventory  (inv)                    – view character shards & platings
+//    ZP inventory  (inv)                    – view platings
+//    ZP shards [filter]                     – view character shards (filter by rarity or name)
 //    ZP card <id>  (c <id>)                 – inspect a card
 //    ZP absorb shard:<id>:<count>           – level up a card using its shards
 //    ZP team                                – view your battle team
@@ -753,8 +754,9 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         { name: '`ZP all` / `ZP all [filter]`',      value: 'Browse **every card in the game**, sorted by rarity then name. Same filter options as `col`.', inline: false },
         { name: '`ZP card <cardId>` / `ZP c <id>`',  value: 'Inspect a specific card — shows level, stats, shards, and an absorb hint.', inline: false },
         { name: '`ZP absorb shard:<id>:<count>`',     value: 'Spend character shards to level up a card. **1 shard = 1 level**, max **Lv. 100**. Each level gives **+2% stats**.', inline: false },
-        { name: '`ZP inventory` / `ZP inv`',         value: 'View your character shards, platings, Yen, Stars, and Candy Tokens.', inline: false },
-        { name: '`ZP balance` / `ZP bal`',           value: 'Check your 💴 Yen and ⭐ Stars. Add `@user` to check someone else.', inline: false },
+        { name: '`ZP inventory` / `ZP inv`',         value: 'View your 🪙 platings. Add `@user` to check someone else.', inline: false },
+        { name: '`ZP shards [rarity or name]`',      value: 'View your character shards. Filter by rarity (`R`, `E`, `L`, `MY`, `UR`, `LT`) or by character name. Add `@user` to check someone else.', inline: false },
+        { name: '`ZP balance` / `ZP bal`',           value: 'Check your 💴 Yen, ⭐ Stars, and 🍬 Candy Tokens. Add `@user` to check someone else.', inline: false },
       )
       .setFooter({ text: 'Page 2 of 5 • ZP help' }),
 
@@ -1208,72 +1210,90 @@ client.on('messageCreate', async (message) => {
     const target    = message.mentions.users.first() ?? message.author;
     const inventory = inv.loadInventory();
 
-    const charShards     = inv.getCharacterShards(inventory, target.id);
-    const shardEntries   = Object.entries(charShards).filter(([, n]) => n > 0);
     const platingsObj    = inv.getPlatings(inventory, target.id);
     const platingEntries = Object.entries(platingsObj).filter(([, n]) => n > 0);
-    const yen            = inv.getYen(inventory, target.id);
-    const stars          = inv.getStars(inventory, target.id);
-    const candyTokens    = inv.getCandyTokens(inventory, target.id);
 
-    const hasAnything = shardEntries.length > 0 || platingEntries.length > 0 || yen > 0 || stars > 0 || candyTokens > 0;
-
-    if (!hasAnything) {
+    if (platingEntries.length === 0) {
       return message.reply(
-        `${target.id === userId ? 'You have' : `**${target.username}** has`} nothing in your inventory yet. Pull duplicates to earn character shards, and hope for a plating drop!`
+        `${target.id === userId ? 'You have' : `**${target.username}** has`} no platings yet. Hope for a 0.1% plating drop on your next pull!`
       );
     }
 
+    const totalPlatings = platingEntries.reduce((s, [, n]) => s + n, 0);
     const embed = new EmbedBuilder()
       .setColor(0x9B59B6)
-      .setTitle(`🎒 ${target.username}'s Inventory`);
-
-    embed.addFields(
-      { name: '💴 Yen',           value: `¥${yen.toLocaleString()}`,           inline: true },
-      { name: '⭐ Stars',         value: `${stars.toLocaleString()}`,           inline: true },
-      { name: '🍬 Candy Tokens',  value: `${candyTokens.toLocaleString()}`,     inline: true },
-    );
-
-    if (platingEntries.length > 0) {
-      const totalPlatings = platingEntries.reduce((s, [, n]) => s + n, 0);
-      embed.addFields({
+      .setTitle(`🎒 ${target.username}'s Inventory`)
+      .addFields({
         name: `🪙 Platings (${totalPlatings} total)`,
         value: config.PLATING_TIERS
           .filter(t => platingsObj[t.id] > 0)
           .map(t => `${t.emoji} **${t.label}** — ×${platingsObj[t.id]}`)
           .join('\n'),
         inline: false,
-      });
+      })
+      .setFooter({ text: 'Platings drop at 0.1% chance per pull • Use ZP equip to apply one' });
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── shards ────────────────────────────────────────────────
+  if (command === 'shards') {
+    const target    = message.mentions.users.first() ?? message.author;
+    const filterArg = args.filter(a => !a.startsWith('<@')).join(' ').trim();
+
+    const inventory  = inv.loadInventory();
+    const charShards = inv.getCharacterShards(inventory, target.id);
+    const allEntries = Object.entries(charShards).filter(([, n]) => n > 0);
+
+    if (allEntries.length === 0) {
+      return message.reply(`${target.id === userId ? 'You have' : `**${target.username}** has`} no character shards yet. Pull duplicates to earn shards!`);
     }
 
-    if (shardEntries.length > 0) {
-      const grouped = {};
-      for (const [key] of Object.entries(config.RARITY_META)) grouped[key] = [];
-      for (const [cardId, count] of shardEntries) {
-        const card      = lookupCard(cardId);
-        const rarity    = card?.rarity ?? 'R';
-        const emoji     = emojiCache.getEmoji(cardId) ?? '';
-        if (!grouped[rarity]) grouped[rarity] = [];
-        grouped[rarity].push({ name: card?.name ?? cardId, count, emoji });
-      }
-
-      const totalShards = shardEntries.reduce((s, [, n]) => s + n, 0);
-      embed.addFields({ name: `Character Shards (${totalShards} total)`, value: '​', inline: false });
-
-      for (const [rarity, group] of Object.entries(grouped)) {
-        if (group.length === 0) continue;
-        const meta  = rarityMeta(rarity);
-        let value   = group.map(s => `${s.emoji ? s.emoji + ' ' : ''}${s.name} — ×${s.count}`).join('\n');
-        if (value.length > 1024) value = value.slice(0, 1020) + '\n…';
-        embed.addFields({
-          name:  `${meta.emoji} ${meta.label}`,
-          value,
-          inline: true,
+    const rarityKeys = Object.keys(config.RARITY_META);
+    let filtered;
+    if (filterArg) {
+      const upperFilter = filterArg.toUpperCase();
+      if (rarityKeys.includes(upperFilter)) {
+        filtered = allEntries.filter(([cardId]) => (lookupCard(cardId)?.rarity ?? 'R') === upperFilter);
+      } else {
+        filtered = allEntries.filter(([cardId]) => {
+          const card = lookupCard(cardId);
+          return (card?.name ?? cardId).toLowerCase().includes(filterArg.toLowerCase());
         });
       }
+    } else {
+      filtered = allEntries;
     }
 
-    embed.setFooter({ text: 'Character shards from duplicate pulls • Platings from 0.1% pull luck' });
+    if (filtered.length === 0) {
+      return message.reply(`No shards found matching **"${filterArg}"**.`);
+    }
+
+    const grouped = {};
+    for (const [key] of Object.entries(config.RARITY_META)) grouped[key] = [];
+    for (const [cardId, count] of filtered) {
+      const card   = lookupCard(cardId);
+      const rarity = card?.rarity ?? 'R';
+      const emoji  = emojiCache.getEmoji(cardId) ?? '';
+      if (!grouped[rarity]) grouped[rarity] = [];
+      grouped[rarity].push({ name: card?.name ?? cardId, count, emoji });
+    }
+
+    const totalShards = filtered.reduce((s, [, n]) => s + n, 0);
+    const titleSuffix = filterArg ? ` — "${filterArg}"` : '';
+    const embed = new EmbedBuilder()
+      .setColor(0x9B59B6)
+      .setTitle(`✨ ${target.username}'s Shards${titleSuffix}`)
+      .setDescription(`**${totalShards}** shard${totalShards === 1 ? '' : 's'} total`);
+
+    for (const [rarity, group] of Object.entries(grouped)) {
+      if (group.length === 0) continue;
+      const meta = rarityMeta(rarity);
+      let value  = group.map(s => `${s.emoji ? s.emoji + ' ' : ''}${s.name} — ×${s.count}`).join('\n');
+      if (value.length > 1024) value = value.slice(0, 1020) + '\n…';
+      embed.addFields({ name: `${meta.emoji} ${meta.label}`, value, inline: true });
+    }
+
+    embed.setFooter({ text: 'Filter by rarity: ZP shards R  •  By name: ZP shards naruto' });
     return message.reply({ embeds: [embed] });
   }
 
@@ -1795,16 +1815,18 @@ client.on('messageCreate', async (message) => {
 
   // ── balance | bal ─────────────────────────────────────────
   if (command === 'balance' || command === 'bal') {
-    const target    = message.mentions.users.first() ?? message.author;
-    const inventory = inv.loadInventory();
-    const yen       = inv.getYen(inventory, target.id);
-    const stars     = inv.getStars(inventory, target.id);
+    const target      = message.mentions.users.first() ?? message.author;
+    const inventory   = inv.loadInventory();
+    const yen         = inv.getYen(inventory, target.id);
+    const stars       = inv.getStars(inventory, target.id);
+    const candyTokens = inv.getCandyTokens(inventory, target.id);
     const embed = new EmbedBuilder()
       .setColor(0xF1C40F)
       .setTitle(`💰 ${target.username}'s Balance`)
       .addFields(
-        { name: '💴 Yen',   value: `¥${yen.toLocaleString()}`,   inline: true },
-        { name: '⭐ Stars', value: `${stars.toLocaleString()}`,   inline: true },
+        { name: '💴 Yen',          value: `¥${yen.toLocaleString()}`,         inline: true },
+        { name: '⭐ Stars',        value: `${stars.toLocaleString()}`,         inline: true },
+        { name: '🍬 Candy Tokens', value: `${candyTokens.toLocaleString()}`,   inline: true },
       )
       .setFooter({ text: 'Use ZP trade to exchange currencies with other players' });
     return message.reply({ embeds: [embed] });
