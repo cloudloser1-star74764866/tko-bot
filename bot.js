@@ -775,7 +775,9 @@ client.on('messageCreate', async (message) => {
       )
       .setFooter({ text: `${toUser.username}: use  ZP a ${tradeId}  or  ZP dec ${tradeId}  • Expires in 5 min` });
 
-    return message.reply({ content: `${toUser}`, embeds: [embed] });
+    const sentMsg = await message.reply({ content: `${toUser}`, embeds: [embed] });
+    trades.setOfferMessage(tradeId, sentMsg);
+    return;
   }
 
   // ── accept | a ────────────────────────────────────────────
@@ -808,6 +810,7 @@ client.on('messageCreate', async (message) => {
     }
     addItems(inventory, userId, trade.offer);
     inv.saveInventory(inventory);
+    const offerMsg = trade.offerMessage;
     trades.cancelTrade(tradeId);
 
     const fromUser = await client.users.fetch(trade.fromUserId).catch(() => ({ username: trade.fromUserId }));
@@ -819,6 +822,13 @@ client.on('messageCreate', async (message) => {
         { name: `${message.author.username} received`, value: describeItem(trade.offer),                      inline: true },
         { name: `${fromUser.username} received`,       value: trade.ask ? describeItem(trade.ask) : '🆓 Nothing', inline: true },
       );
+
+    if (offerMsg) {
+      const updatedEmbed = EmbedBuilder.from(offerMsg.embeds[0])
+        .setFooter({ text: `✅ Trade accepted by ${message.author.username}` })
+        .setColor(0x2ecc71);
+      offerMsg.edit({ embeds: [updatedEmbed] }).catch(() => {});
+    }
 
     return message.reply({ embeds: [embed] });
   }
@@ -834,7 +844,16 @@ client.on('messageCreate', async (message) => {
       return message.reply('❌ You are not part of that trade.');
     }
 
+    const offerMsg = trade.offerMessage;
     trades.cancelTrade(tradeId);
+
+    if (offerMsg) {
+      const updatedEmbed = EmbedBuilder.from(offerMsg.embeds[0])
+        .setFooter({ text: `🚫 Trade cancelled` })
+        .setColor(0x888888);
+      offerMsg.edit({ embeds: [updatedEmbed] }).catch(() => {});
+    }
+
     return message.reply(`🚫 Trade \`${tradeId}\` has been cancelled.`);
   }
 

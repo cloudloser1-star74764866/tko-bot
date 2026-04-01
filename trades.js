@@ -23,8 +23,14 @@ function createTrade({ fromUserId, toUserId, offer, ask }) {
     offer,   // { type, id, amount }
     ask,     // { type, id, amount }
     createdAt: Date.now(),
+    offerMessage: null,
   });
   return tradeId;
+}
+
+function setOfferMessage(tradeId, message) {
+  const trade = pendingTrades.get(tradeId);
+  if (trade) trade.offerMessage = message;
 }
 
 function getTrade(tradeId) {
@@ -50,4 +56,4 @@ function getTradesForUser(userId) {
   return [...pendingTrades.values()].filter(t => t.toUserId === userId);
 }
 
-module.exports = { createTrade, getTrade, cancelTrade, getTradesForUser };
+module.exports = { createTrade, setOfferMessage, getTrade, cancelTrade, getTradesForUser };
