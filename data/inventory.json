@@ -211,41 +211,68 @@
           "series": "My Hero Academia",
           "rarity": "L",
           "obtainedAt": "2026-04-01T01:17:17.962Z"
+        },
+        {
+          "id": "sephiroth_e",
+          "name": "Sephiroth",
+          "series": "Final Fantasy VII",
+          "rarity": "E",
+          "obtainedAt": "2026-04-01T01:24:31.834Z"
+        },
+        {
+          "id": "kratos_e",
+          "name": "Kratos",
+          "series": "God of War",
+          "rarity": "E",
+          "obtainedAt": "2026-04-01T01:24:31.835Z"
+        },
+        {
+          "id": "itachi_l",
+          "name": "Itachi Uchiha",
+          "series": "Naruto",
+          "rarity": "L",
+          "obtainedAt": "2026-04-01T01:25:02.549Z"
         }
       ],
       "characterShards": {
-        "bakugo_e": 3,
-        "link_r": 6,
+        "bakugo_e": 13,
+        "link_r": 20,
         "zeno_ur": 2,
-        "goku_r": 5,
+        "goku_r": 16,
         "gear5_luffy_lt": 5,
         "ultra_goku_lt": 7,
         "sage_naruto_lt": 7,
-        "eren_r": 5,
-        "luffy_r": 3,
-        "deku_r": 4,
-        "pikachu_r": 6,
-        "ichigo_r": 2,
-        "naruto_r": 1,
-        "vegeta_e": 2,
-        "levi_e": 3,
-        "kaguya_ur": 2,
-        "spike_r": 2,
-        "killua_e": 1,
+        "eren_r": 17,
+        "luffy_r": 18,
+        "deku_r": 20,
+        "pikachu_r": 21,
+        "ichigo_r": 21,
+        "naruto_r": 13,
+        "vegeta_e": 9,
+        "levi_e": 9,
+        "kaguya_ur": 3,
+        "spike_r": 14,
+        "killua_e": 7,
         "genos_l": 1,
         "saitama_my": 1,
-        "sasuke_e": 1,
-        "zoro_e": 1,
-        "shanks_l": 1,
+        "sasuke_e": 14,
+        "zoro_e": 10,
+        "shanks_l": 4,
         "goku_ssj4_l": 1,
         "arceus_ur": 1,
-        "hisoka_l": 1
+        "hisoka_l": 3,
+        "allmight_l": 1,
+        "cloud_r": 10,
+        "kratos_e": 8,
+        "sephiroth_e": 9
       },
       "platings": {
-        "diamond": 1
+        "diamond": 1,
+        "bronze": 1
       },
       "yen": 0,
-      "stars": 0
+      "stars": 0,
+      "candyTokens": 0
     },
     "1488543846257262712": {
       "cards": [],
@@ -377,7 +404,7 @@
   "pullCharges": {
     "833025999897755689": {
       "charges": 0,
-      "lastRefill": 1775006235083
+      "lastRefill": 1775006702551
     },
     "921838182927040602": {
       "charges": 0,
