@@ -1844,7 +1844,9 @@ client.on('messageCreate', async (message) => {
         const platedDmg  = Math.round(base.dmg * tierData.statMult);
         embed.addFields({
           name: `${tierData.label} Plating (in battle)`,
-          value: `❤️ **${platedHp}** HP  ⚔️ **${platedDmg}** DMG  *(x${tierData.statMult} boost)*`,
+          value: card.technique
+            ? `❤️ **${platedHp}** HP  🔵 **${platedDmg}** TEC  *(x${tierData.statMult} boost)*`
+            : `❤️ **${platedHp}** HP  ⚔️ **${platedDmg}** DMG  *(x${tierData.statMult} boost)*`,
           inline: false,
         });
       }
@@ -1899,7 +1901,7 @@ client.on('messageCreate', async (message) => {
         { name: 'Stars',            value: meta.stars || '—',              inline: true },
         { name: '📊 Level',         value: levelLabel,                     inline: true },
         { name: '❤️ Health',        value: `${stats.hp}`,                 inline: true },
-        { name: '⚔️ Damage',        value: `${stats.dmg}`,                inline: true },
+        { name: card.technique ? '🔵 Technique' : '⚔️ Damage', value: `${stats.dmg}`, inline: true },
         { name: '✨ Prestige Points', value: `${pp}`,                      inline: true },
         { name: '🔮 Shards',        value: `${shards}`,                   inline: true },
         { name: 'Plating',           value: tierData ? tierData.label : 'None',                  inline: true },
@@ -1911,7 +1913,9 @@ client.on('messageCreate', async (message) => {
       const platedDmg  = Math.round(base.dmg * tierData.statMult);
       embed.addFields({
         name: `Battle Stats (with ${tierData.label} Plating)`,
-        value: `❤️ **${platedHp}** HP  ⚔️ **${platedDmg}** DMG  *(x${tierData.statMult} boost)*`,
+        value: card.technique
+          ? `❤️ **${platedHp}** HP  🔵 **${platedDmg}** TEC  *(x${tierData.statMult} boost)*`
+          : `❤️ **${platedHp}** HP  ⚔️ **${platedDmg}** DMG  *(x${tierData.statMult} boost)*`,
         inline: false,
       });
     }
@@ -1942,7 +1946,7 @@ client.on('messageCreate', async (message) => {
         { name: 'Rarity',      value: `${meta.emoji} ${meta.label}`, inline: true },
         { name: 'Stars',       value: meta.stars || '—',              inline: true },
         { name: '❤️ Base HP',  value: `${stats.hp}`,                 inline: true },
-        { name: '⚔️ Base DMG', value: `${stats.dmg}`,                inline: true },
+        { name: card.technique ? '🔵 Base TEC' : '⚔️ Base DMG', value: `${stats.dmg}`, inline: true },
         { name: '🪪 Card ID',  value: `\`${card.id}\``,              inline: true },
         {
           name: '💀 Kill Value',
@@ -2027,7 +2031,7 @@ client.on('messageCreate', async (message) => {
         { name: 'Shards Left',   value: `${shards - shardsSpent}`,         inline: true },
         { name: '\u200b',           value: '\u200b',                          inline: true },
         { name: '❤️ HP',            value: `${oldStats.hp} → **${newStats.hp}**`,  inline: true },
-        { name: '⚔️ Damage',        value: `${oldStats.dmg} → **${newStats.dmg}**`, inline: true },
+        { name: card.technique ? '🔵 Technique' : '⚔️ Damage', value: `${oldStats.dmg} → **${newStats.dmg}**`, inline: true },
       );
 
     const img = imgCache.getImage(card.id) ?? card.image ?? null;

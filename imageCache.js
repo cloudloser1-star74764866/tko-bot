@@ -102,6 +102,8 @@ const SEED = {
   ippo:            'https://s4.anilist.co/file/anilistcdn/character/large/b15-AAj73hDX9bor.jpg',
   // Eromanga-sensei — Sagiri Izumi
   sagiri:          'https://s4.anilist.co/file/anilistcdn/character/large/b89576-lw430mWycPAg.png',
+  // Lookism — Daniel Park (Ultra Instinct) — Limited card
+  daniel_park_ui_lt: 'https://static.wikia.nocookie.net/lookism/images/6/6a/Daniel_Park_UI.png/revision/latest?cb=20210820151105',
 };
 
 // ── AniList search terms for remaining cards ─────────────────

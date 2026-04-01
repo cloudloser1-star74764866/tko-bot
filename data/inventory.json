@@ -1234,7 +1234,22 @@
       "characterShards": {},
       "platings": {},
       "yen": 867,
-      "stars": 0
+      "stars": 0,
+      "team": [],
+      "items": {
+        "drugs": 1
+      },
+      "candyTokens": 0,
+      "limitBreakers": 0,
+      "wish": null,
+      "levelCaps": {},
+      "prestigePoints": {},
+      "privacy": false,
+      "clanId": null,
+      "duoId": null,
+      "totalPulls": 0,
+      "totalKills": 0,
+      "conquest": null
     },
     "921838182927040602": {
       "cards": [
@@ -3476,7 +3491,9 @@
       "duoId": null,
       "totalPulls": 2168,
       "totalKills": 58,
-      "items": {},
+      "items": {
+        "drugs": 1
+      },
       "limitBreakers": 0,
       "conquest": {
         "cardId": "joyboy",

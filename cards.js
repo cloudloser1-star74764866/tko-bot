@@ -225,7 +225,7 @@ const CARDS = [
   { id: 'johan',       name: 'Johan Seong',      series: 'Lookism', rarity: 'L',  desc: 'Effortlessly magnetic — his presence alone bends the world around him.' },
   { id: 'tom_lee',     name: 'Tom Lee',          series: 'Lookism', rarity: 'L',  desc: 'Hostel\'s strongest enforcer — a fighter whose composure never breaks.' },
   { id: 'eli',              name: 'Eli Jang',                    series: 'Lookism', rarity: 'MY', desc: 'One of the most dangerous men alive, feared even by the underground\'s elite.' },
-  { id: 'daniel_park_ui_lt', name: 'Daniel Park (Ultra Instinct)', series: 'Lookism', rarity: 'LT', desc: 'Beyond instinct — his body moves to counter before his mind even perceives the threat.', fixedHp: 400, fixedDmg: 1000, technique: true },
+  { id: 'daniel_park_ui_lt', name: 'Daniel Park (Ultra Instinct)', series: 'Lookism', rarity: 'LT', desc: 'A custom card for Drayco.', fixedHp: 400, fixedDmg: 1000, technique: true },
 
   // ── Baki ──────────────────────────────────────────────────
   { id: 'baki',        name: 'Baki Hanma',       series: 'Baki',    rarity: 'E',  desc: 'Training since childhood to surpass the strongest creature on Earth — his own father.' },
