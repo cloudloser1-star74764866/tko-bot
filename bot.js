@@ -757,7 +757,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         { name: '`ZP inventory` / `ZP inv`',         value: 'View your 🪙 platings. Add `@user` to check someone else.', inline: false },
         { name: '`ZP shards [rarity or name]`',      value: 'View your character shards. Filter by rarity (`R`, `E`, `L`, `MY`, `UR`, `LT`) or by character name. Add `@user` to check someone else.', inline: false },
         { name: '`ZP items`',                        value: 'View your special items. Items are granted by admins and can be used to obtain Limited cards.', inline: false },
-        { name: '`ZP use <itemId>`',                 value: `Use a special item to claim its Limited card. Current items: ${config.ITEMS.map(i => `\`${i.id}\` → 💖 ${i.name}`).join(', ')}.`, inline: false },
+        { name: '`ZP use <itemId>`',                 value: `Use a special item to claim its Limited card. Current items: ${config.ITEMS.map(i => `\`${i.id}\` → ${i.name}`).join(', ')}.`, inline: false },
         { name: '`ZP balance` / `ZP bal`',           value: 'Check your 💴 Yen, ⭐ Stars, and 🍬 Candy Tokens. Add `@user` to check someone else.', inline: false },
       )
       .setFooter({ text: 'Page 2 of 5 • ZP help' }),
@@ -1313,13 +1313,13 @@ client.on('messageCreate', async (message) => {
 
     const lines = entries.map(([itemId, count]) => {
       const item = config.ITEMS.find(i => i.id === itemId);
-      if (!item) return `❓ \`${itemId}\` — ×${count}`;
+      if (!item) return `\`${itemId}\` — ×${count}`;
       return `${item.emoji} **${item.name}** — ×${count}\n*${item.desc}*\nUse: \`ZP use ${item.id}\``;
     }).join('\n\n');
 
     const embed = new EmbedBuilder()
       .setColor(0xFF69B4)
-      .setTitle(`🎁 ${target.username}'s Items`)
+      .setTitle(`${target.username}'s Items`)
       .setDescription(lines)
       .setFooter({ text: 'Use an item with: ZP use <itemId>' });
     return message.reply({ embeds: [embed] });
