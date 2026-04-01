@@ -998,7 +998,7 @@
         "gon": 11,
         "okabe": 6,
         "nezuko": 10,
-        "joseph": 4,
+        "joseph": 5,
         "reigen": 6,
         "gintoki": 6,
         "renji": 9,
@@ -1034,23 +1034,23 @@
       },
       "platings": {
         "diamond": 8,
-        "bronze": 2
+        "bronze": 3
       },
-      "yen": 331,
+      "yen": 100331,
       "stars": 133,
       "candyTokens": 58,
       "team": [],
       "items": {},
       "wish": {
         "cardId": "beerus",
-        "pullCount": 0
+        "pullCount": 1
       },
       "levelCaps": {},
       "prestigePoints": {},
       "privacy": false,
       "clanId": null,
       "duoId": null,
-      "totalPulls": 71,
+      "totalPulls": 73,
       "totalKills": 0
     },
     "1488543846257262712": {
@@ -3213,8 +3213,8 @@
   },
   "pullCharges": {
     "833025999897755689": {
-      "charges": 12,
-      "lastRefill": 1775042447668
+      "charges": 19,
+      "lastRefill": 1775054910728
     },
     "921838182927040602": {
       "charges": 0,
@@ -3249,7 +3249,9 @@
           "bronze": 1
         }
       },
-      "redeemedBy": []
+      "redeemedBy": [
+        "833025999897755689"
+      ]
     }
   }
 }

@@ -53,8 +53,8 @@
 //    ZP givestars [@user] <amount>
 //    ZP givecandytokens [@user] <amount>
 //    ZP giveitem @user <itemId>
-//    ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [pulls:<n>]
-//    ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [pulls:<n>]
+//    ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>]
+//    ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>]
 //    ZP deletecode <name>
 //    ZP listcodes
 //  User:
@@ -93,13 +93,12 @@ let adminPlatingOverride = null;
 function isAdmin(userId) { return userId === ADMIN_ID; }
 
 function parseRewardArgs(argList) {
-  const rewards = { yen: 0, stars: 0, candyTokens: 0, pulls: 0, platings: {} };
+  const rewards = { yen: 0, stars: 0, candyTokens: 0, platings: {} };
   for (const arg of argList) {
     const lower = arg.toLowerCase();
     if (lower.startsWith('yen:'))          { rewards.yen          = Math.max(0, parseInt(arg.slice(4), 10)  || 0); }
     else if (lower.startsWith('stars:'))   { rewards.stars        = Math.max(0, parseInt(arg.slice(6), 10)  || 0); }
     else if (lower.startsWith('candytokens:')) { rewards.candyTokens = Math.max(0, parseInt(arg.slice(12), 10) || 0); }
-    else if (lower.startsWith('pulls:'))   { rewards.pulls        = Math.max(0, parseInt(arg.slice(6), 10)  || 0); }
     else if (lower.startsWith('plating:')) {
       const parts = lower.slice(8).split(':');
       const tier   = parts[0];
@@ -115,7 +114,6 @@ function formatRewards(r) {
   if (r.yen          > 0) parts.push(`💴 ¥${r.yen.toLocaleString()} Yen`);
   if (r.stars        > 0) parts.push(`⭐ ${r.stars.toLocaleString()} Stars`);
   if (r.candyTokens  > 0) parts.push(`🍬 ${r.candyTokens} Candy Token${r.candyTokens === 1 ? '' : 's'}`);
-  if (r.pulls        > 0) parts.push(`🎴 ${r.pulls} Pull Charge${r.pulls === 1 ? '' : 's'}`);
   if (r.platings) {
     for (const [tier, amount] of Object.entries(r.platings)) {
       if (amount > 0) parts.push(`🪙 ${amount}x ${tier} Plating`);
@@ -941,8 +939,8 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
               `\`ZP givecandytokens [@user] <amount>\` — Give Candy Tokens to a user`,
               `\`ZP refresh\` — Delete all server emojis and re-sync from scratch`,
               `\`ZP giveitem @user <itemId>\` — Give a limited item to a player`,
-              `\`ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [pulls:<n>]\` — Create a redeemable code`,
-              `\`ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [pulls:<n>]\` — Edit a code's rewards`,
+              `\`ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>]\` — Create a redeemable code`,
+              `\`ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>]\` — Edit a code's rewards`,
               `\`ZP deletecode <name>\` — Delete a code`,
               `\`ZP listcodes\` — List all active codes`,
             ].join('\n'),
@@ -2959,12 +2957,6 @@ client.on('messageCreate', async (message) => {
     if (r.yen   > 0) { inv.addYen(inventory, userId, r.yen);           lines.push(`💴 **¥${r.yen.toLocaleString()} Yen**`); }
     if (r.stars > 0) { inv.addStars(inventory, userId, r.stars);       lines.push(`⭐ **${r.stars.toLocaleString()} Stars**`); }
     if (r.candyTokens > 0) { inv.addCandyTokens(inventory, userId, r.candyTokens); lines.push(`🍬 **${r.candyTokens} Candy Token${r.candyTokens === 1 ? '' : 's'}**`); }
-    if (r.pulls > 0) {
-      const { charges } = getCharges(userId);
-      const newCharges = Math.min(charges + r.pulls, config.MAX_PULL_CHARGES);
-      setCharges(userId, newCharges, Date.now());
-      lines.push(`🎴 **${r.pulls} Pull Charge${r.pulls === 1 ? '' : 's'}**`);
-    }
     if (r.platings) {
       for (const [tier, amount] of Object.entries(r.platings)) {
         if (amount > 0) {
@@ -3088,7 +3080,7 @@ client.on('messageCreate', async (message) => {
     const name     = args[0];
     const code     = args[1];
     const rewardArgs = args.slice(2);
-    if (!name || !code) return message.reply('Usage: `ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [pulls:<n>]`');
+    if (!name || !code) return message.reply('Usage: `ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>]`');
 
     const rewards  = parseRewardArgs(rewardArgs);
     const inventory = inv.loadInventory();
@@ -3104,7 +3096,7 @@ client.on('messageCreate', async (message) => {
   if (command === 'editcode') {
     const name       = args[0];
     const rewardArgs = args.slice(1);
-    if (!name) return message.reply('Usage: `ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [pulls:<n>]`');
+    if (!name) return message.reply('Usage: `ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>]`');
 
     const rewards   = parseRewardArgs(rewardArgs);
     const inventory = inv.loadInventory();
