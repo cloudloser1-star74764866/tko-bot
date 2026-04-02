@@ -22,7 +22,7 @@ const CARDS = [
   { id: 'pikachu',        name: 'Pikachu',                 series: 'Pokémon',                           rarity: 'R',  desc: 'The iconic Electric-type partner.' },
   { id: 'spike',          name: 'Spike Spiegel',           series: 'Cowboy Bebop',                      rarity: 'R',  desc: 'A bounty hunter drifting through space.' },
   // Bleach
-  { id: 'rukia',          name: 'Rukia Kuchiki',           series: 'Bleach',                            rarity: 'R',  desc: 'A Soul Reaper who changed Ichigo\'s fate forever.' },
+  { id: 'rukia',          name: 'Rukia Kuchiki',           series: 'Bleach',                            rarity: 'L',  desc: 'A Soul Reaper who changed Ichigo\'s fate forever.' },
   { id: 'renji',          name: 'Renji Abarai',            series: 'Bleach',                            rarity: 'R',  desc: 'A hot-headed lieutenant with a serpent zanpakuto.' },
   { id: 'uryu',           name: 'Uryu Ishida',             series: 'Bleach',                            rarity: 'R',  desc: 'The last Quincy, cold and precise.' },
   { id: 'orihime',        name: 'Orihime Inoue',           series: 'Bleach',                            rarity: 'R',  desc: 'Her Shun Shun Rikka can reject reality itself.' },
@@ -214,17 +214,17 @@ const CARDS = [
   { id: 'sukuna_fp',      name: 'Sukuna (Full Power)',     series: 'Jujutsu Kaisen',                    rarity: 'LT', desc: 'Heian-era pinnacle. Cleave and Dismantle erasing existence.' },
 
   // ── Lookism ───────────────────────────────────────────────
-  { id: 'daniel',      name: 'Daniel Park',      series: 'Lookism', rarity: 'R',  desc: 'A boy born ugly who woke up in a different body — and learned what strength really means.' },
-  { id: 'jay',         name: 'Jay Hong',         series: 'Lookism', rarity: 'R',  desc: 'Rich, handsome, and fiercely loyal — the brain behind every plan.' },
-  { id: 'zack',        name: 'Zack Lee',         series: 'Lookism', rarity: 'R',  desc: 'Taekwondo prodigy who fights with pride and a little too much heart.' },
-  { id: 'vasco',       name: 'Vasco',            series: 'Lookism', rarity: 'R',  desc: 'Big Deal\'s muscle and moral compass — a gentle giant with iron fists.' },
-  { id: 'crystal',     name: 'Crystal Choi',     series: 'Lookism', rarity: 'R',  desc: 'The most beautiful girl in school — and sharper than anyone gives her credit for.' },
-  { id: 'gun',         name: 'Gun Park',         series: 'Lookism', rarity: 'E',  desc: 'Head of Big Deal — one of the most feared fighters in the underground.' },
-  { id: 'jake_kim',    name: 'Jake Kim',         series: 'Lookism', rarity: 'E',  desc: 'A powerhouse affiliate whose raw strength puts him above almost everyone.' },
-  { id: 'samuel',      name: 'Samuel Seo',       series: 'Lookism', rarity: 'E',  desc: 'Hostel\'s cold, calculating CEO — his fists back up every business deal.' },
-  { id: 'johan',       name: 'Johan Seong',      series: 'Lookism', rarity: 'L',  desc: 'Effortlessly magnetic — his presence alone bends the world around him.' },
-  { id: 'tom_lee',     name: 'Tom Lee',          series: 'Lookism', rarity: 'L',  desc: 'Hostel\'s strongest enforcer — a fighter whose composure never breaks.' },
-  { id: 'eli',              name: 'Eli Jang',                    series: 'Lookism', rarity: 'MY', desc: 'One of the most dangerous men alive, feared even by the underground\'s elite.' },
+  { id: 'daniel',      name: 'Daniel Park',      series: 'Lookism', rarity: 'MY',  desc: 'A boy born ugly who woke up in a different body — and learned what strength really means.' },
+  { id: 'jay',         name: 'Jay Hong',         series: 'Lookism', rarity: 'E',  desc: 'Rich, handsome, and fiercely loyal — the brain behind every plan.' },
+  { id: 'zack',        name: 'Zack Lee',         series: 'Lookism', rarity: 'MY',  desc: 'Taekwondo prodigy who fights with pride and a little too much heart.' },
+  { id: 'vasco',       name: 'Vasco',            series: 'Lookism', rarity: 'L',  desc: 'Big Deal\'s muscle and moral compass — a gentle giant with iron fists.' },
+  { id: 'crystal',     name: 'Crystal Choi',     series: 'Lookism', rarity: 'E',  desc: 'The most beautiful girl in school — and sharper than anyone gives her credit for.' },
+  { id: 'gun',         name: 'Gun Park',         series: 'Lookism', rarity: 'UR',  desc: 'Head of Big Deal — one of the most feared fighters in the underground.' },
+  { id: 'jake_kim',    name: 'Jake Kim',         series: 'Lookism', rarity: 'MY',  desc: 'A powerhouse affiliate whose raw strength puts him above almost everyone.' },
+  { id: 'samuel',      name: 'Samuel Seo',       series: 'Lookism', rarity: 'MY',  desc: 'Hostel\'s cold, calculating CEO — his fists back up every business deal.' },
+  { id: 'johan',       name: 'Johan Seong',      series: 'Lookism', rarity: 'UR',  desc: 'Effortlessly magnetic — his presence alone bends the world around him.' },
+  { id: 'tom_lee',     name: 'Tom Lee',          series: 'Lookism', rarity: 'UR',  desc: 'Hostel\'s strongest enforcer — a fighter whose composure never breaks.' },
+  { id: 'eli',              name: 'Eli Jang',                    series: 'Lookism', rarity: 'L', desc: 'One of the most dangerous men alive, feared even by the underground\'s elite.' },
   { id: 'daniel_park_ui_lt', name: 'Daniel Park (Ultra Instinct)', series: 'Lookism', rarity: 'LT', desc: 'A custom card for Drayco.', fixedHp: 200, fixedDmg: 130, technique: true },
 
   // ── Baki ──────────────────────────────────────────────────
