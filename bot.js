@@ -1576,9 +1576,22 @@ function createSlashContext(interaction) {
   };
 }
 
+// ── Interaction deduplication ─────────────────────────────
+// Guards against the handler firing twice for the same interaction,
+// which would cause duplicate replies.
+const recentInteractions = new Set();
+
 // ── Interactions (buttons + slash commands) ───────────────
 
 client.on('interactionCreate', async (interaction) => {
+  // ── Deduplication guard ────────────────────────────────
+  if (recentInteractions.has(interaction.id)) {
+    console.warn(`[dedup] Duplicate interactionCreate for ${interaction.id} — skipping.`);
+    return;
+  }
+  recentInteractions.add(interaction.id);
+  setTimeout(() => recentInteractions.delete(interaction.id), 100);
+
   // ── Slash command handler ──────────────────────────────
   if (interaction.isChatInputCommand() && interaction.commandName === 'zp') {
     await interaction.deferReply();
