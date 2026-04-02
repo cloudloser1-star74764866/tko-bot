@@ -73,8 +73,8 @@ const SEED = {
   sukuna_fp_lt:    'https://static.wikia.nocookie.net/jujutsu-kaisen/images/2/29/Sukuna%27s_Four_Arms.png/revision/latest',
   sukuna_fp:       'https://static.wikia.nocookie.net/jujutsu-kaisen/images/2/29/Sukuna%27s_Four_Arms.png/revision/latest',
   sukuna:          'https://static.wikia.nocookie.net/jujutsu-kaisen/images/7/74/Sukuna_(Volume_29).png/revision/latest?cb=20241118163249',
-  // Chainsaw Man — Power (AniList placeholder was wrong; using MAL image)
-  power_r:         'https://myanimelist.net/images/characters/7/494969.jpg',
+  // Chainsaw Man — Power (wikia)
+  power_r:         'https://static.wikia.nocookie.net/chainsaw-man/images/2/23/Power.png/revision/latest?cb=20181222132158',
   // Demon Slayer — Rengoku (cached MAL URL was wrong character; fixed)
   rengoku_e:       'https://myanimelist.net/images/characters/10/423443.jpg',
   // Death Note — Near (cached MAL URL was for a different character 'Nir'; fixed)
@@ -260,7 +260,7 @@ async function fetchFromJikan(searchName) {
 
 /**
  * Try to fetch an image for a card that has no cached entry.
- * First attempts AniList via SEARCH_TERMS; falls back to Jikan using the card name.
+ * Tries Jikan (MAL) first — more reliable index. Falls back to AniList if MAL misses.
  * Caches and saves on success.
  */
 async function fetchFallbackImage(cardId, cardName) {
@@ -268,12 +268,14 @@ async function fetchFallbackImage(cardId, cardName) {
 
   const searchName = SEARCH_TERMS[cardId] ?? cardName;
 
-  let url = await fetchFromAniList(searchName);
+  let url = await fetchFromJikan(searchName);
 
-  if (!url && cardName && cardName !== searchName) {
+  if (!url && searchName !== cardName) {
     url = await fetchFromJikan(cardName);
-  } else if (!url) {
-    url = await fetchFromJikan(searchName);
+  }
+
+  if (!url) {
+    url = await fetchFromAniList(searchName);
   }
 
   if (url) {
@@ -287,7 +289,7 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 /**
  * Background refresh: for every card that doesn't have a cached image yet,
- * query AniList (with 700ms delay between requests to stay under rate limit).
+ * query Jikan (MAL) with a 400ms delay, then fall back to AniList if still missing.
  * Saves after each successful fetch.
  */
 async function refreshMissing() {
@@ -296,15 +298,16 @@ async function refreshMissing() {
     console.log('🖼️  Image cache: all images already cached.');
     return;
   }
-  console.log(`🖼️  Image cache: fetching ${missing.length} missing character images from AniList...`);
+  console.log(`🖼️  Image cache: fetching ${missing.length} missing character images via MAL...`);
   let fetched = 0;
   for (const [cardId, searchName] of missing) {
-    const url = await fetchFromAniList(searchName);
+    let url = await fetchFromJikan(searchName);
+    if (!url) url = await fetchFromAniList(searchName);
     if (url) {
       cache[cardId] = url;
       fetched++;
     }
-    await sleep(700); // stay well under AniList's 90 req/min limit
+    await sleep(400);
   }
   saveCache();
   console.log(`🖼️  Image cache: fetched ${fetched}/${missing.length} images. Cache saved.`);
