@@ -70,24 +70,28 @@ require('dotenv').config();
 
 // ── Single-instance lock ──────────────────────────────────────────────────────
 // Prevents two bot processes from running at the same time (duplicate messages).
+// Uses a timestamp-based lock so stale files left by Railway restarts (where
+// PIDs are meaningless across containers) are detected and cleaned up reliably.
 const fs        = require('fs');
 const path      = require('path');
 const LOCK_FILE = path.join(__dirname, '.bot.lock');
+const LOCK_TTL  = 30 * 1000; // 30 seconds — lock is considered stale after this
 
 (function acquireLock() {
   if (fs.existsSync(LOCK_FILE)) {
-    const oldPid = parseInt(fs.readFileSync(LOCK_FILE, 'utf8').trim(), 10);
-    if (!isNaN(oldPid)) {
-      try {
-        process.kill(oldPid, 0); // throws ESRCH if process is gone
-        console.error(`[lock] Another bot instance is already running (PID ${oldPid}). Exiting.`);
+    const raw = fs.readFileSync(LOCK_FILE, 'utf8').trim();
+    const ts  = parseInt(raw, 10);
+    if (!isNaN(ts)) {
+      const age = Date.now() - ts;
+      if (age < LOCK_TTL) {
+        console.error(`[lock] Another bot instance is already running (lock age: ${age}ms). Exiting.`);
         process.exit(1);
-      } catch (_) {
-        console.warn(`[lock] Stale lock (PID ${oldPid}) — previous process is gone. Taking over.`);
       }
+      console.warn(`[lock] Stale lock detected (age: ${age}ms, TTL: ${LOCK_TTL}ms) — removing and taking over.`);
     }
+    try { fs.unlinkSync(LOCK_FILE); } catch (_) {}
   }
-  fs.writeFileSync(LOCK_FILE, String(process.pid));
+  fs.writeFileSync(LOCK_FILE, String(Date.now()));
 })();
 
 function releaseLock() {
