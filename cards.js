@@ -239,6 +239,28 @@ const CARDS = [
   { id: 'musashi',     name: 'Miyamoto Musashi', series: 'Baki',    rarity: 'UR', desc: 'The greatest swordsman in history, resurrected — a blade that cuts the untouchable.' },
   { id: 'yujiro',      name: 'Yujiro Hanma',     series: 'Baki',    rarity: 'UR', desc: 'The Ogre. The strongest creature on the face of the Earth. No argument.' },
 
+  // ── Blue Lock ─────────────────────────────────────────────
+  { id: 'isagi',         name: 'Yoichi Isagi',           series: 'Blue Lock', rarity: 'R',  desc: 'Ego\'s weapon — a striker who devours any situation and makes it his.' },
+  { id: 'bachira',       name: 'Meguru Bachira',          series: 'Blue Lock', rarity: 'R',  desc: 'The monster inside him dribbles past everything — pure instinct unleashed.' },
+  { id: 'chigiri',       name: 'Hyoma Chigiri',           series: 'Blue Lock', rarity: 'R',  desc: 'The fastest dribbler in Blue Lock — when he runs, no one catches him.' },
+  { id: 'kunigami',      name: 'Rensuke Kunigami',        series: 'Blue Lock', rarity: 'R',  desc: 'Raw power and conviction — his cannon shot punches through any wall.' },
+  { id: 'gagamaru',      name: 'Gin Gagamaru',            series: 'Blue Lock', rarity: 'R',  desc: 'A goalkeeper who sees everything — his hands have stopped what should be impossible.' },
+  { id: 'nagi_bl',       name: 'Seishiro Nagi',           series: 'Blue Lock', rarity: 'E',  desc: 'A natural-born genius who never practised — talent alone puts him above the rest.' },
+  { id: 'barou',         name: 'Shoei Barou',             series: 'Blue Lock', rarity: 'E',  desc: 'Self-proclaimed king of the pitch — his arrogance is backed by every goal he scores.' },
+  { id: 'alexis_ness',   name: 'Alexis Ness',             series: 'Blue Lock', rarity: 'E',  desc: 'The German wunderkind\'s shadow — technical vision that sets up the impossible.' },
+  { id: 'karasu',        name: 'Tabito Karasu',           series: 'Blue Lock', rarity: 'E',  desc: 'The trickster who sees three moves ahead — unpredictable and infuriatingly effective.' },
+  { id: 'zantetsu',      name: 'Zantetsu Tsurugi',        series: 'Blue Lock', rarity: 'E',  desc: 'Speed incarnate — his feet move before the eye can follow.' },
+  { id: 'rin_itoshi',    name: 'Rin Itoshi',              series: 'Blue Lock', rarity: 'L',  desc: 'A genius shaped by rivalry — his perfect technique hides a wound that never healed.' },
+  { id: 'sae_itoshi',    name: 'Sae Itoshi',              series: 'Blue Lock', rarity: 'L',  desc: 'Japan\'s greatest midfielder — his passes rewrite the rules of the pitch.' },
+  { id: 'aiku',          name: 'Oliver Aiku',             series: 'Blue Lock', rarity: 'L',  desc: 'The world\'s best defender — his one-on-one is an absolute wall.' },
+  { id: 'shidou',        name: 'Ryusei Shidou',           series: 'Blue Lock', rarity: 'L',  desc: 'Wild chaos given cleats — he plays for the thrill, and the thrill makes him deadly.' },
+  { id: 'hiori',         name: 'Yo Hiori',                series: 'Blue Lock', rarity: 'L',  desc: 'Elegant and precise — his spatial awareness turns every touch into art.' },
+  { id: 'kaiser',        name: 'Michael Kaiser',          series: 'Blue Lock', rarity: 'MY', desc: 'The pinnacle of European football — Kaiser Impact reshapes the game by force.' },
+  { id: 'noa',           name: 'Noel Noa',                series: 'Blue Lock', rarity: 'MY', desc: 'The world\'s greatest striker and architect of Blue Lock — his footsteps define the sport.' },
+  { id: 'ego_jinpachi',  name: 'Jinpachi Ego',            series: 'Blue Lock', rarity: 'MY', desc: 'The man who gambled Japan\'s football future on one ideal — ego is everything.' },
+  { id: 'isagi_ego',     name: 'Isagi (Awakened Ego)',    series: 'Blue Lock', rarity: 'UR', desc: 'When his ego fully awakens, the entire pitch becomes his weapon.' },
+  { id: 'kaiser_impact', name: 'Kaiser (Kaiser Impact)',  series: 'Blue Lock', rarity: 'LT', desc: 'The singular shot that shook world football — nothing stops it once it leaves his foot.' },
+
 ];
 
 /**

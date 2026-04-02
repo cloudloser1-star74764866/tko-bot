@@ -71,8 +71,8 @@ const SEED = {
   // The Legend of Zelda
   link_r:          'https://static.wikia.nocookie.net/zelda_gamepedia_en/images/4/47/TLoZ_Series_Link_Render.png/revision/latest',
   sukuna_fp_lt:    'https://static.wikia.nocookie.net/jujutsu-kaisen/images/2/29/Sukuna%27s_Four_Arms.png/revision/latest',
-  sukuna_fp:       'https://wallpapers.com/images/hd/sukuna-jujutsu-kaisen-4k-1xg7tq7j8j0zj8yq.jpg',
-  sukuna:          'https://static.wikia.nocookie.net/jujutsu-kaisen/images/b/bc/Ryomen_Sukuna_anime_design.png/revision/latest',
+  sukuna_fp:       'https://static.wikia.nocookie.net/jujutsu-kaisen/images/2/29/Sukuna%27s_Four_Arms.png/revision/latest',
+  sukuna:          'https://static.wikia.nocookie.net/jujutsu-kaisen/images/7/74/Sukuna_(Volume_29).png/revision/latest?cb=20241118163249',
   // Chainsaw Man — Power (AniList placeholder was wrong; using MAL image)
   power_r:         'https://myanimelist.net/images/characters/7/494969.jpg',
   // Demon Slayer — Rengoku (cached MAL URL was wrong character; fixed)
@@ -86,8 +86,8 @@ const SEED = {
   aizen_l:         'https://s4.anilist.co/file/anilistcdn/character/large/b59-P4IUZA4bE5SL.png',
   // Demon Slayer — Tanjiro
   tanjiro_r:       'https://s4.anilist.co/file/anilistcdn/character/large/b127216-WV2YX8OHdvVq.png',
-  // Jujutsu Kaisen — Sukuna
-  sukuna_my:       'https://static.wikia.nocookie.net/jujutsu-kaisen/images/b/bc/Ryomen_Sukuna_anime_design.png/revision/latest',
+  // Jujutsu Kaisen — Sukuna (manga, Volume 29)
+  sukuna_my:       'https://static.wikia.nocookie.net/jujutsu-kaisen/images/7/74/Sukuna_(Volume_29).png/revision/latest?cb=20241118163249',
   // Sword Art Online — Asuna
   asuna_r:         'https://s4.anilist.co/file/anilistcdn/character/large/b36828-S2kOnUSJO6jZ.png',
   // Cowboy Bebop — Spike
@@ -104,6 +104,27 @@ const SEED = {
   sagiri:          'https://s4.anilist.co/file/anilistcdn/character/large/b89576-lw430mWycPAg.png',
   // Lookism — Daniel Park (Ultra Instinct) — Limited card
   daniel_park_ui_lt: 'https://static.wikia.nocookie.net/lookism/images/6/6a/Daniel_Park_UI.png/revision/latest?cb=20210820151105',
+  // Blue Lock
+  isagi:           'https://s4.anilist.co/file/anilistcdn/character/large/b163417-LSaTYVi3CBHH.png',
+  bachira:         'https://s4.anilist.co/file/anilistcdn/character/large/b163418-XVj3Hbk6Uqjb.png',
+  chigiri:         'https://s4.anilist.co/file/anilistcdn/character/large/b163420-K8NKttFRiGnG.png',
+  kunigami:        'https://s4.anilist.co/file/anilistcdn/character/large/b162214-9x9Q3A9rxpx8.png',
+  gagamaru:        'https://s4.anilist.co/file/anilistcdn/character/large/b169404-90OF8t2ukD9H.jpg',
+  nagi_bl:         'https://s4.anilist.co/file/anilistcdn/character/large/b163431-6pFtGGnmxkGP.png',
+  barou:           'https://s4.anilist.co/file/anilistcdn/character/large/b169401-jeepvEsqW4Ns.png',
+  alexis_ness:     'https://s4.anilist.co/file/anilistcdn/character/large/b269388-edMS5WWZzVgB.png',
+  karasu:          'https://s4.anilist.co/file/anilistcdn/character/large/b187524-HlZ4yDd2eGcT.png',
+  zantetsu:        'https://s4.anilist.co/file/anilistcdn/character/large/b169406-wTagOOkC7fi5.jpg',
+  rin_itoshi:      'https://s4.anilist.co/file/anilistcdn/character/large/b163430-N6bKvAq8CLKM.png',
+  sae_itoshi:      'https://s4.anilist.co/file/anilistcdn/character/large/b169397-wC55onsv5u8t.jpg',
+  aiku:            'https://s4.anilist.co/file/anilistcdn/character/large/b206571-DhDhOUxff0jV.png',
+  shidou:          'https://myanimelist.net/images/characters/14/444149.jpg',
+  hiori:           'https://myanimelist.net/images/characters/16/531774.jpg',
+  kaiser:          'https://s4.anilist.co/file/anilistcdn/character/large/b192791-ARbpS8T5cFGW.png',
+  noa:             'https://s4.anilist.co/file/anilistcdn/character/large/b268966-obcuMQxnKJSq.jpg',
+  ego_jinpachi:    'https://s4.anilist.co/file/anilistcdn/character/large/b140857-DOTyKBCufon9.png',
+  isagi_ego:       'https://static.wikia.nocookie.net/bluelock/images/c/c0/Yoichi_Isagi_suit_anime_design.png/revision/latest?cb=20220513125325',
+  kaiser_impact:   'https://s4.anilist.co/file/anilistcdn/character/large/b192791-ARbpS8T5cFGW.png',
 };
 
 // ── AniList search terms for remaining cards ─────────────────
