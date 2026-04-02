@@ -2,17 +2,31 @@
 //  test BOT — INVENTORY MANAGER
 // ============================================================
 
-const fs   = require('fs');
-const path = require('path');
+const { Client: PGClient } = require('pg');
 
-const DATA_FILE = path.join(__dirname, 'data', 'inventory.json');
+const db = new PGClient({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
+
+db.connect()
+  .then(() => db.query(`
+    CREATE TABLE IF NOT EXISTS global_inventory (
+      id   TEXT PRIMARY KEY,
+      data JSONB NOT NULL
+    )
+  `))
+  .catch(err => console.error('[Inventory DB] Setup error:', err));
 
 // ── Persistence ───────────────────────────────────────────
 
 async function loadInventory() {
   try {
-    const raw  = await fs.promises.readFile(DATA_FILE, 'utf8');
-    const data = JSON.parse(raw);
+    const res = await db.query(`SELECT data FROM global_inventory WHERE id = 'main'`);
+    if (res.rows.length === 0) {
+      return { users: {}, pullCharges: {}, clans: {}, duos: {}, guilds: {}, redeemCodes: {} };
+    }
+    const data = res.rows[0].data;
     if (!data.pullCharges)  data.pullCharges  = {};
     if (!data.clans)        data.clans        = {};
     if (!data.duos)         data.duos         = {};
@@ -24,8 +38,11 @@ async function loadInventory() {
 }
 
 async function saveInventory(data) {
-  await fs.promises.mkdir(path.dirname(DATA_FILE), { recursive: true });
-  await fs.promises.writeFile(DATA_FILE, JSON.stringify(data, null, 2));
+  await db.query(
+    `INSERT INTO global_inventory (id, data) VALUES ('main', $1)
+     ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data`,
+    [data]
+  );
 }
 
 function ensureUser(inventory, userId) {
@@ -470,9 +487,9 @@ function loadPullCharges(inventory, userId) {
   return inventory.pullCharges[userId] ?? null;
 }
 
-function savePullCharges(inventory, userId, charges, lastRefill) {
+async function savePullCharges(inventory, userId, charges, lastRefill) {
   inventory.pullCharges[userId] = { charges, lastRefill };
-  saveInventory(inventory);
+  await saveInventory(inventory);
 }
 
 // ── Clan Operations ───────────────────────────────────────

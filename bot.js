@@ -75,9 +75,9 @@ const {
     REST, Routes, SlashCommandBuilder,
 } = require('discord.js');
 
-const { Client } = require('pg');
+const { Client: PGClient } = require('pg');
 
-const db = new Client({
+const db = new PGClient({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
 });
