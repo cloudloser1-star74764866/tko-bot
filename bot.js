@@ -66,13 +66,15 @@
 //    ZP conquestrecall
 // ============================================================
 
-require("./server.js");
 require('dotenv').config();
+require("./server.js");
+
 const {
-  Client, GatewayIntentBits, EmbedBuilder,
-  ActionRowBuilder, ButtonBuilder, ButtonStyle,
-  REST, Routes, SlashCommandBuilder,
+    Client, GatewayIntentBits, EmbedBuilder,
+    ActionRowBuilder, ButtonBuilder, ButtonStyle,
+    REST, Routes, SlashCommandBuilder,
 } = require('discord.js');
+
 
 
 const config      = require('./config');
@@ -3715,7 +3717,3 @@ client.on('error', (err) => {
 client.login(process.env.DISCORD_TOKEN);
 
 console.log("Ping loop started");
-
-setInterval(() => {
-  require('node-fetch')('https://keepalive-server-j64e.onrender.com/');
-}, 4 * 60 * 1000);
