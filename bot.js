@@ -976,6 +976,7 @@ function enrichCard(storedCard) {
     rarity: live.rarity,
     name:   live.name,
     series: live.series,
+    desc:   live.desc ?? live.description ?? '',
   };
 }
 
