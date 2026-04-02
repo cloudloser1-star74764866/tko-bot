@@ -9,10 +9,10 @@ const DATA_FILE = path.join(__dirname, 'data', 'inventory.json');
 
 // ── Persistence ───────────────────────────────────────────
 
-function loadInventory() {
-  if (!fs.existsSync(DATA_FILE)) return { users: {}, pullCharges: {}, clans: {}, duos: {}, guilds: {}, redeemCodes: {} };
+async function loadInventory() {
   try {
-    const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    const raw  = await fs.promises.readFile(DATA_FILE, 'utf8');
+    const data = JSON.parse(raw);
     if (!data.pullCharges)  data.pullCharges  = {};
     if (!data.clans)        data.clans        = {};
     if (!data.duos)         data.duos         = {};
@@ -23,9 +23,9 @@ function loadInventory() {
   catch { return { users: {}, pullCharges: {}, clans: {}, duos: {}, guilds: {}, redeemCodes: {} }; }
 }
 
-function saveInventory(data) {
-  fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+async function saveInventory(data) {
+  await fs.promises.mkdir(path.dirname(DATA_FILE), { recursive: true });
+  await fs.promises.writeFile(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
 function ensureUser(inventory, userId) {

@@ -160,8 +160,8 @@ function pullCardForced(rarity) {
 // ── Pull charges (in-memory, persisted on change) ─────────
 const pullCharges = new Map();
 
-function initPullCharges() {
-  const data = inv.loadInventory();
+async function initPullCharges() {
+  const data = await inv.loadInventory();
   for (const [userId, bucket] of Object.entries(data.pullCharges || {})) {
     pullCharges.set(userId, bucket);
   }
@@ -170,10 +170,10 @@ function initPullCharges() {
 let persistTimer = null;
 function schedulePersist() {
   if (persistTimer) clearTimeout(persistTimer);
-  persistTimer = setTimeout(() => {
-    const data = inv.loadInventory();
+  persistTimer = setTimeout(async () => {
+    const data = await inv.loadInventory();
     data.pullCharges = Object.fromEntries(pullCharges);
-    inv.saveInventory(data);
+    await inv.saveInventory(data);
     persistTimer = null;
   }, 500);
 }
@@ -1191,8 +1191,8 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
 
 // ── Ready ─────────────────────────────────────────────────
 
-client.once('ready', () => {
-  initPullCharges();
+client.once('ready', async () => {
+  await initPullCharges();
   console.log(`✅ test Bot online as ${client.user.tag}`);
   client.user.setActivity('ZP help  |  /zp', { type: 0 });
   imgCache.refreshMissing().catch(err => console.error('Image cache refresh error:', err));
@@ -1311,11 +1311,11 @@ client.on('interactionCreate', async (interaction) => {
 
     if (state.defenderCards.every(bc => !bc.alive)) {
       activeBattles.delete(battleId);
-      const inventory = inv.loadInventory();
+      const inventory = await inv.loadInventory();
 
       if (state.isRaid) {
         const rewardText = generateRaidReward(state, inventory);
-        inv.saveInventory(inventory);
+        await inv.saveInventory(inventory);
         log += `\n\n🏆 **${state.attackerName}** defeated the Raid Boss!\n\n${rewardText}`;
         const embed = buildRaidEmbed(state, log);
         return interaction.update({ embeds: [embed], components: [] });
@@ -1325,7 +1325,7 @@ client.on('interactionCreate', async (interaction) => {
       const starsEarned = Math.floor(config.FIGHT_STAR_MIN + Math.random() * (config.FIGHT_STAR_MAX - config.FIGHT_STAR_MIN + 1));
       inv.addYen(inventory, state.attackerId, yenEarned);
       inv.addStars(inventory, state.attackerId, starsEarned);
-      inv.saveInventory(inventory);
+      await inv.saveInventory(inventory);
       log += `\n\n🏆 **${state.attackerName}** wins!\n+¥${yenEarned.toLocaleString()} Yen  +${starsEarned.toLocaleString()} Stars`;
       const embed = buildBattleEmbed(state, log);
       return interaction.update({ embeds: [embed], components: [] });
@@ -1427,7 +1427,7 @@ client.on('interactionCreate', async (interaction) => {
     const target   = await client.users.fetch(targetId).catch(() => null);
     if (!target) return interaction.reply({ content: 'Could not find that user.', ephemeral: true });
 
-    const inventory  = inv.loadInventory();
+    const inventory  = await inv.loadInventory();
     const charShards = inv.getCharacterShards(inventory, targetId);
     let allEntries   = Object.entries(charShards).filter(([, n]) => n > 0);
 
@@ -1480,7 +1480,7 @@ client.on('interactionCreate', async (interaction) => {
   const targetUser = await client.users.fetch(targetId).catch(() => null);
   if (!targetUser) return interaction.reply({ content: 'Could not find that user.', ephemeral: true });
 
-  const inventory = inv.loadInventory();
+  const inventory = await inv.loadInventory();
   const cards     = inv.getCards(inventory, targetId);
   const { embed, components } = buildCollectionPage(authorId, targetUser, cards, page, filter, inventory, expiry);
 
@@ -1584,10 +1584,10 @@ client.on('messageCreate', async (message) => {
 
     setCharges(userId, charges - 1, lastRefill);
 
-    const inventory                              = inv.loadInventory();
+    const inventory                              = await inv.loadInventory();
     const { card, isDupe, plating, droppedTickets } = executeSinglePull(inventory, userId);
     const wishGrant                                  = checkAndGrantWish(inventory, userId);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     const remaining  = charges - 1;
     const chargeInfo = remaining > 0
@@ -1627,16 +1627,16 @@ client.on('messageCreate', async (message) => {
     }
 
     if (withReset) {
-      const inventory = inv.loadInventory();
+      const inventory = await inv.loadInventory();
       if (!inv.removeCandyTokens(inventory, userId, 1)) {
         return message.reply(`You need a **Candy Token** to use \`ZP ap reset\`. You currently have none.`);
       }
-      inv.saveInventory(inventory);
+      await inv.saveInventory(inventory);
     }
 
     setCharges(userId, 0, lastRefill);
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const results   = [];
 
     for (let i = 0; i < charges; i++) {
@@ -1644,7 +1644,7 @@ client.on('messageCreate', async (message) => {
     }
 
     const wishGrant = checkAndGrantWish(inventory, userId);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     if (withReset) {
       setCharges(userId, config.MAX_PULL_CHARGES, Date.now());
@@ -1677,13 +1677,13 @@ client.on('messageCreate', async (message) => {
 
   // ── reset ─────────────────────────────────────────────────
   if (command === 'reset' || command === 'rs') {
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const tokens = inv.getCandyTokens(inventory, userId);
     if (tokens <= 0) {
       return message.reply(`You have no **Candy Tokens**. Ask an admin to give you one!`);
     }
     inv.removeCandyTokens(inventory, userId, 1);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
     setCharges(userId, config.MAX_PULL_CHARGES, Date.now());
     return message.reply(`**Candy Token** used! Your pulls have been reset to **${config.MAX_PULL_CHARGES}**. You have **${tokens - 1}** token${tokens - 1 === 1 ? '' : 's'} remaining.`);
   }
@@ -1692,7 +1692,7 @@ client.on('messageCreate', async (message) => {
   if (command === 'wish' || command === 'wi') {
     const cardQuery = args.filter(a => !a.startsWith('<@')).join(' ');
     if (!cardQuery) {
-      const inventory = inv.loadInventory();
+      const inventory = await inv.loadInventory();
       const wish      = inv.getWish(inventory, userId);
       if (!wish) {
         return message.reply(
@@ -1727,9 +1727,9 @@ client.on('messageCreate', async (message) => {
       return message.reply(`You cannot wish for **${rarityMeta(card.rarity).label}** cards. Wishes are limited to Mythical rarity and below.`);
     }
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     inv.setWish(inventory, userId, card.id);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     const meta  = rarityMeta(card.rarity);
     const wImg  = imgCache.getImage(card.id) ?? card.image ?? null;
@@ -1752,13 +1752,13 @@ client.on('messageCreate', async (message) => {
     const filter  = args.filter(a => !a.startsWith('<@')).join(' ').trim();
 
     if (target.id !== userId) {
-      const checkInv  = inv.loadInventory();
+      const checkInv  = await inv.loadInventory();
       if (inv.getPrivacy(checkInv, target.id)) {
         return message.reply(`**${target.username}**'s collection is set to private.`);
       }
     }
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const cards     = inv.getCards(inventory, target.id);
 
     if (cards.length === 0) {
@@ -1784,13 +1784,13 @@ client.on('messageCreate', async (message) => {
     const target    = message.mentions.users.first() ?? message.author;
 
     if (target.id !== userId) {
-      const checkInv = inv.loadInventory();
+      const checkInv = await inv.loadInventory();
       if (inv.getPrivacy(checkInv, target.id)) {
         return message.reply(`**${target.username}**'s wallet is set to private.`);
       }
     }
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const yen       = inv.getYen(inventory, target.id);
     const stars     = inv.getStars(inventory, target.id);
     const candy     = inv.getCandyTokens(inventory, target.id);
@@ -1836,7 +1836,7 @@ client.on('messageCreate', async (message) => {
       );
     }
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
 
     if (currency === 'stars') {
       const cost = STARS_PER_TOKEN * amount;
@@ -1848,7 +1848,7 @@ client.on('messageCreate', async (message) => {
       }
       inv.removeStars(inventory, userId, cost);
       inv.addCandyTokens(inventory, userId, amount);
-      inv.saveInventory(inventory);
+      await inv.saveInventory(inventory);
 
       const embed = new EmbedBuilder()
         .setColor(0xFF69B4)
@@ -1871,7 +1871,7 @@ client.on('messageCreate', async (message) => {
       }
       inv.removeYen(inventory, userId, cost);
       inv.addCandyTokens(inventory, userId, amount);
-      inv.saveInventory(inventory);
+      await inv.saveInventory(inventory);
 
       const embed = new EmbedBuilder()
         .setColor(0xFF69B4)
@@ -1890,7 +1890,7 @@ client.on('messageCreate', async (message) => {
     const STARS_PER_TOKEN = 1000;
     const YEN_PER_TOKEN   = 10000;
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const yen       = inv.getYen(inventory, userId);
     const stars     = inv.getStars(inventory, userId);
     const candy     = inv.getCandyTokens(inventory, userId);
@@ -1939,7 +1939,7 @@ client.on('messageCreate', async (message) => {
   // ── inventory | inv ───────────────────────────────────────
   if (command === 'inventory' || command === 'inv') {
     const target    = message.mentions.users.first() ?? message.author;
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
 
     const platingsObj    = inv.getPlatings(inventory, target.id);
     const platingEntries = Object.entries(platingsObj).filter(([, n]) => n > 0);
@@ -1971,7 +1971,7 @@ client.on('messageCreate', async (message) => {
     const target    = message.mentions.users.first() ?? message.author;
     const filterArg = args.filter(a => !a.startsWith('<@')).join(' ').trim();
 
-    const inventory  = inv.loadInventory();
+    const inventory  = await inv.loadInventory();
     const charShards = inv.getCharacterShards(inventory, target.id);
     const allEntries = Object.entries(charShards).filter(([, n]) => n > 0);
 
@@ -2013,7 +2013,7 @@ client.on('messageCreate', async (message) => {
   // ── items ─────────────────────────────────────────────────
   if (command === 'items' || command === 'it') {
     const target    = message.mentions.users.first() ?? message.author;
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const userItems = inv.getItems(inventory, target.id);
     const entries   = Object.entries(userItems).filter(([, n]) => n > 0);
 
@@ -2049,7 +2049,7 @@ client.on('messageCreate', async (message) => {
       return message.reply(`**${item.emoji} ${item.name}** can't be used this way — run \`${useCmd}\` instead!`);
     }
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
 
     if (!inv.removeItem(inventory, userId, itemId)) {
       return message.reply(`You don't have **${item.emoji} ${item.name}**.`);
@@ -2057,7 +2057,7 @@ client.on('messageCreate', async (message) => {
 
     const card     = CARDS.find(c => c.id === item.cardId);
     const { isDupe } = inv.addCardToInventory(inventory, userId, card);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     const meta    = rarityMeta(card.rarity);
     const img     = imgCache.getImage(card.id) ?? card.image ?? null;
@@ -2092,7 +2092,7 @@ client.on('messageCreate', async (message) => {
     }
 
     const tier     = config.RAID_TICKET_TIERS.find(t => t.id === ticketId);
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
 
     if (!inv.removeItem(inventory, userId, ticketId)) {
       const chances  = config.RAID_TICKET_CHANCES;
@@ -2103,7 +2103,7 @@ client.on('messageCreate', async (message) => {
     const team = inv.getTeam(inventory, userId);
     if (team.length < 1) {
       inv.addItem(inventory, userId, ticketId);
-      inv.saveInventory(inventory);
+      await inv.saveInventory(inventory);
       return message.reply(`You need at least **1 card** in your team to start a raid! Use \`ZP add <name or id>\` to fill your team first.`);
     }
 
@@ -2111,7 +2111,7 @@ client.on('messageCreate', async (message) => {
     const bossPool = CARDS.filter(c => tier.bossPools.includes(c.rarity));
     if (!bossPool.length) {
       inv.addItem(inventory, userId, ticketId);
-      inv.saveInventory(inventory);
+      await inv.saveInventory(inventory);
       return message.reply(`No cards found for ${tier.label} boss pool. Contact an admin!`);
     }
     const bossCard = bossPool[Math.floor(Math.random() * bossPool.length)];
@@ -2142,7 +2142,7 @@ client.on('messageCreate', async (message) => {
     const resolvedTeam  = resolveTeamSlots(team, inventory, userId);
     const attackerCards = resolvedTeam.map(buildBattleCard).filter(Boolean);
 
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     const battleId = `raid_${userId}_${Date.now()}`;
     const state = {
@@ -2174,7 +2174,7 @@ client.on('messageCreate', async (message) => {
     const card = resolveCard(cardQuery);
     if (!card) return message.reply(`No card found matching \`${cardQuery}\`. Try \`ZP all\` to browse cards.`);
 
-    const inventory  = inv.loadInventory();
+    const inventory  = await inv.loadInventory();
     const owned      = inv.hasCard(inventory, userId, card.id);
     const shards     = inv.getCharacterShards(inventory, userId)[card.id] ?? 0;
     const level      = owned ? (inv.getCardLevel(inventory, userId, card.id) ?? 1) : 1;
@@ -2220,7 +2220,7 @@ client.on('messageCreate', async (message) => {
     const card = resolveCard(cardQuery);
     if (!card) return message.reply(`No card found matching \`${cardQuery}\`.`);
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     if (!inv.hasCard(inventory, userId, card.id)) {
       return message.reply(`You don't own **${card.name}**. Use \`ZP card ${card.id}\` to view its base info.`);
     }
@@ -2333,7 +2333,7 @@ client.on('messageCreate', async (message) => {
       return message.reply(`No card found matching \`${cardQuery}\`. Check \`ZP col\` for valid IDs.`);
     }
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
 
     if (!inv.hasCard(inventory, userId, card.id)) {
       return message.reply(`You don't own **${card.name}**. You must collect the card before levelling it up.`);
@@ -2360,7 +2360,7 @@ client.on('messageCreate', async (message) => {
 
     inv.removeCharacterShards(inventory, userId, card.id, shardsSpent);
     inv.setCardLevel(inventory, userId, card.id, newLevel);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     const meta     = rarityMeta(card.rarity);
     const oldStats = getCardStats(card, currentLevel);
@@ -2415,7 +2415,7 @@ client.on('messageCreate', async (message) => {
     const card = resolveCard(cardQuery);
     if (!card) return message.reply(`No card found matching \`${cardQuery}\`.`);
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
 
     if (!inv.hasCard(inventory, userId, card.id)) {
       return message.reply(`You don't own **${card.name}**. Collect it first!`);
@@ -2444,7 +2444,7 @@ client.on('messageCreate', async (message) => {
     inv.removeLimitBreaker(inventory, userId, lbCost);
     inv.removePrestigePoints(inventory, userId, card.id, ppCost);
     inv.increaseLevelCap(inventory, userId, card.id, count);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     const newCap = currentCap + count;
     const meta   = rarityMeta(card.rarity);
@@ -2501,7 +2501,7 @@ client.on('messageCreate', async (message) => {
     const targetCard = resolveCard(targetShardId);
     if (!targetCard) return message.reply(`No card found matching \`${targetShardId}\`.`);
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
 
     if (!inv.hasCard(inventory, userId, killerCard.id)) {
       return message.reply(`You don't own **${killerCard.name}**. You need to own the killer card!`);
@@ -2519,12 +2519,12 @@ client.on('messageCreate', async (message) => {
     inv.addYen(inventory, userId, totalYen);
     inv.addPrestigePoints(inventory, userId, killerCard.id, count);
     inv.incrementTotalKills(inventory, userId, count);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     const killerMeta = rarityMeta(killerCard.rarity);
     const targetMeta = rarityMeta(targetCard.rarity);
     const targetEmoji = emojiCache.getEmoji(targetCard.id) ?? '';
-    const newPP       = inv.getPrestigePoints(inv.loadInventory(), userId)[killerCard.id] ?? 0;
+    const newPP       = inv.getPrestigePoints(await inv.loadInventory(), userId)[killerCard.id] ?? 0;
     const img         = imgCache.getImage(killerCard.id) ?? killerCard.image ?? null;
 
     const embed = new EmbedBuilder()
@@ -2549,13 +2549,13 @@ client.on('messageCreate', async (message) => {
     const target = message.mentions.users.first() ?? message.author;
 
     if (target.id !== userId) {
-      const checkInv = inv.loadInventory();
+      const checkInv = await inv.loadInventory();
       if (inv.getPrivacy(checkInv, target.id)) {
         return message.reply(`**${target.username}**'s profile is set to private.`);
       }
     }
 
-    const inventory   = inv.loadInventory();
+    const inventory   = await inv.loadInventory();
     const cards       = inv.getCards(inventory, target.id);
     const charShards  = inv.getCharacterShards(inventory, target.id);
     const totalShards = Object.values(charShards).reduce((s, n) => s + n, 0);
@@ -2636,11 +2636,11 @@ client.on('messageCreate', async (message) => {
 
   // ── privacy ───────────────────────────────────────────────
   if (command === 'privacy' || command === 'pv') {
-    const inventory  = inv.loadInventory();
+    const inventory  = await inv.loadInventory();
     const current    = inv.getPrivacy(inventory, userId);
     const newVal     = !current;
     inv.setPrivacy(inventory, userId, newVal);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     const embed = new EmbedBuilder()
       .setColor(newVal ? 0x888888 : 0x00FFD1)
@@ -2660,7 +2660,7 @@ client.on('messageCreate', async (message) => {
 
     if (!sub || sub === 'view') {
       const target    = message.mentions.users.first() ?? message.author;
-      const inventory = inv.loadInventory();
+      const inventory = await inv.loadInventory();
       const team      = inv.getTeam(inventory, target.id);
       const resolved  = resolveTeamSlots(team, inventory, target.id);
 
@@ -2700,13 +2700,13 @@ client.on('messageCreate', async (message) => {
       const card = resolveCard(cardQuery);
       if (!card) return message.reply(`No card found matching \`${cardQuery}\`.`);
 
-      const inventory = inv.loadInventory();
+      const inventory = await inv.loadInventory();
       if (!inv.hasCard(inventory, userId, card.id)) {
         return message.reply(`You don't own **${card.name}**.`);
       }
 
       const result = inv.addToTeam(inventory, userId, card.id);
-      inv.saveInventory(inventory);
+      await inv.saveInventory(inventory);
 
       if (result === 'added')          return message.reply(`**${card.name}** added to your team!`);
       if (result === 'full')           return message.reply(`Your team is full (${inv.TEAM_SIZE}/${inv.TEAM_SIZE}). Remove a card first.`);
@@ -2721,18 +2721,18 @@ client.on('messageCreate', async (message) => {
       const card = resolveCard(cardQuery);
       if (!card) return message.reply(`No card found matching \`${cardQuery}\`.`);
 
-      const inventory = inv.loadInventory();
+      const inventory = await inv.loadInventory();
       const slot      = inv.removeFromTeam(inventory, userId, card.id);
       if (!slot) return message.reply(`**${card.name}** is not on your team.`);
 
       if (slot.plating) {
         inv.addPlating(inventory, userId, slot.plating);
         const tier = config.PLATING_TIERS.find(t => t.id === slot.plating);
-        inv.saveInventory(inventory);
+        await inv.saveInventory(inventory);
         return message.reply(`**${card.name}** removed from your team. **${tier?.label} Plating** returned to inventory.`);
       }
 
-      inv.saveInventory(inventory);
+      await inv.saveInventory(inventory);
       return message.reply(`**${card.name}** removed from your team.`);
     }
 
@@ -2748,9 +2748,9 @@ client.on('messageCreate', async (message) => {
       const tier    = platingById(platingStr);
       if (!tier)    return message.reply(`Unknown plating \`${platingStr}\`. Valid: \`bronze\` \`silver\` \`gold\` \`diamond\``);
 
-      const inventory = inv.loadInventory();
+      const inventory = await inv.loadInventory();
       const result    = inv.equipPlatingToTeam(inventory, userId, card.id, tier.id);
-      inv.saveInventory(inventory);
+      await inv.saveInventory(inventory);
 
       if (result === 'equipped')        return message.reply(`**${tier.label} Plating** equipped to **${card.name}**!`);
       if (result === 'not_on_team')     return message.reply(`**${card.name}** is not on your team.`);
@@ -2766,9 +2766,9 @@ client.on('messageCreate', async (message) => {
       const card = resolveCard(cardQuery);
       if (!card) return message.reply(`No card found matching \`${cardQuery}\`.`);
 
-      const inventory = inv.loadInventory();
+      const inventory = await inv.loadInventory();
       const tier      = inv.unequipPlatingFromTeam(inventory, userId, card.id);
-      inv.saveInventory(inventory);
+      await inv.saveInventory(inventory);
 
       if (!tier) return message.reply(`**${card.name}** doesn't have a plating equipped.`);
       const tierData = config.PLATING_TIERS.find(t => t.id === tier);
@@ -2784,13 +2784,13 @@ client.on('messageCreate', async (message) => {
     const card = resolveCard(cardQuery);
     if (!card) return message.reply(`No card found matching \`${cardQuery}\`.`);
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     if (!inv.hasCard(inventory, userId, card.id)) {
       return message.reply(`You don't own **${card.name}**.`);
     }
 
     const result = inv.addToTeam(inventory, userId, card.id);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     if (result === 'added')           return message.reply(`**${card.name}** added to your team!`);
     if (result === 'full')            return message.reply(`Your team is full (${inv.TEAM_SIZE}/${inv.TEAM_SIZE}). Remove a card first with \`ZP remove <cardId>\`.`);
@@ -2805,18 +2805,18 @@ client.on('messageCreate', async (message) => {
     const card = resolveCard(cardQuery);
     if (!card) return message.reply(`No card found matching \`${cardQuery}\`.`);
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const slot      = inv.removeFromTeam(inventory, userId, card.id);
     if (!slot) return message.reply(`**${card.name}** is not on your team.`);
 
     if (slot.plating) {
       inv.addPlating(inventory, userId, slot.plating);
       const tier = config.PLATING_TIERS.find(t => t.id === slot.plating);
-      inv.saveInventory(inventory);
+      await inv.saveInventory(inventory);
       return message.reply(`**${card.name}** removed from your team. **${tier?.label} Plating** returned to inventory.`);
     }
 
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
     return message.reply(`**${card.name}** removed from your team.`);
   }
 
@@ -2834,12 +2834,12 @@ client.on('messageCreate', async (message) => {
     if (!card1) return message.reply(`No card found matching \`${cardId1}\`.`);
     if (!card2) return message.reply(`No card found matching \`${cardId2}\`.`);
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const success   = inv.swapTeamPositions(inventory, userId, card1.id, card2.id);
 
     if (!success) return message.reply(`Both cards must be on your team. Check \`ZP team\` to see your current lineup.`);
 
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     const meta1 = rarityMeta(card1.rarity);
     const meta2 = rarityMeta(card2.rarity);
@@ -2856,7 +2856,7 @@ client.on('messageCreate', async (message) => {
     const coolSecs = getFightCooldownSecs(userId);
     if (coolSecs > 0) return message.reply(`You're on cooldown! Wait **${coolSecs}s** before fighting again.`);
 
-    const inventory      = inv.loadInventory();
+    const inventory      = await inv.loadInventory();
     const attackerTeam   = inv.getTeam(inventory, userId);
     const defenderTeam   = inv.getTeam(inventory, opponent.id);
 
@@ -2903,7 +2903,7 @@ client.on('messageCreate', async (message) => {
     const coolSecs = getFightCooldownSecs(userId);
     if (coolSecs > 0) return message.reply(`You're on cooldown! Wait **${coolSecs}s** before fighting again.`);
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const duo       = inv.getUserDuo(inventory, userId);
     if (!duo) return message.reply(`You don't have a duo partner! Use \`ZP duocreate @user\` to create one.`);
 
@@ -2998,7 +2998,7 @@ client.on('messageCreate', async (message) => {
       if (badAsk) return message.reply(`Unknown trade item: \`${badAsk.type}:${badAsk.id ?? ''}\``);
     }
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const missing   = findMissingItem(inventory, userId, offerItems);
     if (missing) {
       return message.reply(`You don't have enough **${describeItem(missing)}** to offer.`);
@@ -3008,7 +3008,7 @@ client.on('messageCreate', async (message) => {
     if (!askItems) {
       removeAllItems(inventory, userId, offerItems);
       addAllItems(inventory, target.id, offerItems);
-      inv.saveInventory(inventory);
+      await inv.saveInventory(inventory);
 
       const embed = new EmbedBuilder()
         .setColor(0x00FFD1)
@@ -3020,7 +3020,7 @@ client.on('messageCreate', async (message) => {
 
     // Create pending trade
     removeAllItems(inventory, userId, offerItems);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     const tradeId = trades.createTrade({
       tradeId: `trade_${Date.now()}`,
@@ -3053,12 +3053,12 @@ client.on('messageCreate', async (message) => {
     if (!trade) return message.reply('Trade not found or already expired.');
     if (trade.askId !== userId) return message.reply('This trade is not addressed to you.');
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const missing   = findMissingItem(inventory, userId, trade.askItems);
     if (missing) {
       // Refund offerer
       addAllItems(inventory, trade.offerId, trade.offerItems);
-      inv.saveInventory(inventory);
+      await inv.saveInventory(inventory);
       trades.removeTrade(tradeId);
       return message.reply(`You don't have enough **${describeItem(missing)}** to complete this trade. The trade has been cancelled and items refunded.`);
     }
@@ -3066,7 +3066,7 @@ client.on('messageCreate', async (message) => {
     removeAllItems(inventory, userId, trade.askItems);
     addAllItems(inventory, userId, trade.offerItems);
     addAllItems(inventory, trade.offerId, trade.askItems);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
     trades.removeTrade(tradeId);
 
     const embed = new EmbedBuilder()
@@ -3090,9 +3090,9 @@ client.on('messageCreate', async (message) => {
     if (trade.askId !== userId && trade.offerId !== userId) return message.reply('You are not part of this trade.');
 
     // Refund offerer
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     addAllItems(inventory, trade.offerId, trade.offerItems);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
     trades.removeTrade(tradeId);
 
     return message.reply(`Trade \`${tradeId}\` cancelled. Items returned to **${trade.offerName}**.`);
@@ -3123,7 +3123,7 @@ client.on('messageCreate', async (message) => {
     if (!name) return message.reply('Usage: `ZP clancreate <name>` — choose a name for your clan.');
     if (name.length > 30) return message.reply('Clan name must be 30 characters or fewer.');
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const existing  = inv.getUserClan(inventory, userId);
     if (existing) {
       return message.reply(`You are already in the clan **${existing.name}**. Leave it first with \`ZP clanleave\`.`);
@@ -3131,7 +3131,7 @@ client.on('messageCreate', async (message) => {
 
     const clanId = inv.createClan(inventory, userId, name);
     if (!clanId) return message.reply('Failed to create clan. Make sure you are not already in one.');
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     const embed = new EmbedBuilder()
       .setColor(0xFF6B35)
@@ -3148,7 +3148,7 @@ client.on('messageCreate', async (message) => {
   // ── clan ─────────────────────────────────────────────────
   if (command === 'clan') {
     const target    = message.mentions.users.first() ?? message.author;
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const clan      = inv.getUserClan(inventory, target.id);
 
     if (!clan) {
@@ -3180,7 +3180,7 @@ client.on('messageCreate', async (message) => {
     if (target.id === userId) return message.reply('You cannot add yourself.');
     if (target.bot) return message.reply('You cannot add bots to your clan.');
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const clan      = inv.getUserClan(inventory, userId);
     if (!clan) return message.reply(`You are not in a clan. Create one with \`ZP clancreate <name>\`.`);
     if (clan.ownerId !== userId) return message.reply(`Only the clan owner (**<@${clan.ownerId}>**) can add members.`);
@@ -3190,7 +3190,7 @@ client.on('messageCreate', async (message) => {
 
     const success = inv.addToClan(inventory, clan.id, target.id);
     if (!success) return message.reply('Could not add this user to the clan.');
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     return message.reply(`**${target.username}** has been added to **${clan.name}**!`);
   }
@@ -3201,41 +3201,41 @@ client.on('messageCreate', async (message) => {
     if (!target) return message.reply('Usage: `ZP clanremove @user`');
     if (target.id === userId) return message.reply(`You can't remove yourself. Use \`ZP clanleave\` to leave or \`ZP clandelete\` to delete.`);
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const clan      = inv.getUserClan(inventory, userId);
     if (!clan) return message.reply(`You are not in a clan.`);
     if (clan.ownerId !== userId) return message.reply(`Only the clan owner can remove members.`);
     if (!clan.members.includes(target.id)) return message.reply(`**${target.username}** is not in your clan.`);
 
     inv.removeFromClan(inventory, clan.id, target.id);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     return message.reply(`**${target.username}** has been removed from **${clan.name}**.`);
   }
 
   // ── clanleave ─────────────────────────────────────────────
   if (command === 'clanleave' || command === 'cl') {
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const clan      = inv.getUserClan(inventory, userId);
     if (!clan) return message.reply(`You are not in a clan.`);
     if (clan.ownerId === userId) return message.reply(`As the clan owner, you cannot leave. Use \`ZP clandelete\` to disband the clan.`);
 
     inv.removeFromClan(inventory, clan.id, userId);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     return message.reply(`You have left **${clan.name}**.`);
   }
 
   // ── clandelete ────────────────────────────────────────────
   if (command === 'clandelete' || command === 'cd') {
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const clan      = inv.getUserClan(inventory, userId);
     if (!clan) return message.reply(`You are not in a clan.`);
     if (clan.ownerId !== userId) return message.reply(`Only the clan owner can delete the clan.`);
 
     const clanName = clan.name;
     inv.deleteClan(inventory, clan.id);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     return message.reply(`**${clanName}** has been permanently deleted.`);
   }
@@ -3245,7 +3245,7 @@ client.on('messageCreate', async (message) => {
     const amount = parseInt(args[0], 10);
     if (isNaN(amount) || amount < 1) return message.reply('Usage: `ZP clanfundadd <amount>` — donate yen to your clan fund.');
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const clan      = inv.getUserClan(inventory, userId);
     if (!clan) return message.reply(`You are not in a clan.`);
 
@@ -3254,7 +3254,7 @@ client.on('messageCreate', async (message) => {
     }
 
     clan.fund = (clan.fund ?? 0) + amount;
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     return message.reply(`Donated **¥${amount.toLocaleString()}** to **${clan.name}**! Clan fund: **¥${clan.fund.toLocaleString()}**`);
   }
@@ -3264,7 +3264,7 @@ client.on('messageCreate', async (message) => {
     const amount = parseInt(args[0], 10);
     if (isNaN(amount) || amount < 1) return message.reply('Usage: `ZP clanfundtake <amount>` — withdraw yen from your clan fund (owner only).');
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const clan      = inv.getUserClan(inventory, userId);
     if (!clan) return message.reply(`You are not in a clan.`);
     if (clan.ownerId !== userId) return message.reply(`Only the clan owner can withdraw from the clan fund.`);
@@ -3275,7 +3275,7 @@ client.on('messageCreate', async (message) => {
 
     clan.fund -= amount;
     inv.addYen(inventory, userId, amount);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     return message.reply(`Withdrew **¥${amount.toLocaleString()}** from **${clan.name}**'s fund! Fund remaining: **¥${clan.fund.toLocaleString()}**`);
   }
@@ -3289,7 +3289,7 @@ client.on('messageCreate', async (message) => {
     if (target.id === userId) return message.reply('You cannot create a duo with yourself.');
     if (target.bot) return message.reply('You cannot duo with a bot.');
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
 
     if (inv.getUserDuo(inventory, userId)) {
       return message.reply(`You already have a duo partner! Use \`ZP duoremove\` to disband first.`);
@@ -3301,7 +3301,7 @@ client.on('messageCreate', async (message) => {
     // Create duo directly (no confirmation needed for simplicity)
     const duoId = inv.createDuo(inventory, userId, target.id);
     if (!duoId) return message.reply('Failed to create duo.');
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     const embed = new EmbedBuilder()
       .setColor(0x9B59B6)
@@ -3317,7 +3317,7 @@ client.on('messageCreate', async (message) => {
   // ── duo ───────────────────────────────────────────────────
   if (command === 'duo') {
     const target    = message.mentions.users.first() ?? message.author;
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const duo       = inv.getUserDuo(inventory, target.id);
 
     if (!duo) {
@@ -3347,12 +3347,12 @@ client.on('messageCreate', async (message) => {
 
   // ── duoremove ─────────────────────────────────────────────
   if (command === 'duoremove' || command === 'dr') {
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const duo       = inv.getUserDuo(inventory, userId);
     if (!duo) return message.reply(`You don't have a duo partner.`);
 
     inv.disbandDuo(inventory, duo.id);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     return message.reply(`Your duo partnership has been disbanded.`);
   }
@@ -3370,7 +3370,7 @@ client.on('messageCreate', async (message) => {
     const card = resolveCard(cardQuery);
     if (!card) return message.reply(`No card found matching \`${cardQuery}\`.`);
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     if (!inv.hasCard(inventory, userId, card.id)) {
       return message.reply(`You don't own **${card.name}**.`);
     }
@@ -3386,7 +3386,7 @@ client.on('messageCreate', async (message) => {
     }
 
     inv.setConquest(inventory, userId, card.id);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     const meta = rarityMeta(card.rarity);
     const embed = new EmbedBuilder()
@@ -3405,7 +3405,7 @@ client.on('messageCreate', async (message) => {
 
   // ── conquestrecall ────────────────────────────────────────
   if (command === 'conquestrecall' || command === 'cr') {
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const conquest  = inv.getConquest(inventory, userId);
 
     if (!conquest) {
@@ -3425,7 +3425,7 @@ client.on('messageCreate', async (message) => {
     inv.addLimitBreakers(inventory, userId, 1);
     inv.addCandyTokens(inventory, userId, candyEarned);
     inv.clearConquest(inventory, userId);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     const meta = card ? rarityMeta(card.rarity) : { color: 0x00FFD1 };
     const embed = new EmbedBuilder()
@@ -3448,7 +3448,7 @@ client.on('messageCreate', async (message) => {
     const codeInput = args[0];
     if (!codeInput) return message.reply('Usage: `ZP redeem <code>`');
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const entry = inv.findRedeemCodeByCode(inventory, codeInput);
     if (!entry) return message.reply(`❌ Code \`${codeInput.toUpperCase()}\` is not valid.`);
 
@@ -3485,7 +3485,7 @@ client.on('messageCreate', async (message) => {
     if (lines.length === 0) return message.reply(`❌ That code has no rewards configured yet.`);
 
     inv.markCodeRedeemed(inventory, userId, entry.name);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     return message.reply({
       embeds: [
@@ -3540,9 +3540,9 @@ client.on('messageCreate', async (message) => {
     const target = message.mentions.users.first() ?? message.author;
     const amount = parseInt(args.find(a => !a.startsWith('<@')), 10);
     if (isNaN(amount) || amount <= 0) return message.reply('Usage: `ZP giveyen [@user] <amount>`');
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     inv.addYen(inventory, target.id, amount);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
     return message.reply(`Added **¥${amount.toLocaleString()}** to **${target.username}**'s wallet.`);
   }
 
@@ -3551,9 +3551,9 @@ client.on('messageCreate', async (message) => {
     const target = message.mentions.users.first() ?? message.author;
     const amount = parseInt(args.find(a => !a.startsWith('<@')), 10);
     if (isNaN(amount) || amount <= 0) return message.reply('Usage: `ZP givestars [@user] <amount>`');
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     inv.addStars(inventory, target.id, amount);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
     return message.reply(`Added **${amount.toLocaleString()} Stars** to **${target.username}**.`);
   }
 
@@ -3562,9 +3562,9 @@ client.on('messageCreate', async (message) => {
     const target = message.mentions.users.first() ?? message.author;
     const amount = parseInt(args.find(a => !a.startsWith('<@')), 10);
     if (isNaN(amount) || amount <= 0) return message.reply('Usage: `ZP givecandytokens [@user] <amount>`');
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     inv.addCandyTokens(inventory, target.id, amount);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
     return message.reply(`Gave **${amount}** Candy Token${amount === 1 ? '' : 's'} to **${target.username}**.`);
   }
 
@@ -3581,9 +3581,9 @@ client.on('messageCreate', async (message) => {
     const target = message.mentions.users.first() ?? message.author;
     const amount = parseInt(args.find(a => !a.startsWith('<@')), 10);
     if (isNaN(amount) || amount <= 0) return message.reply('Usage: `ZP givelimitbreaker [@user] <amount>`');
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     inv.addLimitBreakers(inventory, target.id, amount);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
     return message.reply(`Gave **${amount} Limit Breaker${amount === 1 ? '' : 's'}** to **${target.username}**.`);
   }
 
@@ -3596,9 +3596,9 @@ client.on('messageCreate', async (message) => {
     const item = config.ITEMS.find(i => i.id === itemId);
     if (!item) return message.reply(`Unknown item \`${itemId}\`. Available: ${config.ITEMS.map(i => `\`${i.id}\``).join(', ')}`);
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     inv.addItem(inventory, target.id, itemId);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
     return message.reply(`Gave **${item.emoji} ${item.name}** to **${target.username}**.`);
   }
 
@@ -3626,9 +3626,9 @@ client.on('messageCreate', async (message) => {
     }
 
     const tier = config.RAID_TICKET_TIERS.find(t => t.id === ticketId);
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     for (let i = 0; i < amount; i++) inv.addItem(inventory, target.id, ticketId);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
     return message.reply(`Gave **${amount}× ${tier.emoji} ${tier.label}** to **${target.username}**.`);
   }
 
@@ -3647,9 +3647,9 @@ client.on('messageCreate', async (message) => {
     const card = lookupCard(cardId);
     if (!card) return message.reply(`❌ No card found with ID \`${cardId}\`.`);
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     inv.addCharacterShards(inventory, target.id, cardId, amount);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     const emoji = emojiCache.getEmoji(cardId) ?? '';
     return message.reply(`Gave **${amount}x ${emoji}${card.name} shard${amount === 1 ? '' : 's'}** to **${target.username}**.`);
@@ -3663,10 +3663,10 @@ client.on('messageCreate', async (message) => {
     if (!name || !code) return message.reply('Usage: `ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]`');
 
     const rewards  = parseRewardArgs(rewardArgs);
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const created  = inv.createRedeemCode(inventory, name, code, rewards);
     if (!created) return message.reply(`❌ A code named **${name}** already exists. Use \`ZP editcode\` to update it.`);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     const codeEntry = inv.getRedeemCodes(inventory)[name.toLowerCase()];
     return message.reply(`✅ Code **${name}** created!\n**Code:** \`${codeEntry.code}\`\n**Rewards:** ${formatRewards(rewards)}`);
@@ -3679,10 +3679,10 @@ client.on('messageCreate', async (message) => {
     if (!name) return message.reply('Usage: `ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]`');
 
     const rewards   = parseRewardArgs(rewardArgs);
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const updated   = inv.updateRedeemCode(inventory, name, rewards);
     if (!updated) return message.reply(`❌ No code named **${name}** found. Use \`ZP createcode\` to create it.`);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     return message.reply(`✅ Code **${name}** updated!\n**Rewards:** ${formatRewards(rewards)}`);
   }
@@ -3692,17 +3692,17 @@ client.on('messageCreate', async (message) => {
     const name = args[0];
     if (!name) return message.reply('Usage: `ZP deletecode <name>`');
 
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const deleted   = inv.deleteRedeemCode(inventory, name);
     if (!deleted) return message.reply(`❌ No code named **${name}** found.`);
-    inv.saveInventory(inventory);
+    await inv.saveInventory(inventory);
 
     return message.reply(`✅ Code **${name}** has been deleted.`);
   }
 
   // ── listcodes ─────────────────────────────────────────────
   if (command === 'listcodes') {
-    const inventory = inv.loadInventory();
+    const inventory = await inv.loadInventory();
     const codes     = Object.values(inv.getRedeemCodes(inventory));
     if (codes.length === 0) return message.reply('No redeem codes exist yet. Create one with `ZP createcode`.');
 
