@@ -67,6 +67,39 @@
 // ============================================================
 
 require('dotenv').config();
+
+// ── Single-instance lock ──────────────────────────────────────────────────────
+// Prevents two bot processes from running at the same time (duplicate messages).
+const fs        = require('fs');
+const path      = require('path');
+const LOCK_FILE = path.join(__dirname, '.bot.lock');
+
+(function acquireLock() {
+  if (fs.existsSync(LOCK_FILE)) {
+    const oldPid = parseInt(fs.readFileSync(LOCK_FILE, 'utf8').trim(), 10);
+    if (!isNaN(oldPid)) {
+      try {
+        process.kill(oldPid, 0); // throws ESRCH if process is gone
+        console.error(`[lock] Another bot instance is already running (PID ${oldPid}). Exiting.`);
+        process.exit(1);
+      } catch (_) {
+        console.warn(`[lock] Stale lock (PID ${oldPid}) — previous process is gone. Taking over.`);
+      }
+    }
+  }
+  fs.writeFileSync(LOCK_FILE, String(process.pid));
+})();
+
+function releaseLock() {
+  try { fs.unlinkSync(LOCK_FILE); } catch (_) {}
+}
+
+process.on('exit',             ()    => releaseLock());
+process.on('SIGINT',           ()    => { releaseLock(); process.exit(0); });
+process.on('SIGTERM',          ()    => { releaseLock(); process.exit(0); });
+process.on('uncaughtException', (err) => { console.error('[uncaughtException]', err); releaseLock(); process.exit(1); });
+// ─────────────────────────────────────────────────────────────────────────────
+
 require("./server.js");
 
 const {
