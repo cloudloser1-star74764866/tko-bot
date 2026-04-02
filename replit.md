@@ -49,6 +49,17 @@ The bot runs via the "Start application" workflow (`node bot.js`). Requires a `D
 - `ZP fight @user` — Turn-based team battle
 - `ZP duofight @user` / `ZP df @user` — Fight with duo partner's combined team
 
+### Collab Raids (up to 5 players)
+1. Owner uses `ZP raid [tier]` — starts raid, sees boss card with **Join Raid** and **Start Raid** buttons
+2. Owner uses `ZP arj` (allowraidjoins) — enables other players to join
+3. Owner uses `ZP wh @user` (whitelist) — whitelists players (max 4)
+4. Whitelisted players click **Join Raid**, pick one card from their team
+5. Owner clicks **Start Raid** — turn-based combat begins
+   - Owner goes first (can use any card)
+   - Then participants in join order (each uses their selected card)
+   - Loops until boss dies or all cards are dead
+6. Rewards: owner gets 50%, allies split 50%
+
 ### Clan System
 - `ZP clancreate <name>` — Create a clan
 - `ZP clan` — View your clan

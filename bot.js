@@ -332,8 +332,9 @@ function addAllItems(inventory, userId, items) {
 
 // ── Fight cooldown ────────────────────────────────────────
 
-const fightCooldowns = new Map();
-const activeBattles  = new Map();
+const fightCooldowns    = new Map();
+const activeBattles     = new Map();
+const activeCollabRaids = new Map(); // ownerId → battleId
 
 function getFightCooldownSecs(userId) {
   const last      = fightCooldowns.get(userId) ?? 0;
@@ -474,6 +475,244 @@ function buildRaidEmbed(state, log = null) {
 
   if (state.bossImg) embed.setThumbnail(state.bossImg);
   return embed;
+}
+
+// ── Collab Raid helpers ────────────────────────────────────
+
+function buildCollabRaidPreEmbed(state) {
+  const boss     = state.defenderCards[0];
+  const tier     = config.RAID_TICKET_TIERS.find(t => t.id === state.raidTicketTier);
+
+  const lines = [
+    `**═════ ${state.defenderName} ═════**`,
+    cardBattleLine(boss),
+    '',
+    `**═════ Raid Party ═════**`,
+    `👑 **${state.ownerName}** — Ready (can use any card)`,
+  ];
+
+  for (let i = 0; i < 4; i++) {
+    const p = state.participants[i];
+    if (!p) {
+      lines.push(`▫️ Slot ${i + 2}: Empty`);
+    } else if (p.joined && p.selectedCard) {
+      const meta = rarityMeta(lookupCard(p.selectedCard.cardId)?.rarity ?? 'R');
+      lines.push(`✅ **${p.username}** — ${meta.emoji} ${p.selectedCard.name}`);
+    } else {
+      lines.push(`⏳ **${p.username}** — Selecting card…`);
+    }
+  }
+
+  lines.push('');
+  if (state.allowJoins) {
+    const names = state.whitelist.length > 0
+      ? state.whitelist.map(uid => `<@${uid}>`).join(', ')
+      : 'No one yet';
+    lines.push(`✅ **Joins enabled!** Whitelisted: ${names}`);
+    lines.push(`*Use \`ZP wh @user\` to add more (max 4)*`);
+  } else {
+    lines.push(`🔒 **Joins disabled.** Use \`ZP arj\` to let whitelisted players join.`);
+  }
+
+  const embed = new EmbedBuilder()
+    .setColor(tier?.color ?? 0xFF69B4)
+    .setTitle(`${tier?.emoji ?? '🔥'} ${tier?.label ?? 'Raid'} — Waiting to Start`)
+    .setDescription(lines.join('\n'));
+
+  if (state.bossImg) embed.setThumbnail(state.bossImg);
+  return embed;
+}
+
+function buildCollabRaidBattleEmbed(state, log = null) {
+  const boss    = state.defenderCards[0];
+  const tier    = config.RAID_TICKET_TIERS.find(t => t.id === state.raidTicketTier);
+
+  const turnName = state.currentTurnIdx === 0
+    ? `👑 ${state.ownerName}`
+    : (state.participants[state.currentTurnIdx - 1]?.username ?? '?');
+
+  const parts = [
+    `**═════ ${state.defenderName} ═════**`,
+    cardBattleLine(boss),
+    '',
+    `**═════ 👑 ${state.ownerName}'s Cards ═════**`,
+    state.ownerCards.map(cardBattleLine).join('\n\n'),
+  ];
+
+  if (state.participants.length > 0) {
+    parts.push('', `**═════ Allies ═════**`);
+    for (const p of state.participants) {
+      if (p.selectedCard) {
+        parts.push(`**${p.username}:**\n${cardBattleLine(p.selectedCard)}`);
+      }
+    }
+  }
+
+  if (log) parts.push('', log);
+
+  const allOwnerDead = state.ownerCards.every(c => !c.alive);
+  const allAllyDead  = state.participants.every(p => !p.selectedCard || !p.selectedCard.alive);
+  if (boss.alive && !(allOwnerDead && allAllyDead)) {
+    parts.push('', `*${turnName}'s turn — choose a card to attack!*`);
+  }
+
+  const embed = new EmbedBuilder()
+    .setColor(tier?.color ?? 0xFF69B4)
+    .setTitle(`${tier?.emoji ?? '🔥'} ${tier?.label ?? 'Raid'} Battle`)
+    .setDescription(parts.join('\n'));
+
+  if (state.bossImg) embed.setThumbnail(state.bossImg);
+  return embed;
+}
+
+function buildCollabPreComponents(state) {
+  const joinBtn = new ButtonBuilder()
+    .setCustomId(`craid|${state.battleId}|join`)
+    .setLabel('Join Raid')
+    .setStyle(ButtonStyle.Primary)
+    .setDisabled(!state.allowJoins);
+
+  const startBtn = new ButtonBuilder()
+    .setCustomId(`craid|${state.battleId}|start`)
+    .setLabel('Start Raid')
+    .setStyle(ButtonStyle.Success);
+
+  return [new ActionRowBuilder().addComponents(joinBtn, startBtn)];
+}
+
+function buildCollabBattleComponents(state) {
+  const rows = [];
+
+  if (state.currentTurnIdx === 0) {
+    const alive = state.ownerCards
+      .map((bc, i) => ({ bc, i }))
+      .filter(({ bc }) => bc.alive);
+
+    for (let r = 0; r < alive.length && rows.length < 4; r += 4) {
+      rows.push(
+        new ActionRowBuilder().addComponents(
+          alive.slice(r, r + 4).map(({ bc, i }) =>
+            new ButtonBuilder()
+              .setCustomId(`craid|${state.battleId}|attack|${i}`)
+              .setLabel(bc.name.length > 20 ? bc.name.slice(0, 18) + '…' : bc.name)
+              .setStyle(ButtonStyle.Success)
+          )
+        )
+      );
+    }
+  } else {
+    const pIdx = state.currentTurnIdx - 1;
+    const p    = state.participants[pIdx];
+    if (p?.selectedCard?.alive) {
+      rows.push(
+        new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`craid|${state.battleId}|attack|${pIdx}`)
+            .setLabel(p.selectedCard.name.length > 20 ? p.selectedCard.name.slice(0, 18) + '…' : p.selectedCard.name)
+            .setStyle(ButtonStyle.Success)
+        )
+      );
+    }
+  }
+
+  rows.push(
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`craid|${state.battleId}|run`)
+        .setLabel('Run Away')
+        .setStyle(ButtonStyle.Danger)
+    )
+  );
+  return rows;
+}
+
+function advanceCollabTurn(state) {
+  const total = 1 + state.participants.length;
+  for (let i = 1; i <= total; i++) {
+    const next = (state.currentTurnIdx + i) % total;
+    if (next === 0) {
+      if (state.ownerCards.some(c => c.alive)) {
+        state.currentTurnIdx = 0;
+        return;
+      }
+    } else {
+      const p = state.participants[next - 1];
+      if (p?.selectedCard?.alive) {
+        state.currentTurnIdx = next;
+        return;
+      }
+    }
+  }
+}
+
+function generateCollabRaidReward(state, inventory) {
+  const boss   = state.raidBossCard;
+  const tierId = state.raidTicketTier ?? 'hellish_raid_ticket';
+  const cfg    = RAID_REWARD_CONFIG[tierId] ?? RAID_REWARD_CONFIG['hellish_raid_ticket'];
+  const roll   = Math.random();
+
+  const allies = state.participants.filter(p => p.selectedCard);
+  const allPlayers = [
+    { userId: state.ownerId, username: state.ownerName, share: 0.5 },
+    ...allies.map(p => ({
+      userId: p.userId, username: p.username,
+      share: allies.length > 0 ? 0.5 / allies.length : 0,
+    })),
+  ];
+
+  const lines = [];
+
+  if (roll < cfg.cardChance) {
+    const winner  = allPlayers[Math.floor(Math.random() * allPlayers.length)];
+    const bossItem = config.ITEMS.find(i => i.cardId === boss.id);
+    if (bossItem) {
+      inv.addItem(inventory, winner.userId, bossItem.id);
+      lines.push(`${bossItem.emoji} **${bossItem.name}** dropped for **${winner.username}**! Use \`${bossItem.useCmd ?? `ZP use ${bossItem.id}`}\` to claim **${boss.name}**!`);
+    } else {
+      const { isDupe } = inv.addCardToInventory(inventory, winner.userId, boss);
+      const meta = rarityMeta(boss.rarity);
+      lines.push(`${meta.emoji} **${boss.name}** joined **${winner.username}**'s collection!${isDupe ? ' *(+1 shard)*' : ''}`);
+    }
+  } else if (roll < cfg.cardChance + 0.40) {
+    const yenRange = cfg.yenMax - cfg.yenMin;
+    const totalYen = Math.floor(cfg.yenMin + Math.random() * (yenRange + 1));
+    for (const p of allPlayers) {
+      const share = Math.floor(totalYen * p.share);
+      if (share > 0) inv.addYen(inventory, p.userId, share);
+    }
+    const ownerY = Math.floor(totalYen * 0.5);
+    const allyY  = totalYen - ownerY;
+    lines.push(`💰 **¥${totalYen.toLocaleString()} Yen** split! **${state.ownerName}** ¥${ownerY.toLocaleString()} (50%)${allies.length > 0 ? `, allies share ¥${allyY.toLocaleString()}` : ''}`);
+  } else if (roll < cfg.cardChance + 0.65) {
+    const [cMin, cMax] = cfg.cardCount;
+    const count  = Math.floor(cMin + Math.random() * (cMax - cMin + 1));
+    const cLines = [];
+    for (let i = 0; i < count; i++) {
+      const rarity  = cfg.cardPool[Math.floor(Math.random() * cfg.cardPool.length)];
+      const dropped = pullCardForced(rarity);
+      const winner  = Math.random() < 0.5
+        ? allPlayers[0]
+        : allPlayers[Math.floor(Math.random() * allPlayers.length)];
+      const { isDupe } = inv.addCardToInventory(inventory, winner.userId, dropped);
+      const meta  = rarityMeta(dropped.rarity);
+      const emoji = emojiCache.getEmoji(dropped.id) ?? '';
+      cLines.push(`${meta.emoji} **${dropped.name}**${emoji ? ' ' + emoji : ''} → **${winner.username}**${isDupe ? ' *(+1 shard)*' : ''}`);
+    }
+    lines.push(`🎴 **${count} card${count === 1 ? '' : 's'}** dropped!\n${cLines.join('\n')}`);
+  } else {
+    const lbCount  = Math.floor(cfg.lbMin + Math.random() * (cfg.lbMax - cfg.lbMin + 1));
+    const ownerLB  = Math.ceil(lbCount * 0.5);
+    const allyLB   = lbCount - ownerLB;
+    inv.addLimitBreakers(inventory, state.ownerId, ownerLB);
+    if (allyLB > 0) {
+      for (const p of allies) {
+        inv.addLimitBreakers(inventory, p.userId, Math.max(1, Math.floor(allyLB / Math.max(1, allies.length))));
+      }
+    }
+    lines.push(`💎 **${lbCount} Limit Breaker${lbCount === 1 ? '' : 's'}** split! **${state.ownerName}** gets ${ownerLB}${allyLB > 0 && allies.length > 0 ? `, allies share ${allyLB}` : ''}`);
+  }
+
+  return lines.join('\n') || '💰 No extra drops this time.';
 }
 
 // Reward config per ticket tier
@@ -1030,12 +1269,14 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         { name: '`ZP duofight @user` / `ZP df @user`',   value: 'Fight alongside your duo partner — your combined teams take on the opponent!', inline: false },
         { name: '`ZP raid` / `ZP raid mythical` / `ZP raid omega` / `ZP raid hellish`',
           value: [
-            'Spend a raid ticket to fight a random Boss. Tier determines boss rarity, stats, and rewards.',
+            'Spend a raid ticket to fight a random Boss. Supports **solo or collab** (up to 5 players total).',
             '🎟️ **Raid** (0.15% drop) — Rare–Legendary boss, 4× Lv100 stats → ¥10k–25k, low card chance',
             '🌙 **Mythical** (0.075% drop) — Mythical boss, 5× Lv100 stats → ¥25k–60k, medium card chance',
             '⚡ **Omega** (0.05% drop) — Ultra Rare boss, 5× Lv100 stats → ¥50k–100k, higher card chance',
             '💀 **Hellish** (0.01% drop) — Limited boss, 4× Lv100 stats → ¥100k–200k, Limit Breakers, medium card chance',
           ].join('\n'), inline: false },
+        { name: '`ZP allowraidjoins` / `ZP arj`', value: 'Enable others to join your active raid. Run after using a raid ticket.', inline: false },
+        { name: '`ZP whitelist @user` / `ZP wh @user`', value: 'Whitelist a player (max 4) to join your collab raid. They click **Join Raid** on the raid card.', inline: false },
       )
       .setFooter({ text: 'Page 4 of 7 • ZP help' }),
 
@@ -1197,6 +1438,7 @@ client.once('ready', async () => {
   client.user.setActivity('ZP help  |  /zp', { type: 0 });
   imgCache.refreshMissing().catch(err => console.error('Image cache refresh error:', err));
   emojiCache.logCacheStatus(CARDS);
+  emojiCache.syncEmojis(client, CARDS, imgCache).catch(err => console.error('Emoji sync error:', err));
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
   const slashCommand = new SlashCommandBuilder()
@@ -1356,6 +1598,234 @@ client.on('interactionCreate', async (interaction) => {
     const embed      = state.isRaid ? buildRaidEmbed(state, log) : buildBattleEmbed(state, log);
     const components = buildBattleComponents(state);
     return interaction.update({ embeds: [embed], components });
+  }
+
+  // ── Collab Raid button handler ────────────────────────────
+  if (parts[0] === 'craid') {
+    const battleId = parts[1];
+    const action   = parts[2];
+    const state    = activeBattles.get(battleId);
+    const uid      = interaction.user.id;
+
+    if (!state || !state.isCollabRaid) {
+      return interaction.update({ components: [], embeds: interaction.message.embeds });
+    }
+    if (Date.now() > state.expiry) {
+      activeBattles.delete(battleId);
+      activeCollabRaids.delete(state.ownerId);
+      return interaction.update({ components: [], embeds: interaction.message.embeds });
+    }
+
+    // ── Join ──────────────────────────────────────────────
+    if (action === 'join') {
+      if (!state.allowJoins)
+        return interaction.reply({ content: 'The raid owner hasn\'t enabled joins yet!', ephemeral: true });
+      if (!state.whitelist.includes(uid))
+        return interaction.reply({ content: 'You are not whitelisted for this raid!', ephemeral: true });
+      if (uid === state.ownerId)
+        return interaction.reply({ content: 'You\'re the raid owner — just click **Start Raid**!', ephemeral: true });
+      if (state.started)
+        return interaction.reply({ content: 'The raid has already started!', ephemeral: true });
+
+      const existing = state.participants.find(p => p.userId === uid);
+      if (existing?.joined)
+        return interaction.reply({ content: `You've already joined with **${existing.selectedCard?.name}**!`, ephemeral: true });
+
+      const inventory    = await inv.loadInventory();
+      const team         = inv.getTeam(inventory, uid);
+      if (!team || team.length === 0)
+        return interaction.reply({ content: 'You need cards in your team to join! Use `ZP add <card>`.', ephemeral: true });
+
+      const resolvedTeam = resolveTeamSlots(team, inventory, uid);
+      const battleCards  = resolvedTeam.map(buildBattleCard).filter(Boolean);
+      if (battleCards.length === 0)
+        return interaction.reply({ content: 'No valid cards in your team!', ephemeral: true });
+
+      state.raidChannelId = interaction.channelId;
+      state.raidMessageId = interaction.message.id;
+      state.pendingJoins[uid] = { username: interaction.user.username, battleCards };
+
+      const rows = [];
+      for (let r = 0; r < battleCards.length && rows.length < 4; r += 4) {
+        rows.push(
+          new ActionRowBuilder().addComponents(
+            battleCards.slice(r, r + 4).map((bc, off) => {
+              const idx  = r + off;
+              const meta = rarityMeta(lookupCard(bc.cardId)?.rarity ?? 'R');
+              return new ButtonBuilder()
+                .setCustomId(`craid|${battleId}|pickcard|${uid}|${idx}`)
+                .setLabel(`${meta.emoji} ${bc.name.length > 17 ? bc.name.slice(0, 15) + '…' : bc.name}`)
+                .setStyle(ButtonStyle.Primary);
+            })
+          )
+        );
+      }
+
+      return interaction.reply({ content: '**Pick a card to fight with:**', components: rows, ephemeral: true });
+    }
+
+    // ── Pick Card ─────────────────────────────────────────
+    if (action === 'pickcard') {
+      const pickUid  = parts[3];
+      const cardIdx  = parseInt(parts[4], 10);
+
+      if (uid !== pickUid)
+        return interaction.reply({ content: 'This card picker isn\'t for you!', ephemeral: true });
+
+      const pending = state.pendingJoins?.[uid];
+      if (!pending)
+        return interaction.reply({ content: 'Your join session expired — click **Join Raid** again.', ephemeral: true });
+
+      const selectedCard = pending.battleCards[cardIdx];
+      if (!selectedCard)
+        return interaction.reply({ content: 'Invalid card selection.', ephemeral: true });
+
+      const existingIdx = state.participants.findIndex(p => p.userId === uid);
+      if (existingIdx >= 0) {
+        state.participants[existingIdx] = { userId: uid, username: pending.username, selectedCard, joined: true };
+      } else if (state.participants.length < 4) {
+        state.participants.push({ userId: uid, username: pending.username, selectedCard, joined: true });
+      } else {
+        return interaction.reply({ content: 'The raid party is full (4 players max)!', ephemeral: true });
+      }
+      delete state.pendingJoins[uid];
+
+      if (state.raidMessageId && state.raidChannelId) {
+        try {
+          const ch  = await client.channels.fetch(state.raidChannelId);
+          const msg = await ch.messages.fetch(state.raidMessageId);
+          await msg.edit({ embeds: [buildCollabRaidPreEmbed(state)], components: buildCollabPreComponents(state) });
+        } catch (_) {}
+      }
+
+      return interaction.update({
+        content: `✅ You joined the raid with **${selectedCard.name}**! Wait for the owner to start.`,
+        components: [],
+      });
+    }
+
+    // ── Start ─────────────────────────────────────────────
+    if (action === 'start') {
+      if (uid !== state.ownerId)
+        return interaction.reply({ content: 'Only the raid owner can start the raid!', ephemeral: true });
+      if (state.started)
+        return interaction.reply({ content: 'Raid already started!', ephemeral: true });
+
+      const inventory    = await inv.loadInventory();
+      const team         = inv.getTeam(inventory, state.ownerId);
+      const resolvedTeam = resolveTeamSlots(team, inventory, state.ownerId);
+      state.ownerCards   = resolvedTeam.map(buildBattleCard).filter(Boolean);
+
+      if (state.ownerCards.length === 0)
+        return interaction.reply({ content: 'You need cards in your team to start!', ephemeral: true });
+
+      state.started       = true;
+      state.currentTurnIdx = 0;
+      state.attackerCards  = [
+        ...state.ownerCards,
+        ...state.participants.filter(p => p.selectedCard).map(p => p.selectedCard),
+      ];
+      activeCollabRaids.delete(state.ownerId);
+
+      const startLog = `🚀 The raid has started! 👑 **${state.ownerName}** — choose a card to attack!`;
+      return interaction.update({
+        embeds:     [buildCollabRaidBattleEmbed(state, startLog)],
+        components: buildCollabBattleComponents(state),
+      });
+    }
+
+    // ── Run ───────────────────────────────────────────────
+    if (action === 'run') {
+      if (uid !== state.ownerId)
+        return interaction.reply({ content: 'Only the raid owner can flee!', ephemeral: true });
+      activeBattles.delete(battleId);
+      activeCollabRaids.delete(state.ownerId);
+      return interaction.update({
+        embeds:     [buildCollabRaidBattleEmbed(state, `💨 **${state.ownerName}** fled from the Raid Boss!`)],
+        components: [],
+      });
+    }
+
+    // ── Attack ────────────────────────────────────────────
+    if (action === 'attack') {
+      if (!state.started)
+        return interaction.reply({ content: 'The raid hasn\'t started yet!', ephemeral: true });
+
+      const cardIdx    = parseInt(parts[3], 10);
+      const isOwnerTurn = state.currentTurnIdx === 0;
+      let attacker, attackerLabel;
+
+      if (isOwnerTurn) {
+        if (uid !== state.ownerId)
+          return interaction.reply({ content: 'It\'s not your turn!', ephemeral: true });
+        attacker      = state.ownerCards[cardIdx];
+        attackerLabel = `👑 ${state.ownerName}'s **${attacker?.name}**`;
+      } else {
+        const pIdx = state.currentTurnIdx - 1;
+        const p    = state.participants[pIdx];
+        if (!p || uid !== p.userId)
+          return interaction.reply({ content: 'It\'s not your turn!', ephemeral: true });
+        attacker      = p.selectedCard;
+        attackerLabel = `**${p.username}**'s **${attacker?.name}**`;
+      }
+
+      if (!attacker?.alive)
+        return interaction.reply({ content: 'That card is already defeated!', ephemeral: true });
+
+      const boss = state.defenderCards[0];
+      if (!boss?.alive) {
+        return interaction.update({ components: [], embeds: interaction.message.embeds });
+      }
+
+      const dmgDealt = attacker.technique
+        ? Math.round(boss.maxHp * (attacker.dmg / 10000) * (0.9 + Math.random() * 0.2))
+        : Math.round(attacker.dmg * (0.8 + Math.random() * 0.4));
+      boss.hp = Math.max(0, boss.hp - dmgDealt);
+      if (boss.hp === 0) boss.alive = false;
+
+      let log = `⚔️ ${attackerLabel} attacked **${boss.name}** for **${dmgDealt.toLocaleString()}** damage!`;
+      if (!boss.alive) log += ` **${boss.name}** was defeated!`;
+
+      if (!boss.alive) {
+        activeBattles.delete(battleId);
+        activeCollabRaids.delete(state.ownerId);
+        const inventory  = await inv.loadInventory();
+        const rewardText = generateCollabRaidReward(state, inventory);
+        await inv.saveInventory(inventory);
+        const winners = [state.ownerName, ...state.participants.map(p => p.username)].join(', ');
+        log += `\n\n🏆 **${winners}** defeated the Raid Boss!\n\n${rewardText}`;
+        return interaction.update({ embeds: [buildCollabRaidBattleEmbed(state, log)], components: [] });
+      }
+
+      const retDmg = Math.round(boss.dmg * (0.8 + Math.random() * 0.4));
+      attacker.hp  = Math.max(0, attacker.hp - retDmg);
+      if (attacker.hp === 0) attacker.alive = false;
+      log += `\n💥 **${boss.name}** retaliated against ${attackerLabel} for **${retDmg.toLocaleString()}** damage!`;
+      if (!attacker.alive) log += ` **${attacker.name}** was defeated!`;
+
+      const allOwnerDead = state.ownerCards.every(c => !c.alive);
+      const allAllyDead  = state.participants.every(p => !p.selectedCard || !p.selectedCard.alive);
+
+      if (allOwnerDead && allAllyDead) {
+        activeBattles.delete(battleId);
+        activeCollabRaids.delete(state.ownerId);
+        log += `\n\n💀 The entire raid party was wiped out! **${boss.name}** is victorious!`;
+        return interaction.update({ embeds: [buildCollabRaidBattleEmbed(state, log)], components: [] });
+      }
+
+      advanceCollabTurn(state);
+      state.attackerCards = [...state.ownerCards, ...state.participants.filter(p => p.selectedCard).map(p => p.selectedCard)];
+      const nextName = state.currentTurnIdx === 0
+        ? `👑 ${state.ownerName}`
+        : state.participants[state.currentTurnIdx - 1].username;
+      log += `\n\n⏭️ **${nextName}**'s turn!`;
+
+      return interaction.update({
+        embeds:     [buildCollabRaidBattleEmbed(state, log)],
+        components: buildCollabBattleComponents(state),
+      });
+    }
+    return;
   }
 
   // ── Help button handler ───────────────────────────────────
@@ -2139,31 +2609,95 @@ client.on('messageCreate', async (message) => {
       alive:     true,
     };
 
-    const resolvedTeam  = resolveTeamSlots(team, inventory, userId);
-    const attackerCards = resolvedTeam.map(buildBattleCard).filter(Boolean);
-
     await inv.saveInventory(inventory);
 
     const battleId = `raid_${userId}_${Date.now()}`;
     const state = {
       battleId,
       isRaid:         true,
+      isCollabRaid:   true,
       raidTicketTier: ticketId,
+      // pre-start collab fields
+      started:        false,
+      allowJoins:     false,
+      whitelist:      [],
+      ownerId:        userId,
+      ownerName:      message.author.username,
+      ownerCards:     [],
+      participants:   [],
+      currentTurnIdx: 0,
+      pendingJoins:   {},
+      raidChannelId:  null,
+      raidMessageId:  null,
+      // compat fields (used once started)
       attackerId:     userId,
       attackerName:   message.author.username,
-      attackerCards,
+      attackerCards:  [],
       defenderName:   bossCard.name,
       defenderCards:  [bossBC],
       bossImg,
       raidBossCard:   bossCard,
-      expiry: Date.now() + 10 * 60 * 1000,
+      expiry: Date.now() + 30 * 60 * 1000,
     };
     activeBattles.set(battleId, state);
+    activeCollabRaids.set(userId, battleId);
 
-    const openLog = `${tier.emoji} **${tier.label}** consumed! A **${bossMeta.emoji} ${bossCard.name}** Raid Boss appeared!\n**HP:** ${bossHp.toLocaleString()} | **DMG:** ${bossDmg.toLocaleString()}–${Math.round(bossDmg * 1.2).toLocaleString()}`;
-    const embed      = buildRaidEmbed(state, openLog);
-    const components = buildBattleComponents(state);
-    return message.reply({ embeds: [embed], components });
+    const openLog = `${tier.emoji} **${tier.label}** consumed! A **${bossMeta.emoji} ${bossCard.name}** Raid Boss appeared!\n**HP:** ${bossHp.toLocaleString()} | **DMG:** ${bossDmg.toLocaleString()}–${Math.round(bossDmg * 1.2).toLocaleString()}\n\n*Use \`ZP arj\` to allow others to join, \`ZP wh @user\` to whitelist players, then click **Start Raid**!*`;
+    const embed      = buildCollabRaidPreEmbed(state);
+    const components = buildCollabPreComponents(state);
+
+    const raidMsg = await message.reply({ embeds: [embed], components });
+    if (raidMsg?.id) {
+      state.raidMessageId = raidMsg.id;
+      state.raidChannelId = raidMsg.channelId;
+    }
+    return;
+  }
+
+  // ── allowraidjoins | arj ──────────────────────────────────
+  if (command === 'allowraidjoins' || command === 'arj') {
+    const battleId = activeCollabRaids.get(userId);
+    if (!battleId) return message.reply('You don\'t have an active collab raid! Use a raid ticket first.');
+    const state = activeBattles.get(battleId);
+    if (!state?.isCollabRaid) return message.reply('No active collab raid found.');
+    if (state.started) return message.reply('The raid has already started!');
+
+    state.allowJoins = true;
+
+    if (state.raidMessageId && state.raidChannelId) {
+      try {
+        const ch  = await client.channels.fetch(state.raidChannelId);
+        const msg = await ch.messages.fetch(state.raidMessageId);
+        await msg.edit({ embeds: [buildCollabRaidPreEmbed(state)], components: buildCollabPreComponents(state) });
+      } catch (_) {}
+    }
+    return message.reply('✅ Raid joins enabled! Whitelisted players can now click **Join Raid** on the raid card.');
+  }
+
+  // ── whitelist | wh ────────────────────────────────────────
+  if (command === 'whitelist' || command === 'wh') {
+    const battleId = activeCollabRaids.get(userId);
+    if (!battleId) return message.reply('You don\'t have an active collab raid! Use a raid ticket first.');
+    const state = activeBattles.get(battleId);
+    if (!state?.isCollabRaid) return message.reply('No active collab raid found.');
+    if (state.started) return message.reply('The raid has already started!');
+
+    const target = message.mentions.users.first();
+    if (!target) return message.reply('Usage: `ZP whitelist @user` or `ZP wh @user`');
+    if (target.id === userId) return message.reply('You\'re already the raid owner!');
+    if (state.whitelist.length >= 4) return message.reply('Whitelist is full (max 4 players)!');
+    if (state.whitelist.includes(target.id)) return message.reply(`**${target.username}** is already whitelisted!`);
+
+    state.whitelist.push(target.id);
+
+    if (state.raidMessageId && state.raidChannelId) {
+      try {
+        const ch  = await client.channels.fetch(state.raidChannelId);
+        const msg = await ch.messages.fetch(state.raidMessageId);
+        await msg.edit({ embeds: [buildCollabRaidPreEmbed(state)], components: buildCollabPreComponents(state) });
+      } catch (_) {}
+    }
+    return message.reply(`✅ **${target.username}** whitelisted for the raid!`);
   }
 
   // ── card | c ─────────────────────────────────────────────
