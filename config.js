@@ -26,10 +26,10 @@ module.exports = {
   // (they must add up to 100).
   PLATING_CHANCE: 0.001,
   PLATING_TIERS: [
-    { id: 'bronze',  label: 'Bronze',  emoji: '🥉', weight: 55, color: 0xCD7F32, statMult: 2.0 },
-    { id: 'silver',  label: 'Silver',  emoji: '🥈', weight: 28, color: 0xC0C0C0, statMult: 3.0 },
-    { id: 'gold',    label: 'Gold',    emoji: '🥇', weight: 13, color: 0xFFD700, statMult: 4.0 },
-    { id: 'diamond', label: 'Diamond', emoji: '💠', weight:  4, color: 0xB9F2FF, statMult: 6.0 },
+    { id: 'bronze',  label: 'Bronze',  emoji: '🥉', weight: 60, color: 0xCD7F32, statMult: 2.0 },
+    { id: 'silver',  label: 'Silver',  emoji: '🥈', weight: 25, color: 0xC0C0C0, statMult: 3.0 },
+    { id: 'gold',    label: 'Gold',    emoji: '🥇', weight: 20, color: 0xFFD700, statMult: 4.0 },
+    { id: 'diamond', label: 'Diamond', emoji: '💠', weight:  5, color: 0xB9F2FF, statMult: 6.0 },
   ],
 
   // ── Fight Rewards ─────────────────────────────────────────
@@ -85,12 +85,12 @@ module.exports = {
 
   // ── Rarity Metadata (display) ────────────────────────────
   RARITY_META: {
-    R:  { label: 'Rare',       emoji: '⭐',  color: 0x4A90D9, stars: '*'        },
+    R:  { label: 'Rare',       emoji: '💙',  color: 0x4A90D9, stars: '*'        },
     E:  { label: 'Epic',       emoji: '💜',  color: 0x9B59B6, stars: '**'       },
-    L:  { label: 'Legendary',  emoji: '🌟',  color: 0xF1C40F, stars: '***'      },
-    MY: { label: 'Mythical',   emoji: '🔥',  color: 0xFF4757, stars: '****'     },
-    UR: { label: 'Ultra-Rare', emoji: '💎',  color: 0x00FFF0, stars: '*****'    },
-    LT: { label: 'Limited',    emoji: '🌸',  color: 0xFF69B4, stars: 'LIMITED'  },
+    L:  { label: 'Legendary',  emoji: '💛',  color: 0xF1C40F, stars: '***'      },
+    MY: { label: 'Mythical',   emoji: '❤️',  color: 0xFF4757, stars: '****'     },
+    UR: { label: 'Ultra-Rare', emoji: '🩵',  color: 0x00FFF0, stars: '*****'    },
+    LT: { label: 'Limited',    emoji: '🩷',  color: 0xFF69B4, stars: 'LIMITED'  },
   },
 
 };
