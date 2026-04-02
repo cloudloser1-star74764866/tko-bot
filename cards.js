@@ -261,6 +261,9 @@ const CARDS = [
   { id: 'isagi_ego',     name: 'Isagi (Awakened Ego)',    series: 'Blue Lock', rarity: 'UR', desc: 'When his ego fully awakens, the entire pitch becomes his weapon.' },
   { id: 'kaiser_impact', name: 'Kaiser (Kaiser Impact)',  series: 'Blue Lock', rarity: 'LT', desc: 'The singular shot that shook world football — nothing stops it once it leaves his foot.' },
 
+  // ── Pokémon ───────────────────────────────────────────────
+  { id: 'ditto_lt', name: 'Ditto', series: 'Pokémon', rarity: 'LT', desc: 'The Transform Pokémon. Rearranges its cell structure to become an exact copy of whatever it faces — then becomes even stronger than the original.', dittoCard: true },
+
 ];
 
 /**

@@ -33,11 +33,17 @@ module.exports = {
   ],
 
   // ── Fight Rewards ─────────────────────────────────────────
-  FIGHT_YEN_MIN:   100,
-  FIGHT_YEN_MAX:  1000,
-  FIGHT_STAR_MIN:   10,
-  FIGHT_STAR_MAX:  100,
+  FIGHT_YEN_MIN:   10000,
+  FIGHT_YEN_MAX:  100000,
+  FIGHT_STAR_MIN:   1000,
+  FIGHT_STAR_MAX:  10000,
   FIGHT_COOLDOWN_SECONDS: 60,
+
+  // ── Bot Fight Rewards ─────────────────────────────────────
+  BOT_FIGHT_YEN_MIN:   1000,
+  BOT_FIGHT_YEN_MAX:  10000,
+  BOT_FIGHT_STAR_MIN:   10,
+  BOT_FIGHT_STAR_MAX:  100,
 
   // ── Card Stats (scale by rarity) ─────────────────────────
   // Each card gets deterministic HP and DMG based on its card ID
@@ -77,6 +83,7 @@ module.exports = {
     { id: 'instincts',           name: "Goku's Instincts",       emoji: '🌀',  cardId: 'ultra_goku_lt',     desc: 'The divine technique of pure autonomous movement.' },
     { id: 'ramen',               name: 'Ramen',                  emoji: '🍜',  cardId: 'sage_naruto_lt',    desc: 'A bowl of ramen carrying the chakra of the Sage of Six Paths.' },
     { id: 'drugs',               name: 'Drugs',                  emoji: '💊', cardId: 'daniel_park_ui_lt', desc: 'An unknown substance that awakens Ultra Instinct in Daniel Park.' },
+    { id: 'unknown_tube',        name: 'Unknown Tube',          emoji: '🧪',  cardId: 'ditto_lt',          desc: 'A mysterious tube containing shifting purple matter. Use it to awaken Ditto.' },
     { id: 'raid_ticket',         name: 'Raid Ticket',           emoji: '🎟️', cardId: null, useCmd: 'ZP raid',         desc: '0.15% drop. Fight a Rare–Legendary Raid Boss!' },
     { id: 'mythical_raid_ticket',name: 'Mythical Raid Ticket',  emoji: '🌙', cardId: null, useCmd: 'ZP raid mythical', desc: '0.075% drop. Fight a Mythical Raid Boss!' },
     { id: 'omega_raid_ticket',   name: 'Omega Raid Ticket',     emoji: '⚡', cardId: null, useCmd: 'ZP raid omega',   desc: '0.05% drop. Fight an Ultra Rare Raid Boss!' },

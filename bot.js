@@ -27,6 +27,7 @@
 //    ZP remove <id>                         – shortcut: remove card from team
 //    ZP swap <id1> <id2>                    – swap two team card positions
 //    ZP fight @user                         – challenge a player to a team battle
+//    ZP botfight  (bf)                     – fight a randomly generated bot team for rewards
 //    ZP duofight @user  (df)               – fight with your duo partner's team
 //    ZP trade @user <offer> for <ask>       – offer a trade
 //    ZP accept <tradeId>  (a)               – accept a trade offer
@@ -394,6 +395,61 @@ function buildBattleCard(slot) {
     technique: card.technique ?? false,
     alive:     true,
   };
+}
+
+/**
+ * If any card on myCards is Ditto (dittoCard), transform it to copy the
+ * strongest enemy card's stats at (80% + (level-1) * 0.1%) efficiency.
+ * Technique is also copied if the target has it.
+ */
+function applyDittoTransform(myCards, opponentCards) {
+  for (const bc of myCards) {
+    const liveCard = lookupCard(bc.cardId);
+    if (!liveCard?.dittoCard) continue;
+    if (!opponentCards.length) continue;
+
+    const strongest = opponentCards.reduce((best, opp) => {
+      return (opp.hp + opp.dmg) > (best.hp + best.dmg) ? opp : best;
+    }, opponentCards[0]);
+
+    const copyMult = 0.80 + (bc.level - 1) * 0.001;
+    bc.hp        = Math.round(strongest.hp  * copyMult);
+    bc.maxHp     = bc.hp;
+    bc.dmg       = Math.round(strongest.dmg * copyMult);
+    bc.dmgMin    = Math.round(bc.dmg * 0.8);
+    bc.dmgMax    = Math.round(bc.dmg * 1.2);
+    bc.technique = strongest.technique;
+    bc.copiedFrom = strongest.name;
+    bc.name      = `Ditto (${strongest.name})`;
+  }
+}
+
+/**
+ * Build a random bot team of 4 cards at varying levels for ZP botfight.
+ * Picks from R–UR pool (not LT, not Ditto) with weighted rarity distribution.
+ */
+function generateBotTeam() {
+  const RARITY_WEIGHTS = { R: 40, E: 30, L: 20, MY: 7, UR: 3 };
+  const pool = CARDS.filter(c => c.rarity !== 'LT' && !c.dittoCard);
+
+  const picked = [];
+  const used   = new Set();
+  while (picked.length < 4 && picked.length < pool.length) {
+    const roll   = Math.random() * 100;
+    let cum = 0;
+    let chosenRarity = 'R';
+    for (const [r, w] of Object.entries(RARITY_WEIGHTS)) {
+      cum += w;
+      if (roll < cum) { chosenRarity = r; break; }
+    }
+    const rarPool = pool.filter(c => c.rarity === chosenRarity && !used.has(c.id));
+    if (!rarPool.length) continue;
+    const card = rarPool[Math.floor(Math.random() * rarPool.length)];
+    used.add(card.id);
+    const level = Math.floor(Math.random() * 60) + 20;
+    picked.push(buildBattleCard({ card, level, plating: null }));
+  }
+  return picked;
 }
 
 function hpBar(current, max) {
@@ -1350,6 +1406,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         { name: '`ZP team equip <id> <plating>` / `ZP teamequip ...`', value: 'Equip a plating onto a team card. Valid: `bronze` `silver` `gold` `diamond`', inline: false },
         { name: '`ZP team unequip <id>` / `ZP teamunequip <id>`', value: 'Remove a plating from a team card.', inline: false },
         { name: '`ZP fight @user` / `ZP fi @user`',      value: `Challenge a player to a turn-based team battle! ${config.FIGHT_COOLDOWN_SECONDS}s cooldown.`, inline: false },
+        { name: '`ZP botfight` / `ZP bf`',               value: `Fight a randomly generated bot team for ¥${config.BOT_FIGHT_YEN_MIN.toLocaleString()}–¥${config.BOT_FIGHT_YEN_MAX.toLocaleString()} Yen and ${config.BOT_FIGHT_STAR_MIN}–${config.BOT_FIGHT_STAR_MAX} Stars.`, inline: false },
         { name: '`ZP duofight @user` / `ZP df @user`',   value: 'Fight alongside your duo partner — your combined teams take on the opponent!', inline: false },
         { name: '`ZP raid` / `ZP raid mythical` / `ZP raid omega` / `ZP raid hellish`',
           value: [
@@ -1660,12 +1717,17 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.update({ embeds: [embed], components: [] });
       }
 
-      const yenEarned   = Math.floor(config.FIGHT_YEN_MIN  + Math.random() * (config.FIGHT_YEN_MAX  - config.FIGHT_YEN_MIN + 1));
-      const starsEarned = Math.floor(config.FIGHT_STAR_MIN + Math.random() * (config.FIGHT_STAR_MAX - config.FIGHT_STAR_MIN + 1));
+      const yenMin   = state.isBotFight ? config.BOT_FIGHT_YEN_MIN   : config.FIGHT_YEN_MIN;
+      const yenMax   = state.isBotFight ? config.BOT_FIGHT_YEN_MAX   : config.FIGHT_YEN_MAX;
+      const starMin  = state.isBotFight ? config.BOT_FIGHT_STAR_MIN  : config.FIGHT_STAR_MIN;
+      const starMax  = state.isBotFight ? config.BOT_FIGHT_STAR_MAX  : config.FIGHT_STAR_MAX;
+      const yenEarned   = Math.floor(yenMin  + Math.random() * (yenMax  - yenMin  + 1));
+      const starsEarned = Math.floor(starMin + Math.random() * (starMax - starMin + 1));
       inv.addYen(inventory, state.attackerId, yenEarned);
       inv.addStars(inventory, state.attackerId, starsEarned);
       await inv.saveInventory(inventory);
-      log += `\n\n🏆 **${state.attackerName}** wins!\n+¥${yenEarned.toLocaleString()} Yen  +${starsEarned.toLocaleString()} Stars`;
+      const winLabel = state.isBotFight ? '🤖 Bot Team defeated!' : `🏆 **${state.attackerName}** wins!`;
+      log += `\n\n${winLabel}\n+¥${yenEarned.toLocaleString()} Yen  +${starsEarned.toLocaleString()} Stars`;
       const embed = buildBattleEmbed(state, log);
       return interaction.update({ embeds: [embed], components: [] });
     }
@@ -1685,6 +1747,11 @@ client.on('interactionCreate', async (interaction) => {
       if (state.isRaid) {
         log += `\n\n💀 Your team was wiped out! The Raid Boss **${state.defenderName}** is victorious!`;
         const embed = buildRaidEmbed(state, log);
+        return interaction.update({ embeds: [embed], components: [] });
+      }
+      if (state.isBotFight) {
+        log += `\n\n💀 The Bot Team wins! **${state.attackerName}** was defeated — better luck next time!`;
+        const embed = buildBattleEmbed(state, log);
         return interaction.update({ embeds: [embed], components: [] });
       }
       log += `\n\n**${state.defenderName}** wins! **${state.attackerName}** was defeated!`;
@@ -2985,16 +3052,20 @@ client.on('messageCreate', async (message) => {
     const stats = getCardStats(card, 1);
     const img   = imgCache.getImage(card.id) ?? card.image ?? null;
 
+    const dittoDesc = card.dittoCard
+      ? `\n\n🟣 **Special — Transform:** At the start of battle, Ditto copies the **strongest enemy card's** stats and technique at **80% efficiency** (+0.1% per level). At Lv 100 it copies at **89.9%**.`
+      : '';
+
     const embed = new EmbedBuilder()
       .setColor(meta.color)
       .setTitle(`${meta.emoji} ${card.name}`)
-      .setDescription(card.description || 'No description available.')
+      .setDescription((card.desc || card.description || 'No description available.') + dittoDesc)
       .addFields(
         { name: 'Series',      value: card.series,                    inline: true },
         { name: 'Rarity',      value: `${meta.emoji} ${meta.label}`, inline: true },
         { name: 'Stars',       value: meta.stars || '—',              inline: true },
-        { name: '❤️ Base HP',  value: `${stats.hp}`,                 inline: true },
-        { name: card.technique ? '🔵 Base TEC' : '⚔️ Base DMG', value: `${stats.dmg}`, inline: true },
+        { name: card.dittoCard ? '❤️ Copied HP' : '❤️ Base HP',  value: card.dittoCard ? '(copied in battle)' : `${stats.hp}`, inline: true },
+        { name: card.dittoCard ? '⚔️ Copied DMG' : (card.technique ? '🔵 Base TEC' : '⚔️ Base DMG'), value: card.dittoCard ? '(copied in battle)' : `${stats.dmg}`, inline: true },
         { name: '🪪 Card ID',  value: `\`${card.id}\``,              inline: true },
         {
           name: '💀 Kill Value',
@@ -3574,6 +3645,9 @@ client.on('messageCreate', async (message) => {
     const attackerCards = attackerResolved.map(buildBattleCard).filter(Boolean);
     const defenderCards = defenderResolved.map(buildBattleCard).filter(Boolean);
 
+    applyDittoTransform(attackerCards, defenderCards);
+    applyDittoTransform(defenderCards, attackerCards);
+
     setFightCooldown(userId);
 
     const battleId = `${userId}_${Date.now()}`;
@@ -3590,6 +3664,48 @@ client.on('messageCreate', async (message) => {
     activeBattles.set(battleId, state);
 
     const embed      = buildBattleEmbed(state);
+    const components = buildBattleComponents(state);
+    return message.reply({ embeds: [embed], components });
+  }
+
+  // ── botfight | bf ─────────────────────────────────────────
+  if (command === 'botfight' || command === 'bf') {
+    const coolSecs = getFightCooldownSecs(userId);
+    if (coolSecs > 0) return message.reply(`You're on cooldown! Wait **${coolSecs}s** before fighting again.`);
+
+    const inventory     = await inv.loadInventory();
+    const attackerTeam  = inv.getTeam(inventory, userId);
+
+    if (attackerTeam.length < inv.TEAM_SIZE) {
+      return message.reply(`You need a full team of **${inv.TEAM_SIZE}** cards to fight! Use \`ZP add <cardId>\` to fill your team.`);
+    }
+
+    const attackerResolved = resolveTeamSlots(attackerTeam, inventory, userId);
+    const attackerCards    = attackerResolved.map(buildBattleCard).filter(Boolean);
+    const defenderCards    = generateBotTeam();
+
+    applyDittoTransform(attackerCards, defenderCards);
+
+    setFightCooldown(userId);
+
+    const battleId = `${userId}_bf_${Date.now()}`;
+    const state    = {
+      battleId,
+      attackerId:   userId,
+      defenderId:   'BOT',
+      attackerName: message.author.username,
+      defenderName: '🤖 Bot Team',
+      attackerCards,
+      defenderCards,
+      isBotFight:   true,
+      expiry: Date.now() + 5 * 60 * 1000,
+    };
+    activeBattles.set(battleId, state);
+
+    const dittoInTeam = attackerCards.find(bc => bc.copiedFrom);
+    const dittoNote   = dittoInTeam ? `\n*🟣 Ditto copied **${dittoInTeam.copiedFrom}**'s stats!*` : '';
+
+    const embed      = buildBattleEmbed(state, dittoNote || null);
     const components = buildBattleComponents(state);
     return message.reply({ embeds: [embed], components });
   }
@@ -3635,6 +3751,9 @@ client.on('messageCreate', async (message) => {
 
     const attackerCards = combinedTeam.map(buildBattleCard).filter(Boolean);
     const defenderCards = defenderResolved.map(buildBattleCard).filter(Boolean);
+
+    applyDittoTransform(attackerCards, defenderCards);
+    applyDittoTransform(defenderCards, attackerCards);
 
     setFightCooldown(userId);
 
