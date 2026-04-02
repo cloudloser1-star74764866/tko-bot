@@ -104,8 +104,6 @@ process.on('SIGTERM',          ()    => { releaseLock(); process.exit(0); });
 process.on('uncaughtException', (err) => { console.error('[uncaughtException]', err); releaseLock(); process.exit(1); });
 // ─────────────────────────────────────────────────────────────────────────────
 
-require("./server.js");
-
 const {
     Client, GatewayIntentBits, EmbedBuilder,
     ActionRowBuilder, ButtonBuilder, ButtonStyle,
