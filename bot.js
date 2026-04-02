@@ -626,6 +626,54 @@ function buildCollabBattleComponents(state) {
   return rows;
 }
 
+function buildTimeoutComponents(state, pIdx) {
+  const p = state.participants[pIdx];
+  const name = p.username.length > 16 ? p.username.slice(0, 14) + '\u2026' : p.username;
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`craid|${state.battleId}|skipturn|${pIdx}`)
+        .setLabel(`Skip ${name}'s Turn`)
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId(`craid|${state.battleId}|kick|${pIdx}`)
+        .setLabel(`Kick ${name}`)
+        .setStyle(ButtonStyle.Danger),
+    ),
+  ];
+}
+
+function startParticipantTimeout(state, client) {
+  if (state.participantTimeout) {
+    clearTimeout(state.participantTimeout);
+    state.participantTimeout = null;
+  }
+  if (state.currentTurnIdx === 0) return;
+
+  const expectedTurnIdx = state.currentTurnIdx;
+  const pIdx = expectedTurnIdx - 1;
+  const p    = state.participants[pIdx];
+  if (!p?.selectedCard?.alive) return;
+
+  state.participantTimeout = setTimeout(async () => {
+    state.participantTimeout = null;
+    if (!activeBattles.has(state.battleId)) return;
+    if (state.currentTurnIdx !== expectedTurnIdx) return;
+    if (!state.raidChannelId || !state.raidMessageId) return;
+    try {
+      const ch  = await client.channels.fetch(state.raidChannelId);
+      const msg = await ch.messages.fetch(state.raidMessageId);
+      const timeoutLog = `⏰ **${p.username}** didn't act in time! **${state.ownerName}**, choose an action:`;
+      await msg.edit({
+        embeds:     [buildCollabRaidBattleEmbed(state, timeoutLog)],
+        components: buildTimeoutComponents(state, pIdx),
+      });
+    } catch (err) {
+      console.error('[craid timeout] Failed to update message:', err.message);
+    }
+  }, 10_000);
+}
+
 function advanceCollabTurn(state) {
   const total = 1 + state.participants.length;
   for (let i = 1; i <= total; i++) {
@@ -1738,6 +1786,7 @@ client.on('interactionCreate', async (interaction) => {
     if (action === 'run') {
       if (uid !== state.ownerId)
         return interaction.reply({ content: 'Only the raid owner can flee!', ephemeral: true });
+      if (state.participantTimeout) { clearTimeout(state.participantTimeout); state.participantTimeout = null; }
       activeBattles.delete(battleId);
       activeCollabRaids.delete(state.ownerId);
       return interaction.update({
@@ -1750,6 +1799,8 @@ client.on('interactionCreate', async (interaction) => {
     if (action === 'attack') {
       if (!state.started)
         return interaction.reply({ content: 'The raid hasn\'t started yet!', ephemeral: true });
+
+      if (state.participantTimeout) { clearTimeout(state.participantTimeout); state.participantTimeout = null; }
 
       const cardIdx    = parseInt(parts[3], 10);
       const isOwnerTurn = state.currentTurnIdx === 0;
@@ -1787,6 +1838,7 @@ client.on('interactionCreate', async (interaction) => {
       if (!boss.alive) log += ` **${boss.name}** was defeated!`;
 
       if (!boss.alive) {
+        if (state.participantTimeout) { clearTimeout(state.participantTimeout); state.participantTimeout = null; }
         activeBattles.delete(battleId);
         activeCollabRaids.delete(state.ownerId);
         const inventory  = await inv.loadInventory();
@@ -1807,6 +1859,7 @@ client.on('interactionCreate', async (interaction) => {
       const allAllyDead  = state.participants.every(p => !p.selectedCard || !p.selectedCard.alive);
 
       if (allOwnerDead && allAllyDead) {
+        if (state.participantTimeout) { clearTimeout(state.participantTimeout); state.participantTimeout = null; }
         activeBattles.delete(battleId);
         activeCollabRaids.delete(state.ownerId);
         log += `\n\n💀 The entire raid party was wiped out! **${boss.name}** is victorious!`;
@@ -1819,6 +1872,71 @@ client.on('interactionCreate', async (interaction) => {
         ? `👑 ${state.ownerName}`
         : state.participants[state.currentTurnIdx - 1].username;
       log += `\n\n⏭️ **${nextName}**'s turn!`;
+      startParticipantTimeout(state, client);
+
+      return interaction.update({
+        embeds:     [buildCollabRaidBattleEmbed(state, log)],
+        components: buildCollabBattleComponents(state),
+      });
+    }
+
+    // ── Skip turn (owner action after participant timeout) ─────────────────────
+    if (action === 'skipturn') {
+      if (uid !== state.ownerId)
+        return interaction.reply({ content: 'Only the raid owner can skip a turn!', ephemeral: true });
+
+      const pIdx = parseInt(parts[3], 10);
+      if (state.currentTurnIdx !== pIdx + 1)
+        return interaction.reply({ content: 'That player\'s turn has already passed!', ephemeral: true });
+
+      const p = state.participants[pIdx];
+      let log = `⏩ **${state.ownerName}** skipped **${p.username}**'s turn!`;
+
+      advanceCollabTurn(state);
+      state.attackerCards = [...state.ownerCards, ...state.participants.filter(p => p.selectedCard).map(p => p.selectedCard)];
+      const nextName = state.currentTurnIdx === 0
+        ? `👑 ${state.ownerName}`
+        : state.participants[state.currentTurnIdx - 1].username;
+      log += `\n⏭️ **${nextName}**'s turn!`;
+      startParticipantTimeout(state, client);
+
+      return interaction.update({
+        embeds:     [buildCollabRaidBattleEmbed(state, log)],
+        components: buildCollabBattleComponents(state),
+      });
+    }
+
+    // ── Kick participant (owner action after participant timeout) ──────────────
+    if (action === 'kick') {
+      if (uid !== state.ownerId)
+        return interaction.reply({ content: 'Only the raid owner can kick a participant!', ephemeral: true });
+
+      const pIdx = parseInt(parts[3], 10);
+      const p = state.participants[pIdx];
+      if (!p)
+        return interaction.reply({ content: 'That participant no longer exists.', ephemeral: true });
+
+      if (p.selectedCard) p.selectedCard.alive = false;
+      let log = `🚫 **${p.username}** was kicked from the raid!`;
+
+      const allOwnerDead = state.ownerCards.every(c => !c.alive);
+      const allAllyDead  = state.participants.every(p => !p.selectedCard || !p.selectedCard.alive);
+
+      if (allOwnerDead && allAllyDead) {
+        if (state.participantTimeout) { clearTimeout(state.participantTimeout); state.participantTimeout = null; }
+        activeBattles.delete(battleId);
+        activeCollabRaids.delete(state.ownerId);
+        log += `\n\n💀 The entire raid party was wiped out!`;
+        return interaction.update({ embeds: [buildCollabRaidBattleEmbed(state, log)], components: [] });
+      }
+
+      advanceCollabTurn(state);
+      state.attackerCards = [...state.ownerCards, ...state.participants.filter(p => p.selectedCard).map(p => p.selectedCard)];
+      const nextName = state.currentTurnIdx === 0
+        ? `👑 ${state.ownerName}`
+        : state.participants[state.currentTurnIdx - 1].username;
+      log += `\n⏭️ **${nextName}**'s turn!`;
+      startParticipantTimeout(state, client);
 
       return interaction.update({
         embeds:     [buildCollabRaidBattleEmbed(state, log)],
