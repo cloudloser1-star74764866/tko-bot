@@ -1891,7 +1891,46 @@ client.on('interactionCreate', async (interaction) => {
       ];
       activeCollabRaids.delete(state.ownerId);
 
-      const startLog = `🚀 The raid has started! 👑 **${state.ownerName}** — choose a card to attack!`;
+      // Ditto boss transform: copy strongest player card at Lv-100 stats × 10
+      if (state.isDittoBoss && state.defenderCards[0]) {
+        const allAttackers = state.attackerCards;
+        if (allAttackers.length > 0) {
+          const strongest = allAttackers.reduce((best, c) => {
+            const liveCard = lookupCard(c.cardId);
+            if (!liveCard) return best;
+            const s100 = getCardStats(liveCard, 100);
+            const score = s100.hp + s100.dmg;
+            const bScore = (() => {
+              const bl = lookupCard(best.cardId);
+              if (!bl) return 0;
+              const bs = getCardStats(bl, 100);
+              return bs.hp + bs.dmg;
+            })();
+            return score > bScore ? c : best;
+          }, allAttackers[0]);
+
+          const srcCard = lookupCard(strongest.cardId);
+          if (srcCard) {
+            const s100   = getCardStats(srcCard, 100);
+            const newHp  = Math.round(s100.hp  * 10);
+            const newDmg = Math.round(s100.dmg * 10);
+            const boss   = state.defenderCards[0];
+            boss.name    = `Ditto (${srcCard.name})`;
+            boss.hp      = newHp;
+            boss.maxHp   = newHp;
+            boss.dmg     = newDmg;
+            boss.dmgMin  = Math.round(newDmg * 0.8);
+            boss.dmgMax  = Math.round(newDmg * 1.2);
+            boss.technique = srcCard.technique ?? false;
+            state.defenderName = boss.name;
+          }
+        }
+      }
+
+      const dittoTransformNote = state.isDittoBoss
+        ? `\n🟣 **Ditto transformed** into **${state.defenderCards[0]?.name ?? '???'}** (10× Lv-100 stats)!`
+        : '';
+      const startLog = `🚀 The raid has started! 👑 **${state.ownerName}** — choose a card to attack!${dittoTransformNote}`;
       return interaction.update({
         embeds:     [buildCollabRaidBattleEmbed(state, startLog)],
         components: buildCollabBattleComponents(state),
@@ -2648,25 +2687,46 @@ client.on('messageCreate', async (message) => {
     const platingsObj    = inv.getPlatings(inventory, target.id);
     const platingEntries = Object.entries(platingsObj).filter(([, n]) => n > 0);
 
-    if (platingEntries.length === 0) {
+    const userItems  = inv.getItems(inventory, target.id);
+    const raidTierIds = config.RAID_TICKET_TIERS.map(t => t.id);
+    const ticketEntries = raidTierIds
+      .map(id => ({ tier: config.RAID_TICKET_TIERS.find(t => t.id === id), count: userItems[id] ?? 0 }))
+      .filter(e => e.count > 0);
+
+    const hasAnything = platingEntries.length > 0 || ticketEntries.length > 0;
+    if (!hasAnything) {
       return message.reply(
-        `${target.id === userId ? 'You have' : `**${target.username}** has`} no platings yet. Hope for a 0.1% plating drop on your next pull!`
+        `${target.id === userId ? 'You have' : `**${target.username}** has`} nothing in their inventory yet!`
       );
     }
 
-    const totalPlatings = platingEntries.reduce((s, [, n]) => s + n, 0);
     const embed = new EmbedBuilder()
       .setColor(0x9B59B6)
-      .setTitle(`${target.username}'s Inventory`)
-      .addFields({
-        name: `Platings (${totalPlatings} total)`,
+      .setTitle(`${target.username}'s Inventory`);
+
+    if (platingEntries.length > 0) {
+      const totalPlatings = platingEntries.reduce((s, [, n]) => s + n, 0);
+      embed.addFields({
+        name: `🛡️ Platings (${totalPlatings} total)`,
         value: config.PLATING_TIERS
           .filter(t => platingsObj[t.id] > 0)
           .map(t => `**${t.label}** — x${platingsObj[t.id]}`)
           .join('\n'),
         inline: false,
-      })
-      .setFooter({ text: 'Platings drop at 0.1% chance per pull' });
+      });
+    }
+
+    if (ticketEntries.length > 0) {
+      embed.addFields({
+        name: '🎟️ Raid Tickets',
+        value: ticketEntries
+          .map(e => `${e.tier.emoji} **${e.tier.label}** — x${e.count}\n*Use: \`${e.tier.useCmd}\`*`)
+          .join('\n'),
+        inline: false,
+      });
+    }
+
+    embed.setFooter({ text: 'Platings drop at 0.1% per pull • Raid Tickets drop from pulls too!' });
     return message.reply({ embeds: [embed] });
   }
 
@@ -2821,16 +2881,17 @@ client.on('messageCreate', async (message) => {
     const bossCard = bossPool[Math.floor(Math.random() * bossPool.length)];
     const bossMeta = rarityMeta(bossCard.rarity);
 
-    // Boss stats = card's Lv-100 stats × tier multiplier
-    const lv100Stats = getCardStats(bossCard, 100);
-    const bossHp     = Math.round(lv100Stats.hp  * tier.statMult);
-    const bossDmg    = Math.round(lv100Stats.dmg * tier.statMult);
-    const bossImg    = imgCache.getImage(bossCard.id) ?? bossCard.image ?? null;
+    // Boss stats = card's Lv-100 stats × 10
+    const isDittoBoss = bossCard.dittoCard === true;
+    const lv100Stats  = getCardStats(bossCard, 100);
+    const bossHp      = Math.round(lv100Stats.hp  * 10);
+    const bossDmg     = Math.round(lv100Stats.dmg * 10);
+    const bossImg     = imgCache.getImage(bossCard.id) ?? bossCard.image ?? null;
 
     const bossBC = {
       cardId:    bossCard.id,
-      name:      bossCard.name,
-      level:     1,
+      name:      isDittoBoss ? 'Ditto (???)' : bossCard.name,
+      level:     100,
       plating:   null,
       platEmoji: '',
       rarEmoji:  bossMeta.emoji,
@@ -2841,6 +2902,7 @@ client.on('messageCreate', async (message) => {
       dmg:       bossDmg,
       technique: bossCard.technique ?? false,
       alive:     true,
+      isDittoBoss,
     };
 
     await inv.saveInventory(inventory);
@@ -2867,16 +2929,18 @@ client.on('messageCreate', async (message) => {
       attackerId:     userId,
       attackerName:   message.author.username,
       attackerCards:  [],
-      defenderName:   bossCard.name,
+      defenderName:   isDittoBoss ? 'Ditto (???)' : bossCard.name,
       defenderCards:  [bossBC],
       bossImg,
       raidBossCard:   bossCard,
+      isDittoBoss,
       expiry: Date.now() + 30 * 60 * 1000,
     };
     activeBattles.set(battleId, state);
     activeCollabRaids.set(userId, battleId);
 
-    const openLog = `${tier.emoji} **${tier.label}** consumed! A **${bossMeta.emoji} ${bossCard.name}** Raid Boss appeared!\n**HP:** ${bossHp.toLocaleString()} | **DMG:** ${bossDmg.toLocaleString()}–${Math.round(bossDmg * 1.2).toLocaleString()}\n\n*Use \`ZP arj\` to allow others to join, \`ZP wh @user\` to whitelist players, then click **Start Raid**!*`;
+    const dittoNote = isDittoBoss ? `\n🟣 *Ditto will **Transform** into your team's strongest card (10× Lv-100 stats) when the raid starts!*` : '';
+    const openLog = `${tier.emoji} **${tier.label}** consumed! A **${bossMeta.emoji} ${isDittoBoss ? 'Ditto' : bossCard.name}** Raid Boss appeared!${dittoNote}\n**HP:** ${bossHp.toLocaleString()} | **DMG:** ${bossDmg.toLocaleString()}–${Math.round(bossDmg * 1.2).toLocaleString()}\n\n*Use \`ZP arj\` to allow others to join, \`ZP wh @user\` to whitelist players, then click **Start Raid**!*`;
     const embed      = buildCollabRaidPreEmbed(state);
     const components = buildCollabPreComponents(state);
 
@@ -3053,7 +3117,7 @@ client.on('messageCreate', async (message) => {
     const img   = imgCache.getImage(card.id) ?? card.image ?? null;
 
     const dittoDesc = card.dittoCard
-      ? `\n\n🟣 **Special — Transform:** At the start of battle, Ditto copies the **strongest enemy card's** stats and technique at **80% efficiency** (+0.1% per level). At Lv 100 it copies at **89.9%**.`
+      ? `\n\n🟣 **Special — Transform:** At the start of battle, Ditto copies the **strongest enemy card's** stats and technique at **80% efficiency** (+0.1% per level). At Lv 100 it copies at **89.9%**.\n💀 **As a Raid Boss (Hellish):** Ditto transforms into your team's strongest card at **10× its Lv-100 stats**!`
       : '';
 
     const embed = new EmbedBuilder()
