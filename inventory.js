@@ -2,21 +2,22 @@
 //  test BOT — INVENTORY MANAGER
 // ============================================================
 
-const { Client: PGClient } = require('pg');
+const { Pool } = require('pg');
 
-const db = new PGClient({
+const db = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
+  max: 5,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
 });
 
-db.connect()
-  .then(() => db.query(`
+db.query(`
     CREATE TABLE IF NOT EXISTS global_inventory (
       id   TEXT PRIMARY KEY,
       data JSONB NOT NULL
     )
-  `))
-  .catch(err => console.error('[Inventory DB] Setup error:', err));
+  `).catch(err => console.error('[Inventory DB] Setup error:', err));
 
 // ── Persistence ───────────────────────────────────────────
 

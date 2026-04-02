@@ -110,14 +110,6 @@ const {
     REST, Routes, SlashCommandBuilder,
 } = require('discord.js');
 
-const { Client: PGClient } = require('pg');
-
-const db = new PGClient({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-});
-
-db.connect();
 
 const config      = require('./config');
 const { CARDS, pullCard } = require('./cards');
@@ -126,13 +118,6 @@ const trades      = require('./trades');
 const imgCache    = require('./imageCache');
 const emojiCache  = require('./emojiCache');
 
-
-db.query(`
-    CREATE TABLE IF NOT EXISTS inventory (
-        user_id TEXT PRIMARY KEY,
-        data JSONB
-    );
-`);
 
 const client = new Client({
   intents: [
@@ -912,6 +897,21 @@ function lookupCard(cardId) {
   return CARDS.find(c => c.id.toLowerCase() === cardId.toLowerCase()) ?? null;
 }
 
+/**
+ * Merge a stored inventory card with the live card definition so that
+ * rarity (and name/series) always reflect the current cards.js values.
+ */
+function enrichCard(storedCard) {
+  const live = lookupCard(storedCard.id);
+  if (!live) return storedCard;
+  return {
+    ...storedCard,
+    rarity: live.rarity,
+    name:   live.name,
+    series: live.series,
+  };
+}
+
 function resolveCard(query, pool = CARDS) {
   if (!query) return null;
   const q = query.toLowerCase().trim();
@@ -1197,7 +1197,8 @@ function buildAllCardsPage(authorId, allCards, page, filter, expiry) {
 }
 
 function buildCollectionPage(authorId, targetUser, cards, page, filter, inventory, expiry) {
-  const filtered = applyFilter(cards, filter);
+  const enriched = cards.map(enrichCard);
+  const filtered = applyFilter(enriched, filter);
 
   filtered.sort((a, b) => {
     const ra = RARITY_ORDER.indexOf(a.rarity);
@@ -3001,7 +3002,7 @@ client.on('messageCreate', async (message) => {
           inline: true,
         },
       )
-      .setFooter({ text: `Pull rate: ${config.PULL_RATES[card.rarity] ?? '?'}%` });
+      .setFooter({ text: `Pull rate: ${config.PULL_RATES[card.rarity] != null ? config.PULL_RATES[card.rarity] + '%' : 'N/A (Limited)'}` });
 
     if (img) embed.setThumbnail(img);
     return message.reply({ embeds: [embed] });
