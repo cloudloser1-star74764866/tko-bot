@@ -694,5 +694,33 @@
   "isagi_ego": {
     "name": "isagi_ego",
     "id": "1489279573240709140"
+  },
+  "isagi": {
+    "name": "isagi",
+    "id": "1489286755919335454"
+  },
+  "bachira": {
+    "name": "bachira",
+    "id": "1489286760050462750"
+  },
+  "chigiri": {
+    "name": "chigiri",
+    "id": "1489286764471390309"
+  },
+  "nagi_bl": {
+    "name": "nagi_bl",
+    "id": "1489286767956987927"
+  },
+  "rin_itoshi": {
+    "name": "rin_itoshi",
+    "id": "1489286772260208670"
+  },
+  "kaiser": {
+    "name": "kaiser",
+    "id": "1489286776064442609"
+  },
+  "kaiser_impact": {
+    "name": "kaiser_impact",
+    "id": "1489286779725942955"
   }
 }
