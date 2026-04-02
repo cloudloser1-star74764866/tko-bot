@@ -129,7 +129,7 @@ const CARDS = [
   { id: 'roy',            name: 'Roy Mustang',             series: 'Fullmetal Alchemist: Brotherhood',  rarity: 'E',  desc: 'The Flame Alchemist aiming for the top.' },
   { id: 'armstrong',      name: 'Alex Louis Armstrong',    series: 'Fullmetal Alchemist: Brotherhood',  rarity: 'E',  desc: 'Strong-arm Alchemist — and proud of it.' },
   // Jujutsu Kaisen
-  { id: 'gojo',           name: 'Satoru Gojo',             series: 'Jujutsu Kaisen',                    rarity: 'MY', desc: 'The strongest — Infinity in the palm of his hand.' },
+  { id: 'gojo',           name: 'Satoru Gojo',             series: 'Jujutsu Kaisen',                    rarity: 'LT', desc: 'The strongest — Infinity in the palm of his hand.' },
   { id: 'todo',           name: 'Aoi Todo',                series: 'Jujutsu Kaisen',                    rarity: 'E',  desc: 'What\'s your type? Boogie Woogie!' },
   // Fairy Tail
   { id: 'laxus',          name: 'Laxus Dreyar',            series: 'Fairy Tail',                        rarity: 'E',  desc: 'Lightning Dragon Slayer and Fairy Tail\'s thunder god.' },
@@ -189,7 +189,7 @@ const CARDS = [
   { id: 'saitama',        name: 'Saitama',                 series: 'One Punch Man',                     rarity: 'MY', desc: 'Defeated every enemy with a single punch.' },
   { id: 'mewtwo',         name: 'Mewtwo',                  series: 'Pokémon',                           rarity: 'MY', desc: 'A genetically engineered Pokémon of immense psy-power.' },
   // New Mythical
-  { id: 'yhwach',         name: 'Yhwach',                  series: 'Bleach',                            rarity: 'MY', desc: 'The Almighty — he sees and rewrites all futures.' },
+  { id: 'yhwach',         name: 'Yhwach',                  series: 'Bleach',                            rarity: 'UR', desc: 'The Almighty — he sees and rewrites all futures.' },
   { id: 'kira',           name: 'Yoshikage Kira',          series: 'JoJo\'s Bizarre Adventure',         rarity: 'MY', desc: 'All he wants is a quiet life. Killer Queen won\'t let you stop him.' },
   { id: 'kaido',          name: 'Kaido',                   series: 'One Piece',                         rarity: 'MY', desc: 'The world\'s strongest creature. Couldn\'t be killed.' },
   { id: 'muzan',          name: 'Muzan Kibutsuji',         series: 'Demon Slayer',                      rarity: 'MY', desc: 'King of Demons. The source of all evil in the night.' },
