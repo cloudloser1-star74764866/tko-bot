@@ -73,8 +73,9 @@ const SEED = {
   sukuna_fp_lt:    'https://static.wikia.nocookie.net/jujutsu-kaisen/images/2/29/Sukuna%27s_Four_Arms.png/revision/latest',
   sukuna_fp:       'https://static.wikia.nocookie.net/jujutsu-kaisen/images/2/29/Sukuna%27s_Four_Arms.png/revision/latest',
   sukuna:          'https://static.wikia.nocookie.net/jujutsu-kaisen/images/7/74/Sukuna_(Volume_29).png/revision/latest?cb=20241118163249',
-  // Chainsaw Man — Power (wikia)
-  power_r:         'https://static.wikia.nocookie.net/chainsaw-man/images/2/23/Power.png/revision/latest?cb=20181222132158',
+  // Chainsaw Man — Power (card id is 'power', seed both keys to be safe)
+  power:           'https://s4.anilist.co/file/anilistcdn/character/large/b137079-6yLEUYR3bmpr.png',
+  power_r:         'https://s4.anilist.co/file/anilistcdn/character/large/b137079-6yLEUYR3bmpr.png',
   // Demon Slayer — Rengoku (cached MAL URL was wrong character; fixed)
   rengoku_e:       'https://myanimelist.net/images/characters/10/423443.jpg',
   // Death Note — Near (cached MAL URL was for a different character 'Nir'; fixed)
