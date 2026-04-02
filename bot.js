@@ -75,7 +75,14 @@ const {
     REST, Routes, SlashCommandBuilder,
 } = require('discord.js');
 
+const { Client } = require('pg');
 
+const db = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+});
+
+db.connect();
 
 const config      = require('./config');
 const { CARDS, pullCard } = require('./cards');
@@ -83,6 +90,14 @@ const inv         = require('./inventory');
 const trades      = require('./trades');
 const imgCache    = require('./imageCache');
 const emojiCache  = require('./emojiCache');
+
+
+db.query(`
+    CREATE TABLE IF NOT EXISTS inventory (
+        user_id TEXT PRIMARY KEY,
+        data JSONB
+    );
+`);
 
 const client = new Client({
   intents: [
