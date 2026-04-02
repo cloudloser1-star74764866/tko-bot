@@ -399,18 +399,29 @@ function buildBattleCard(slot) {
 
 /**
  * If any card on myCards is Ditto (dittoCard), transform it to copy the
- * strongest enemy card's stats at (80% + (level-1) * 0.1%) efficiency.
+ * strongest card's stats at (80% + (level-1) * 0.1%) efficiency.
  * Technique is also copied if the target has it.
+ *
+ * Options:
+ *   copyAllies — if true, Ditto copies the strongest OTHER card on its own
+ *                team (myCards) instead of copying from opponentCards.
+ *                Use this in raids so Ditto never copies a raid boss.
  */
-function applyDittoTransform(myCards, opponentCards) {
+function applyDittoTransform(myCards, opponentCards, { copyAllies = false } = {}) {
   for (const bc of myCards) {
     const liveCard = lookupCard(bc.cardId);
     if (!liveCard?.dittoCard) continue;
-    if (!opponentCards.length) continue;
 
-    const strongest = opponentCards.reduce((best, opp) => {
+    // Determine the pool to copy from
+    const pool = copyAllies
+      ? myCards.filter(c => c !== bc)   // all teammates except self
+      : opponentCards;
+
+    if (!pool.length) continue;
+
+    const strongest = pool.reduce((best, opp) => {
       return (opp.hp + opp.dmg) > (best.hp + best.dmg) ? opp : best;
-    }, opponentCards[0]);
+    }, pool[0]);
 
     const copyMult = 0.80 + (bc.level - 1) * 0.001;
     bc.hp        = Math.round(strongest.hp  * copyMult);
@@ -1927,10 +1938,32 @@ client.on('interactionCreate', async (interaction) => {
         }
       }
 
+      // Apply Ditto ally-copy: Ditto on the player team copies the strongest
+      // teammate instead of the raid boss.
+      const dittoAllyLog = [];
+      for (const bc of state.attackerCards) {
+        const liveCard = lookupCard(bc.cardId);
+        if (!liveCard?.dittoCard) continue;
+        const allies = state.attackerCards.filter(c => c !== bc);
+        if (allies.length > 0) {
+          const strongest = allies.reduce((best, c) => (c.hp + c.dmg) > (best.hp + best.dmg) ? c : best, allies[0]);
+          const copyMult  = 0.80 + (bc.level - 1) * 0.001;
+          bc.hp           = Math.round(strongest.hp  * copyMult);
+          bc.maxHp        = bc.hp;
+          bc.dmg          = Math.round(strongest.dmg * copyMult);
+          bc.dmgMin       = Math.round(bc.dmg * 0.8);
+          bc.dmgMax       = Math.round(bc.dmg * 1.2);
+          bc.technique    = strongest.technique;
+          bc.name         = `Ditto (${strongest.name})`;
+          dittoAllyLog.push(`🟣 **Ditto** copied ally **${strongest.name}**'s stats!`);
+        }
+      }
+
       const dittoTransformNote = state.isDittoBoss
         ? `\n🟣 **Ditto transformed** into **${state.defenderCards[0]?.name ?? '???'}** (10× Lv-100 stats)!`
         : '';
-      const startLog = `🚀 The raid has started! 👑 **${state.ownerName}** — choose a card to attack!${dittoTransformNote}`;
+      const dittoAllyNote = dittoAllyLog.length ? `\n${dittoAllyLog.join('\n')}` : '';
+      const startLog = `🚀 The raid has started! 👑 **${state.ownerName}** — choose a card to attack!${dittoTransformNote}${dittoAllyNote}`;
       return interaction.update({
         embeds:     [buildCollabRaidBattleEmbed(state, startLog)],
         components: buildCollabBattleComponents(state),
@@ -3117,7 +3150,7 @@ client.on('messageCreate', async (message) => {
     const img   = imgCache.getImage(card.id) ?? card.image ?? null;
 
     const dittoDesc = card.dittoCard
-      ? `\n\n🟣 **Special — Transform:** At the start of battle, Ditto copies the **strongest enemy card's** stats and technique at **80% efficiency** (+0.1% per level). At Lv 100 it copies at **89.9%**.\n💀 **As a Raid Boss (Hellish):** Ditto transforms into your team's strongest card at **10× its Lv-100 stats**!`
+      ? `\n\n🟣 **Special — Transform:** At the start of battle, Ditto copies the **strongest enemy card's** stats and technique at **80% efficiency** (+0.1% per level). At Lv 100 it copies at **89.9%**.\n🤝 **In Raids:** Ditto copies the **strongest ally** on your team instead (never the raid boss).\n💀 **As a Raid Boss (Hellish):** Ditto transforms into your team's strongest card at **10× its Lv-100 stats**!\n🛡️ **Cannot equip platings** — Ditto's power comes from copying, not armour.`
       : '';
 
     const embed = new EmbedBuilder()
@@ -3580,6 +3613,7 @@ client.on('messageCreate', async (message) => {
 
       const card    = resolveCard(cardQuery);
       if (!card)    return message.reply(`No card found matching \`${cardQuery}\`.`);
+      if (card.dittoCard) return message.reply(`**Ditto** cannot equip platings — it copies stats from its allies instead!`);
 
       const tier    = platingById(platingStr);
       if (!tier)    return message.reply(`Unknown plating \`${platingStr}\`. Valid: \`bronze\` \`silver\` \`gold\` \`diamond\``);
