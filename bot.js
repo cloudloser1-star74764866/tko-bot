@@ -1981,9 +1981,13 @@ client.once('ready', async () => {
   await initPullCharges();
   console.log(`✅ test Bot online as ${client.user.tag}`);
   client.user.setActivity('ZP help  |  /zp', { type: 0 });
-  imgCache.refreshMissing().catch(err => console.error('Image cache refresh error:', err));
   emojiCache.logCacheStatus(CARDS);
-  emojiCache.syncEmojis(client, CARDS, imgCache).catch(err => console.error('Emoji sync error:', err));
+  // Fetch all missing images first, THEN sync emojis so every card has an image URL ready
+  imgCache.refreshMissing()
+    .catch(err => console.error('Image cache refresh error:', err))
+    .finally(() => {
+      emojiCache.syncEmojis(client, CARDS, imgCache).catch(err => console.error('Emoji sync error:', err));
+    });
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
   const slashCommand = new SlashCommandBuilder()

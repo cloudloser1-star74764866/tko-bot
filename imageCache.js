@@ -438,6 +438,7 @@ const SEARCH_TERMS = {
   winry_r:     13,     winry:      13,     // Winry Rockbell
   roy_e:       37,     roy:        37,     // Roy Mustang
   armstrong_e: 39,     armstrong:  39,     // Alex Louis Armstrong
+  father:      'Father Fullmetal Alchemist', // Father (Homunculus)
 
   // ── Jujutsu Kaisen ────────────────────────────────────────────
   nobara_r:    127215, nobara:    127215,  // Nobara Kugisaki
@@ -465,6 +466,7 @@ const SEARCH_TERMS = {
   // ── Chainsaw Man (direct AniList IDs) ─────────────────────────
   denji_e:     156918, denji:     156918,  // Denji
   makima_e:    156919, makima:    156919,  // Makima
+  power:       'Power Chainsaw Man',       // Power (Blood Fiend)
 
   // ── Spy x Family (direct AniList IDs) ────────────────────────
   loid_r:      172117, loid:      172117,  // Loid Forger
