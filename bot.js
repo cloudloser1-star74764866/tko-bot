@@ -3694,15 +3694,22 @@ client.on('messageCreate', async (message) => {
     if (!raw) {
       return message.reply(
         'Usage: `ZP absorb shard:<name or id>:<count>`\n' +
-        '       `ZP absorb all [rarity]` — absorb ALL shards into the cards they belong to\n' +
+        '       `ZP absorb all [rarity]` — absorb ALL shards into every card they belong to\n' +
+        '       `ZP absorb <rarity>` — shortcut: absorb all shards for a specific rarity (e.g. `ZP absorb MY`)\n' +
         'Example: `ZP absorb shard:naruto:5` — spend 5 Naruto shards to gain 5 levels.'
       );
     }
 
-    // ── absorb all [rarity] ──
-    if (raw.toLowerCase() === 'all') {
-      const rarityFilter = args[1] ? normalizeRarity(args.slice(1).join(' ')) : null;
-      if (args[1] && !rarityFilter) {
+    // ── absorb all [rarity]  OR  absorb <rarity> shortcut ──
+    const isAllKeyword   = raw.toLowerCase() === 'all';
+    const rarityShortcut = !isAllKeyword && !raw.includes(':') ? normalizeRarity(args.join(' ')) : null;
+
+    if (isAllKeyword || rarityShortcut) {
+      const rarityFilter = isAllKeyword
+        ? (args[1] ? normalizeRarity(args.slice(1).join(' ')) : null)
+        : rarityShortcut;
+
+      if (isAllKeyword && args[1] && !rarityFilter) {
         return message.reply(`Unknown rarity \`${args[1]}\`. Try: R, E, L, MY, UR, LT, MD`);
       }
 
