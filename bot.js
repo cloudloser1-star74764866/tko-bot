@@ -1076,6 +1076,7 @@ function applyFilter(cards, filter) {
   const rarity = normalizeRarity(filter);
   if (rarity) return cards.filter(c => c.rarity === rarity);
   const lower = filter.toLowerCase();
+  if (lower === 'weapon' || lower === 'weapons') return cards.filter(c => c.weaponCard === true);
   return cards.filter(c =>
     c.name.toLowerCase().includes(lower) ||
     c.series.toLowerCase().includes(lower)
@@ -2338,12 +2339,15 @@ client.on('interactionCreate', async (interaction) => {
 
     if (filterArg) {
       const rarityFilter = normalizeRarity(filterArg);
+      const lowerFilter  = filterArg.toLowerCase();
       if (rarityFilter) {
         allEntries = allEntries.filter(([cardId]) => (lookupCard(cardId)?.rarity ?? 'R') === rarityFilter);
+      } else if (lowerFilter === 'weapon' || lowerFilter === 'weapons') {
+        allEntries = allEntries.filter(([cardId]) => lookupCard(cardId)?.weaponCard === true);
       } else {
         allEntries = allEntries.filter(([cardId]) => {
           const card = lookupCard(cardId);
-          return (card?.name ?? cardId).toLowerCase().includes(filterArg.toLowerCase());
+          return (card?.name ?? cardId).toLowerCase().includes(lowerFilter);
         });
       }
     }
@@ -2955,12 +2959,15 @@ client.on('messageCreate', async (message) => {
     let filtered;
     if (filterArg) {
       const rarityFilter = normalizeRarity(filterArg);
+      const lowerFilter  = filterArg.toLowerCase();
       if (rarityFilter) {
         filtered = allEntries.filter(([cardId]) => (lookupCard(cardId)?.rarity ?? 'R') === rarityFilter);
+      } else if (lowerFilter === 'weapon' || lowerFilter === 'weapons') {
+        filtered = allEntries.filter(([cardId]) => lookupCard(cardId)?.weaponCard === true);
       } else {
         filtered = allEntries.filter(([cardId]) => {
           const card = lookupCard(cardId);
-          return (card?.name ?? cardId).toLowerCase().includes(filterArg.toLowerCase());
+          return (card?.name ?? cardId).toLowerCase().includes(lowerFilter);
         });
       }
     } else {
