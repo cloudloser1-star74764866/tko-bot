@@ -1598,7 +1598,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         { name: '`ZP allpull` / `ZP ap`',             value: 'Spend **all** your current pull charges at once.', inline: false },
         { name: '`ZP allpull reset` / `ZP ap reset`', value: 'Spend all charges then instantly refill back to max. Costs **1 Candy Token**.', inline: false },
         { name: '`ZP reset` / `ZP rs`',               value: 'Use a Candy Token to instantly refill your pulls to max.', inline: false },
-        { name: '`ZP wish <cardId>` / `ZP wi <cardId>`', value: `Set a card as your wish. After **${inv.WISH_THRESHOLD} pulls**, you are guaranteed to receive that card! With 💛 Eternal Wish Crystal, you can wish for UR and LT cards too.`, inline: false },
+        { name: '`ZP wish <cardId>` / `ZP wi <cardId>`', value: `Set a card as your wish. After **${inv.WISH_THRESHOLD} pulls**, you are guaranteed to receive that card! With 💛 Eternal Wish Crystal, you can wish for UR cards too. **Limited cards cannot be wished for.**`, inline: false },
         { name: '`ZP daily`',                          value: 'Claim your daily reward: **¥100,000 Yen**, **1,000 Stars**, **5 Candy Tokens**, and **Level Scrolls** based on your streak (1 per streak day, caps at 10).', inline: false },
       )
       .setFooter({ text: 'Page 1 of 8 • ZP help' }),
@@ -1787,7 +1787,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         },
         {
           name: '💛 Eternal Wish Crystal (L) — `support_l`',
-          value: 'Allows you to **wish for UR and LT cards** in addition to R/E/L/MY.',
+          value: 'Allows you to **wish for UR cards** in addition to R/E/L/MY. (Limited cards cannot be wished for regardless.)',
           inline: false,
         },
         {
@@ -2898,8 +2898,12 @@ client.on('messageCreate', async (message) => {
     const inventory = await inv.loadInventory();
     const hasAnyWish = hasSupportCard(inventory, userId, 'support_l');
 
-    if ((card.rarity === 'UR' || card.rarity === 'LT') && !hasAnyWish) {
-      return message.reply(`You cannot wish for **${rarityMeta(card.rarity).label}** cards. Wishes are limited to Mythical rarity and below.\n*Own the 💛 Eternal Wish Crystal (L) support card to unlock UR and LT wishes!*`);
+    if (card.rarity === 'LT') {
+      return message.reply(`You cannot wish for **Limited** cards — they cannot be obtained through the wish system.`);
+    }
+
+    if (card.rarity === 'UR' && !hasAnyWish) {
+      return message.reply(`You cannot wish for **Ultra Rare** cards. Wishes are limited to Mythical rarity and below.\n*Own the 💛 Eternal Wish Crystal (L) support card to unlock UR wishes!*`);
     }
 
     inv.setWish(inventory, userId, card.id);
