@@ -430,8 +430,8 @@ function getWeaponAtkBonus(weaponId) {
 function parseTradeItem(str) {
   const parts  = str.trim().split(':');
   const type   = parts[0]?.toLowerCase();
-  const CURRENCY_TYPES = ['yen', 'stars'];
-  const ID_TYPES       = ['shard', 'plating'];
+  const CURRENCY_TYPES = ['yen', 'stars', 'candy'];
+  const ID_TYPES       = ['shard', 'plating', 'item'];
 
   if (CURRENCY_TYPES.includes(type)) {
     if (parts.length !== 2) return null;
@@ -463,6 +463,8 @@ function validateTradeItem(item) {
   if (item.type === 'plating') return !!platingById(item.id);
   if (item.type === 'yen')     return true;
   if (item.type === 'stars')   return true;
+  if (item.type === 'candy')   return true;
+  if (item.type === 'item')    return !!config.ITEMS.find(i => i.id === item.id);
   return false;
 }
 
@@ -478,6 +480,11 @@ function describeItem(item) {
   }
   if (item.type === 'yen')   return `**¥${item.amount.toLocaleString()}** Yen`;
   if (item.type === 'stars') return `**${item.amount.toLocaleString()}** Star${item.amount === 1 ? '' : 's'}`;
+  if (item.type === 'candy') return `**${item.amount}** Candy Token${item.amount === 1 ? '' : 's'} 🍬`;
+  if (item.type === 'item') {
+    const cfgItem = config.ITEMS.find(i => i.id === item.id);
+    return `**x${item.amount}** ${cfgItem ? cfgItem.emoji + ' ' + cfgItem.name : item.id}`;
+  }
   return '?';
 }
 
@@ -490,6 +497,8 @@ function userHasItem(inventory, userId, item) {
   if (item.type === 'plating') return (inv.getPlatings(inventory, userId)[item.id] ?? 0) >= item.amount;
   if (item.type === 'yen')     return inv.getYen(inventory, userId) >= item.amount;
   if (item.type === 'stars')   return inv.getStars(inventory, userId) >= item.amount;
+  if (item.type === 'candy')   return inv.getTradableCandyTokens(inventory, userId) >= item.amount;
+  if (item.type === 'item')    return inv.getItemCount(inventory, userId, item.id) >= item.amount;
   return false;
 }
 
@@ -502,6 +511,8 @@ function removeItems(inventory, userId, item) {
   if (item.type === 'plating') return inv.removePlating(inventory, userId, item.id, item.amount);
   if (item.type === 'yen')     return inv.removeYen(inventory, userId, item.amount);
   if (item.type === 'stars')   return inv.removeStars(inventory, userId, item.amount);
+  if (item.type === 'candy')   return inv.removeTradableCandyTokens(inventory, userId, item.amount);
+  if (item.type === 'item')    return inv.removeItemAmount(inventory, userId, item.id, item.amount);
   return false;
 }
 
@@ -514,6 +525,8 @@ function addItems(inventory, userId, item) {
   if (item.type === 'plating') inv.addPlatings(inventory, userId, item.id, item.amount);
   if (item.type === 'yen')     inv.addYen(inventory, userId, item.amount);
   if (item.type === 'stars')   inv.addStars(inventory, userId, item.amount);
+  if (item.type === 'candy')   inv.addCandyTokens(inventory, userId, item.amount);
+  if (item.type === 'item')    inv.addItemAmount(inventory, userId, item.id, item.amount);
 }
 
 function addAllItems(inventory, userId, items) {
@@ -1920,16 +1933,17 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
     new EmbedBuilder()
       .setColor(0x9B59B6)
       .setTitle(`📖 Help — 🤝 Trading (6/${TOTAL})`)
-      .setDescription('Trade shards, platings, Yen, and Stars with other players.')
+      .setDescription('Trade shards, platings, Yen, Stars, items, and Candy Tokens with other players.\n> 🔒 Candy Tokens earned from codes are trade-locked and cannot be offered in trades.')
       .addFields(
         {
           name: '`ZP trade @user <offer> [for <ask>]` / `ZP tr ...`',
           value: [
             'Send a trade offer or instant gift.',
-            '**Item formats:** `shard:<cardId>:<amount>` • `plating:<tier>:<amount>` • `yen:<amount>` • `stars:<amount>`',
+            '**Item formats:** `shard:<cardId>:<amount>` • `plating:<tier>:<amount>` • `yen:<amount>` • `stars:<amount>` • `candy:<amount>` • `item:<itemId>:<amount>`',
             '**Examples:**',
             '`ZP trade @Alice shard:naruto_r:5` — free gift',
             '`ZP trade @Alice yen:500 for stars:100` — currency swap',
+            '`ZP trade @Alice candy:2 for yen:5000` — candy for yen',
           ].join('\n'),
           inline: false,
         },
@@ -3440,19 +3454,23 @@ client.on('messageCreate', async (message) => {
     const inventory = await inv.loadInventory();
     const yen       = inv.getYen(inventory, target.id);
     const stars     = inv.getStars(inventory, target.id);
-    const candy     = inv.getCandyTokens(inventory, target.id);
+    const candy     = inv.getTradableCandyTokens(inventory, target.id);
+    const lockedCandy = inv.getLockedCandyTokens(inventory, target.id);
 
     const lbs = inv.getLimitBreakers(inventory, target.id);
+    const candyDisplay = lockedCandy > 0
+      ? `${candy.toLocaleString()} + ${lockedCandy} 🔒`
+      : candy.toLocaleString();
     const embed = new EmbedBuilder()
       .setColor(0xF1C40F)
       .setTitle(`${target.username}'s Wallet`)
       .addFields(
         { name: 'Yen',            value: `¥${yen.toLocaleString()}`,   inline: true },
         { name: 'Stars',          value: stars.toLocaleString(),       inline: true },
-        { name: 'Candy Tokens',   value: candy.toLocaleString(),       inline: true },
+        { name: 'Candy Tokens',   value: candyDisplay,                  inline: true },
         { name: 'Limit Breakers', value: lbs.toLocaleString(),         inline: true },
       )
-      .setFooter({ text: 'Earn yen from fights and kills • Stars from fights • Limit Breakers from conquest' });
+      .setFooter({ text: 'Earn yen from fights and kills • Stars from fights • 🔒 = trade-locked (from codes)' });
     return message.reply({ embeds: [embed] });
   }
 
@@ -3731,7 +3749,12 @@ client.on('messageCreate', async (message) => {
       }
       const user   = inv.ensureUser(inventory, userId);
       const slot   = user.cards.find(c => c.id === targetCard.id);
-      const curLvl = slot?.level ?? 1;
+      if (!slot) {
+        inv.addItem(inventory, userId, 'level_scroll');
+        await inv.saveInventory(inventory);
+        return message.reply(`Could not find **${targetCard.name}** in your card data. Your scroll has been refunded.`);
+      }
+      const curLvl = slot.level ?? 1;
       const cap    = inv.getPersonalLevelCap(inventory, userId, targetCard.id);
       if (curLvl >= cap) {
         inv.addItem(inventory, userId, 'level_scroll');
@@ -5112,7 +5135,7 @@ client.on('messageCreate', async (message) => {
       askStr   = tokens.slice(forIdx + 1).join(' ');
     }
 
-    if (!offerStr) return message.reply('Usage: `ZP trade @user <offer> [for <ask>]`\nOffer format: `shard:<cardId>:<count>` or `plating:<tier>:<count>` or `yen:<amount>` or `stars:<amount>`');
+    if (!offerStr) return message.reply('Usage: `ZP trade @user <offer> [for <ask>]`\nOffer format: `shard:<cardId>:<count>` · `plating:<tier>:<count>` · `yen:<amount>` · `stars:<amount>` · `candy:<amount>` · `item:<itemId>:<count>`');
 
     const offerItems = parseTradeItems(offerStr);
     const askItems   = askStr ? parseTradeItems(askStr) : null;
@@ -5931,7 +5954,7 @@ client.on('messageCreate', async (message) => {
 
     if (r.yen   > 0) { inv.addYen(inventory, userId, r.yen);           lines.push(`**¥${r.yen.toLocaleString()} Yen**`); }
     if (r.stars > 0) { inv.addStars(inventory, userId, r.stars);       lines.push(`**${r.stars.toLocaleString()} Stars**`); }
-    if (r.candyTokens > 0) { inv.addCandyTokens(inventory, userId, r.candyTokens); lines.push(`**${r.candyTokens} Candy Token${r.candyTokens === 1 ? '' : 's'}**`); }
+    if (r.candyTokens > 0) { inv.addLockedCandyTokens(inventory, userId, r.candyTokens); lines.push(`**${r.candyTokens} Candy Token${r.candyTokens === 1 ? '' : 's'}** 🔒 *(trade-locked)*`); }
     if (r.cardRarity) {
       const randomCard = pullCardForced(r.cardRarity);
       if (randomCard) {

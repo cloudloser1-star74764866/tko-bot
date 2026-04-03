@@ -73,12 +73,13 @@ function ensureUser(inventory, userId) {
   if (u.duoId === undefined)            u.duoId          = null;
   if (typeof u.totalPulls   !== 'number') u.totalPulls  = 0;
   if (typeof u.totalKills   !== 'number') u.totalKills  = 0;
-  if (u.conquest === undefined)         u.conquest       = null;
-  if (u.conquest2 === undefined)        u.conquest2      = null;
-  if (typeof u.dailyStreak  !== 'number') u.dailyStreak = 0;
-  if (u.lastDailyDate === undefined)    u.lastDailyDate  = null;
-  if (!u.weapons)                       u.weapons        = {};
-  if ('shards' in u)                    delete u.shards;
+  if (u.conquest === undefined)              u.conquest           = null;
+  if (u.conquest2 === undefined)             u.conquest2          = null;
+  if (typeof u.dailyStreak  !== 'number')    u.dailyStreak        = 0;
+  if (u.lastDailyDate === undefined)         u.lastDailyDate      = null;
+  if (!u.weapons)                            u.weapons            = {};
+  if (typeof u.lockedCandyTokens !== 'number') u.lockedCandyTokens = 0;
+  if ('shards' in u)                         delete u.shards;
   for (const card of u.cards) {
     if (typeof card.level !== 'number') card.level = 1;
   }
@@ -630,7 +631,8 @@ function removeStars(inventory, userId, amount) {
 
 function getCandyTokens(inventory, userId) {
   ensureUser(inventory, userId);
-  return inventory.users[userId].candyTokens;
+  const u = inventory.users[userId];
+  return (u.candyTokens ?? 0) + (u.lockedCandyTokens ?? 0);
 }
 
 function addCandyTokens(inventory, userId, amount) {
@@ -640,7 +642,37 @@ function addCandyTokens(inventory, userId, amount) {
 
 function removeCandyTokens(inventory, userId, amount) {
   ensureUser(inventory, userId);
-  if (inventory.users[userId].candyTokens < amount) return false;
+  const u = inventory.users[userId];
+  const total = (u.candyTokens ?? 0) + (u.lockedCandyTokens ?? 0);
+  if (total < amount) return false;
+  let remaining = amount;
+  const fromTradeable = Math.min(u.candyTokens ?? 0, remaining);
+  u.candyTokens = (u.candyTokens ?? 0) - fromTradeable;
+  remaining -= fromTradeable;
+  if (remaining > 0) {
+    u.lockedCandyTokens = (u.lockedCandyTokens ?? 0) - remaining;
+  }
+  return true;
+}
+
+function getLockedCandyTokens(inventory, userId) {
+  ensureUser(inventory, userId);
+  return inventory.users[userId].lockedCandyTokens ?? 0;
+}
+
+function addLockedCandyTokens(inventory, userId, amount) {
+  ensureUser(inventory, userId);
+  inventory.users[userId].lockedCandyTokens = (inventory.users[userId].lockedCandyTokens ?? 0) + amount;
+}
+
+function getTradableCandyTokens(inventory, userId) {
+  ensureUser(inventory, userId);
+  return inventory.users[userId].candyTokens ?? 0;
+}
+
+function removeTradableCandyTokens(inventory, userId, amount) {
+  ensureUser(inventory, userId);
+  if ((inventory.users[userId].candyTokens ?? 0) < amount) return false;
   inventory.users[userId].candyTokens -= amount;
   return true;
 }
@@ -658,6 +690,12 @@ function addItem(inventory, userId, itemId) {
   items[itemId] = (items[itemId] || 0) + 1;
 }
 
+function addItemAmount(inventory, userId, itemId, amount) {
+  ensureUser(inventory, userId);
+  const items = inventory.users[userId].items;
+  items[itemId] = (items[itemId] || 0) + amount;
+}
+
 function removeItem(inventory, userId, itemId) {
   ensureUser(inventory, userId);
   const items = inventory.users[userId].items;
@@ -665,6 +703,20 @@ function removeItem(inventory, userId, itemId) {
   items[itemId] -= 1;
   if (items[itemId] === 0) delete items[itemId];
   return true;
+}
+
+function removeItemAmount(inventory, userId, itemId, amount) {
+  ensureUser(inventory, userId);
+  const items = inventory.users[userId].items;
+  if (!items[itemId] || items[itemId] < amount) return false;
+  items[itemId] -= amount;
+  if (items[itemId] === 0) delete items[itemId];
+  return true;
+}
+
+function getItemCount(inventory, userId, itemId) {
+  ensureUser(inventory, userId);
+  return inventory.users[userId].items[itemId] ?? 0;
 }
 
 // ── Pull Charge Helpers ───────────────────────────────────
@@ -886,7 +938,8 @@ module.exports = {
   getYen, addYen, removeYen,
   getStars, addStars, removeStars,
   getCandyTokens, addCandyTokens, removeCandyTokens,
-  getItems, addItem, removeItem,
+  getLockedCandyTokens, addLockedCandyTokens, getTradableCandyTokens, removeTradableCandyTokens,
+  getItems, addItem, addItemAmount, removeItem, removeItemAmount, getItemCount,
   getClan, getUserClan, createClan, addToClan, removeFromClan, deleteClan,
   getDuo, getUserDuo, createDuo, disbandDuo,
   getGuildSettings, addAllowedChannel, removeAllowedChannel, clearAllowedChannels,
