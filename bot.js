@@ -111,6 +111,7 @@ const {
     REST, Routes, SlashCommandBuilder,
 } = require('discord.js');
 
+const express = require('express');
 
 const config      = require('./config');
 const { CARDS, pullCard } = require('./cards');
@@ -118,6 +119,14 @@ const inv         = require('./inventory');
 const trades      = require('./trades');
 const imgCache    = require('./imageCache');
 const emojiCache  = require('./emojiCache');
+
+// ── Static image server ───────────────────────────────────
+{
+  const imageApp = express();
+  imageApp.use('/images', express.static(path.join(__dirname, 'public', 'images')));
+  const imgPort = process.env.IMAGE_PORT ? parseInt(process.env.IMAGE_PORT) : 3001;
+  imageApp.listen(imgPort, () => console.log(`[images] Serving static images on port ${imgPort}`));
+}
 
 
 const client = new Client({
@@ -130,7 +139,7 @@ const client = new Client({
 });
 
 // ── Kill yen per shard by rarity ──────────────────────────
-const KILL_YEN = { R: 50, E: 150, L: 350, MY: 600, UR: 1000, LT: 2000 };
+const KILL_YEN = { R: 50, E: 150, L: 350, MY: 600, UR: 1000, LT: 2000, MD: 5000 };
 
 // ── Admin ─────────────────────────────────────────────────
 const ADMIN_ID = '833025999897755689';
@@ -375,7 +384,8 @@ function addAllItems(inventory, userId, items) {
 // ── Fight cooldown ────────────────────────────────────────
 
 const fightCooldowns    = new Map();
-const activeBattles     = new Map();
+const activeBattles        = new Map();
+const pendingConfirmations = new Map();
 const activeCollabRaids = new Map(); // ownerId → battleId
 
 function getFightCooldownSecs(userId) {
@@ -397,24 +407,25 @@ function buildBattleCard(slot) {
   const level   = slot.level ?? 1;
   const stats   = getCardStats(card, level);
   const plating = slot.plating ? config.PLATING_TIERS.find(t => t.id === slot.plating) : null;
-  const mult    = plating ? plating.statMult : 1;
-  let hp        = Math.round(stats.hp  * mult);
-  let dmg       = Math.round(stats.dmg * mult);
 
-  // Apply equipped weapon stat boost
+  // Additive bonus system: plating bonus + weapon bonus are summed, not multiplied
+  const platingBonus = plating ? (plating.statMult - 1) : 0;
+
   let equippedWeaponId   = null;
   let equippedWeaponName = null;
+  let weaponBonus = 0;
   if (slot.equippedWeapon) {
-    const { weaponId, weaponName, weaponLevel, evolutionTier } = slot.equippedWeapon;
-    const tierData = config.WEAPON_EVOLUTION_TIERS[evolutionTier - 1];
-    if (tierData) {
-      const weaponBoost = 1 + tierData.statMult * (weaponLevel / 100);
-      hp  = Math.round(hp  * weaponBoost);
-      dmg = Math.round(dmg * weaponBoost);
-    }
+    const { weaponId, weaponName, weaponLevel } = slot.equippedWeapon;
+    // Linear scale: 1.1x at level 1 → 2.0x at level 100 (bonus = 0.1 to 1.0)
+    const wLvl = Math.max(1, Math.min(100, weaponLevel ?? 1));
+    weaponBonus    = 0.1 + 0.9 * (wLvl - 1) / 99;
     equippedWeaponId   = weaponId;
     equippedWeaponName = weaponName;
   }
+
+  const totalMult = 1 + platingBonus + weaponBonus;
+  let hp  = Math.round(stats.hp  * totalMult);
+  let dmg = Math.round(stats.dmg * totalMult);
 
   const meta    = rarityMeta(card.rarity);
   return {
@@ -480,7 +491,7 @@ function applyDittoTransform(myCards, opponentCards, { copyAllies = false } = {}
  */
 function generateBotTeam() {
   const RARITY_WEIGHTS = { R: 40, E: 30, L: 20, MY: 7, UR: 3 };
-  const pool = CARDS.filter(c => c.rarity !== 'LT' && !c.dittoCard);
+  const pool = CARDS.filter(c => c.rarity !== 'LT' && c.rarity !== 'MD' && !c.dittoCard && !c.supportCard && !c.weaponCard);
 
   const picked = [];
   const used   = new Set();
@@ -1012,6 +1023,7 @@ const RARITY_ALIASES = {
   'mythic': 'MY', 'mythical': 'MY', 'my': 'MY',
   'ultrarare': 'UR', 'ultra-rare': 'UR', 'ultra rare': 'UR', 'ur': 'UR',
   'limited': 'LT', 'lt': 'LT',
+  'madness': 'MD', 'md': 'MD',
 };
 
 function normalizeRarity(input) {
@@ -1087,20 +1099,30 @@ function cardEmbed(card, title, footer, level = 1, personalCap = null) {
   const cap    = personalCap ?? inv.MAX_CARD_LEVEL;
   const meta   = rarityMeta(card.rarity);
   const lvl    = Math.max(1, level ?? 1);
-  const stats  = getCardStats(card, lvl);
   const isMax  = lvl >= cap;
   const levelLabel = isMax ? `✨ **MAX** (${lvl}/${cap})` : `Lv. ${lvl} / ${cap}`;
   const embed  = new EmbedBuilder()
     .setColor(meta.color)
     .setTitle(title ?? `${meta.emoji} ${card.name}`)
     .addFields(
-      { name: 'Series',      value: card.series,                    inline: true },
-      { name: 'Rarity',      value: `${meta.emoji} ${meta.label}`, inline: true },
-      { name: 'Stars',       value: meta.stars || '—',              inline: true },
-      { name: '📊 Level',    value: levelLabel,                     inline: true },
-      { name: '❤️ Health',   value: `${stats.hp}`,                 inline: true },
+      { name: 'Series', value: card.series,                    inline: true },
+      { name: 'Rarity', value: `${meta.emoji} ${meta.label}`, inline: true },
+      { name: 'Stars',  value: meta.stars || '—',              inline: true },
+    );
+
+  if (card.supportCard) {
+    embed.addFields({ name: '✨ Passive Effect', value: card.desc ?? 'Passive support card.', inline: false });
+  } else if (card.weaponCard) {
+    embed.addFields({ name: '⚔️ Weapon Card', value: card.desc ?? 'Equip to a card to boost its stats in battle.', inline: false });
+  } else {
+    const stats = getCardStats(card, lvl);
+    embed.addFields(
+      { name: '📊 Level', value: levelLabel, inline: true },
+      { name: '❤️ Health', value: `${stats.hp}`, inline: true },
       { name: card.technique ? '🔵 Technique' : '⚔️ Damage', value: `${stats.dmg}`, inline: true },
     );
+  }
+
   const img = imgCache.getImage(card.id) ?? card.image ?? null;
   if (img)    embed.setThumbnail(img);
   if (footer) embed.setFooter({ text: footer });
@@ -1111,7 +1133,6 @@ function cardEmbed(card, title, footer, level = 1, personalCap = null) {
 
 function singlePullEmbed(card, isDupe, plating, chargeInfo, authorUsername, droppedTickets = []) {
   const meta  = rarityMeta(card.rarity);
-  const stats = getCardStats(card, 1);
   const img   = imgCache.getImage(card.id) ?? card.image ?? null;
 
   const titlePrefix = isDupe ? '♻️' : meta.emoji;
@@ -1129,16 +1150,22 @@ function singlePullEmbed(card, isDupe, plating, chargeInfo, authorUsername, drop
     const rTier = config.RAID_TICKET_TIERS.find(t => t.id === ticketId);
     if (rTier) descLines.push(`${rTier.emoji} **${rTier.label}** dropped! Use \`${rTier.useCmd}\` to fight a boss!`);
   }
+  if (card.supportCard) descLines.push(`✨ *Passive support card — check \`ZP cardinfo ${card.id}\` for its effect.*`);
+  if (card.weaponCard)  descLines.push(`⚔️ *Weapon card — equip it to a card with \`ZP equip\`.*`);
 
   const embed = new EmbedBuilder()
     .setColor(plating?.color ?? (isDupe ? 0x888888 : meta.color))
     .setTitle(`${titlePrefix} ${card.name}${titleSuffix}`)
     .setDescription(descLines.join('\n'))
-    .addFields(
+    .setFooter({ text: `Pulled by ${authorUsername} • ${chargeInfo}` });
+
+  if (!card.supportCard && !card.weaponCard) {
+    const stats = getCardStats(card, 1);
+    embed.addFields(
       { name: '❤️ Health', value: `${stats.hp}`,  inline: true },
       { name: card.technique ? '🔵 Technique' : '⚔️ Damage', value: `${stats.dmg}`, inline: true },
-    )
-    .setFooter({ text: `Pulled by ${authorUsername} • ${chargeInfo}` });
+    );
+  }
 
   if (img) embed.setImage(img);
   return embed;
@@ -1211,7 +1238,7 @@ function allPullEmbed(results, charges, withReset, authorUsername, overrideNote)
 
 const COLLECTION_TIMEOUT_MS = 60_000;
 
-const RARITY_ORDER = ['R', 'E', 'L', 'MY', 'UR', 'LT'];
+const RARITY_ORDER = ['R', 'E', 'L', 'MY', 'UR', 'LT', 'MD'];
 
 function getSortedAllCards() {
   return [...CARDS].sort((a, b) => {
@@ -1781,6 +1808,81 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isButton()) return;
 
   const parts = interaction.customId.split('|');
+
+  // ── Confirmation button handler ───────────────────────────
+  if (parts[0] === 'confirm_action' || parts[0] === 'cancel_confirm') {
+    const confirmId = parts[1];
+    const pending   = pendingConfirmations.get(confirmId);
+
+    if (!pending) {
+      return interaction.update({ content: '⏱️ This confirmation has expired.', components: [], embeds: [] });
+    }
+    if (interaction.user.id !== pending.userId) {
+      return interaction.reply({ content: 'This confirmation is not for you.', ephemeral: true });
+    }
+
+    if (parts[0] === 'cancel_confirm') {
+      pendingConfirmations.delete(confirmId);
+      return interaction.update({ content: '❌ Action cancelled.', components: [], embeds: [] });
+    }
+
+    // Confirmed — execute the action
+    pendingConfirmations.delete(confirmId);
+
+    if (pending.type === 'kill_rarity') {
+      const { killerCard, targets, totalShards, totalYen } = pending;
+      const inventory = await inv.loadInventory();
+
+      for (const { def, count } of targets) {
+        inv.removeCharacterShards(inventory, pending.userId, def.id, count);
+      }
+      inv.addYen(inventory, pending.userId, totalYen);
+      inv.addPrestigePoints(inventory, pending.userId, killerCard.id, totalShards);
+      inv.incrementTotalKills(inventory, pending.userId, totalShards);
+      await inv.saveInventory(inventory);
+
+      const freshInv = await inv.loadInventory();
+      const newPP    = inv.getPrestigePoints(freshInv, pending.userId)[killerCard.id] ?? 0;
+      const killerMeta = rarityMeta(killerCard.rarity);
+
+      const embed = new EmbedBuilder()
+        .setColor(killerMeta.color)
+        .setTitle(`⚔️ ${killerCard.name} killed ${totalShards} shards!`)
+        .setDescription(`Destroyed **${totalShards} shards** across **${targets.length} cards**.`)
+        .addFields(
+          { name: '💰 Yen Earned',       value: `¥${totalYen.toLocaleString()}`,        inline: true },
+          { name: '✨ Prestige Points',  value: `+${totalShards} → **${newPP}** total`, inline: true },
+        )
+        .setFooter({ text: 'Prestige points are tracked per killer card!' });
+      return interaction.update({ embeds: [embed], components: [] });
+    }
+
+    if (pending.type === 'absorb_all') {
+      const { actions } = pending;
+      const inventory = await inv.loadInventory();
+      let totalAbsorbed = 0;
+
+      for (const { def, levelsGained, currentLevel } of actions) {
+        const actualLevel = inv.getCardLevel(inventory, pending.userId, def.id) ?? 1;
+        const actualCap   = inv.getPersonalLevelCap(inventory, pending.userId, def.id);
+        const actualGain  = Math.min(levelsGained, actualCap - actualLevel);
+        if (actualGain < 1) continue;
+        inv.removeCharacterShards(inventory, pending.userId, def.id, actualGain);
+        inv.setCardLevel(inventory, pending.userId, def.id, actualLevel + actualGain);
+        totalAbsorbed += actualGain;
+      }
+      await inv.saveInventory(inventory);
+
+      const embed = new EmbedBuilder()
+        .setColor(0x00FFD1)
+        .setTitle(`📈 Absorbed ${totalAbsorbed} shards!`)
+        .setDescription(`Successfully levelled up **${actions.length} card${actions.length === 1 ? '' : 's'}** using their shards.`)
+        .setFooter({ text: 'Check ZP col to see your updated levels.' });
+      return interaction.update({ embeds: [embed], components: [] });
+    }
+
+    return interaction.update({ content: 'Unknown action type.', components: [] });
+  }
 
   // ── Battle button handler ─────────────────────────────────
   if (parts[0] === 'battle') {
@@ -3422,8 +3524,67 @@ client.on('messageCreate', async (message) => {
     if (!raw) {
       return message.reply(
         'Usage: `ZP absorb shard:<name or id>:<count>`\n' +
+        '       `ZP absorb all [rarity]` — absorb ALL shards into the cards they belong to\n' +
         'Example: `ZP absorb shard:naruto:5` — spend 5 Naruto shards to gain 5 levels.'
       );
+    }
+
+    // ── absorb all [rarity] ──
+    if (raw.toLowerCase() === 'all') {
+      const rarityFilter = args[1] ? normalizeRarity(args.slice(1).join(' ')) : null;
+      if (args[1] && !rarityFilter) {
+        return message.reply(`Unknown rarity \`${args[1]}\`. Try: R, E, L, MY, UR, LT, MD`);
+      }
+
+      const inventory = await inv.loadInventory();
+      const allShards  = inv.getCharacterShards(inventory, userId);
+
+      const actions = [];
+      for (const [cardId, shardCount] of Object.entries(allShards)) {
+        if (shardCount < 1) continue;
+        const def = lookupCard(cardId);
+        if (!def || def.supportCard || def.weaponCard || def.dittoCard) continue;
+        if (rarityFilter && def.rarity !== rarityFilter) continue;
+        if (!inv.hasCard(inventory, userId, def.id)) continue;
+
+        const currentLevel = inv.getCardLevel(inventory, userId, def.id) ?? 1;
+        const personalCap  = inv.getPersonalLevelCap(inventory, userId, def.id);
+        if (currentLevel >= personalCap) continue;
+
+        const levelsGained = Math.min(shardCount, personalCap - currentLevel);
+        if (levelsGained < 1) continue;
+        actions.push({ def, shardCount, levelsGained, currentLevel });
+      }
+
+      if (!actions.length) {
+        const rarityLabel = rarityFilter ? `${rarityMeta(rarityFilter).label} ` : '';
+        return message.reply(`You have no ${rarityLabel}shards that can be absorbed right now.`);
+      }
+
+      const totalShards = actions.reduce((s, a) => s + a.levelsGained, 0);
+      const labelStr    = rarityFilter ? `${rarityMeta(rarityFilter).emoji} ${rarityMeta(rarityFilter).label}` : 'all rarities';
+
+      const confirmId = `${userId}_absorb_all_${Date.now()}`;
+      pendingConfirmations.set(confirmId, {
+        type: 'absorb_all', userId, actions, channelId: message.channel.id,
+      });
+      setTimeout(() => pendingConfirmations.delete(confirmId), 60_000);
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`confirm_action|${confirmId}`).setLabel('Confirm Absorb').setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId(`cancel_confirm|${confirmId}`).setLabel('Cancel').setStyle(ButtonStyle.Secondary),
+      );
+      const previewLines = actions.slice(0, 15).map(a => `• **${a.def.name}**: +${a.levelsGained} levels (${a.currentLevel} → ${a.currentLevel + a.levelsGained})`);
+      if (actions.length > 15) previewLines.push(`…and ${actions.length - 15} more`);
+      const embed = new EmbedBuilder()
+        .setColor(0x00FFD1)
+        .setTitle(`📈 Absorb all shards — ${labelStr}?`)
+        .setDescription(
+          `This will absorb **${totalShards} shard${totalShards === 1 ? '' : 's'}** across **${actions.length} card${actions.length === 1 ? '' : 's'}**:\n` +
+          previewLines.join('\n')
+        )
+        .setFooter({ text: 'This action cannot be undone. Expires in 60s.' });
+      return message.reply({ embeds: [embed], components: [row] });
     }
 
     const parts = raw.split(':');
@@ -3580,72 +3741,125 @@ client.on('messageCreate', async (message) => {
 
   // ── kill ─────────────────────────────────────────────────
   if (command === 'kill' || command === 'ki') {
-    // Usage: ZP kill <killerCardId> <targetShardId>:<count>
     const killerCardId = args[0]?.toLowerCase();
-    const shardArg     = args[1];
 
-    if (!killerCardId || !shardArg) {
+    if (!killerCardId) {
       return message.reply(
-        'Usage: `ZP kill <killerCardId> <shardCardId>:<count>`\n' +
-        'Use a card to destroy shards and earn **yen** + **prestige points** on the killer card.\n' +
-        'Example: `ZP kill naruto_r sasuke_r:5` — Naruto R kills 5 Sasuke R shards.'
+        '**Kill command usage:**\n' +
+        '`ZP kill <killerCard> <shardId>:<count>[,<shardId2>:<count2>...]` — Kill specific shards\n' +
+        '`ZP kill <killerCard> <rarity>` — Kill ALL shards of every non-special card at that rarity\n' +
+        'Examples:\n' +
+        '• `ZP kill naruto_r sasuke_r:5,kakashi_r:3`\n' +
+        '• `ZP kill naruto_r R` — kills all your R shards'
       );
-    }
-
-    const shardParts = shardArg.split(':');
-    if (shardParts.length !== 2) {
-      return message.reply('Invalid format. Use `ZP kill <killerCardId> <shardCardId>:<count>`');
-    }
-
-    const targetShardId = shardParts[0].toLowerCase();
-    const count         = parseInt(shardParts[1], 10);
-
-    if (isNaN(count) || count < 1) {
-      return message.reply('Count must be a positive number.');
     }
 
     const killerCard = resolveCard(killerCardId);
     if (!killerCard) return message.reply(`No card found matching \`${killerCardId}\`.`);
 
-    const targetCard = resolveCard(targetShardId);
-    if (!targetCard) return message.reply(`No card found matching \`${targetShardId}\`.`);
-
     const inventory = await inv.loadInventory();
-
     if (!inv.hasCard(inventory, userId, killerCard.id)) {
       return message.reply(`You don't own **${killerCard.name}**. You need to own the killer card!`);
     }
 
-    const shards = inv.getCharacterShards(inventory, userId)[targetCard.id] ?? 0;
-    if (shards < count) {
-      return message.reply(`You only have **${shards}** ${targetCard.name} shard${shards === 1 ? '' : 's'} but tried to kill **${count}**.`);
+    const allShards = inv.getCharacterShards(inventory, userId);
+
+    // ── Rarity-based kill: ZP kill <killerCard> <rarity> ──
+    const rarityArg = args.slice(1).join(' ');
+    const rarityKey = normalizeRarity(rarityArg.trim());
+    if (rarityKey) {
+      // Collect all non-special shards at this rarity
+      const targets = [];
+      for (const [cardId, count] of Object.entries(allShards)) {
+        if (count < 1) continue;
+        const def = lookupCard(cardId);
+        if (!def || def.rarity !== rarityKey) continue;
+        if (def.supportCard || def.weaponCard || def.dittoCard) continue;
+        targets.push({ def, count });
+      }
+      if (!targets.length) {
+        return message.reply(`You have no ${rarityMeta(rarityKey).label} shards to kill.`);
+      }
+      const totalShards = targets.reduce((s, t) => s + t.count, 0);
+      const totalYen    = targets.reduce((s, t) => s + t.count * (KILL_YEN[rarityKey] ?? 50), 0);
+      const killerMeta  = rarityMeta(killerCard.rarity);
+      const meta        = rarityMeta(rarityKey);
+
+      const confirmId = `${userId}_kill_rarity_${Date.now()}`;
+      pendingConfirmations.set(confirmId, {
+        type: 'kill_rarity', userId, killerCard, rarityKey, targets, totalShards, totalYen,
+        channelId: message.channel.id,
+      });
+      setTimeout(() => pendingConfirmations.delete(confirmId), 60_000);
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`confirm_action|${confirmId}`).setLabel('Confirm Kill').setStyle(ButtonStyle.Danger),
+        new ButtonBuilder().setCustomId(`cancel_confirm|${confirmId}`).setLabel('Cancel').setStyle(ButtonStyle.Secondary),
+      );
+      const lines = targets.slice(0, 15).map(t => `• ${t.count}x ${t.def.name}`);
+      if (targets.length > 15) lines.push(`…and ${targets.length - 15} more`);
+      const embed = new EmbedBuilder()
+        .setColor(meta.color)
+        .setTitle(`⚔️ Kill all ${meta.emoji} ${meta.label} shards?`)
+        .setDescription(
+          `**${killerCard.name}** will destroy **${totalShards} shard${totalShards === 1 ? '' : 's'}** across **${targets.length} card${targets.length === 1 ? '' : 's'}**:\n` +
+          lines.join('\n') + `\n\n**Yen earned:** ¥${totalYen.toLocaleString()}\n**Prestige points:** +${totalShards} on ${killerCard.name}`
+        )
+        .setFooter({ text: 'This action cannot be undone. Expires in 60s.' });
+      return message.reply({ embeds: [embed], components: [row] });
     }
 
-    const yenPerShard = KILL_YEN[targetCard.rarity] ?? 50;
-    const totalYen    = yenPerShard * count;
+    // ── Multi-target shard kill: ZP kill <killerCard> shardId:count[,shardId:count] ──
+    const shardArgRaw = args.slice(1).join('');
+    if (!shardArgRaw) {
+      return message.reply('Please specify what to kill. Usage: `ZP kill <killerCard> <shardId>:<count>`');
+    }
 
-    inv.removeCharacterShards(inventory, userId, targetCard.id, count);
+    const shardTokens = shardArgRaw.split(',').map(s => s.trim()).filter(Boolean);
+    const targets = [];
+    for (const token of shardTokens) {
+      const colonIdx = token.lastIndexOf(':');
+      if (colonIdx < 1) return message.reply(`Invalid format for \`${token}\`. Use \`shardId:count\`.`);
+      const shardId = token.slice(0, colonIdx).toLowerCase();
+      const count   = parseInt(token.slice(colonIdx + 1), 10);
+      if (isNaN(count) || count < 1) return message.reply(`Count must be a positive number in \`${token}\`.`);
+      const def = resolveCard(shardId);
+      if (!def) return message.reply(`No card found matching \`${shardId}\`.`);
+      const have = allShards[def.id] ?? 0;
+      if (have < count) return message.reply(`You only have **${have}** ${def.name} shard${have === 1 ? '' : 's'} but tried to kill **${count}**.`);
+      targets.push({ def, count });
+    }
+
+    const totalYen   = targets.reduce((s, t) => s + t.count * (KILL_YEN[t.def.rarity] ?? 50), 0);
+    const totalCount = targets.reduce((s, t) => s + t.count, 0);
+
+    for (const { def, count } of targets) {
+      inv.removeCharacterShards(inventory, userId, def.id, count);
+    }
     inv.addYen(inventory, userId, totalYen);
-    inv.addPrestigePoints(inventory, userId, killerCard.id, count);
-    inv.incrementTotalKills(inventory, userId, count);
+    inv.addPrestigePoints(inventory, userId, killerCard.id, totalCount);
+    inv.incrementTotalKills(inventory, userId, totalCount);
     await inv.saveInventory(inventory);
 
     const killerMeta = rarityMeta(killerCard.rarity);
-    const targetMeta = rarityMeta(targetCard.rarity);
-    const targetEmoji = emojiCache.getEmoji(targetCard.id) ?? '';
-    const newPP       = inv.getPrestigePoints(await inv.loadInventory(), userId)[killerCard.id] ?? 0;
-    const img         = imgCache.getImage(killerCard.id) ?? killerCard.image ?? null;
+    const freshInv   = await inv.loadInventory();
+    const newPP      = inv.getPrestigePoints(freshInv, userId)[killerCard.id] ?? 0;
+    const img        = imgCache.getImage(killerCard.id) ?? killerCard.image ?? null;
+
+    const lines = targets.map(({ def, count }) => {
+      const m = rarityMeta(def.rarity);
+      const em = emojiCache.getEmoji(def.id) ?? '';
+      const yen = count * (KILL_YEN[def.rarity] ?? 50);
+      return `${m.emoji} ${em} **${def.name}** ×${count} → ¥${yen.toLocaleString()}`;
+    });
 
     const embed = new EmbedBuilder()
       .setColor(killerMeta.color)
-      .setTitle(`⚔️ ${killerCard.name} killed ${count} shard${count === 1 ? '' : 's'}!`)
-      .setDescription(
-        `${killerMeta.emoji} **${killerCard.name}** destroyed **${count}** ${targetEmoji} ${targetMeta.emoji} **${targetCard.name}** shard${count === 1 ? '' : 's'}!`
-      )
+      .setTitle(`⚔️ ${killerCard.name} killed ${totalCount} shard${totalCount === 1 ? '' : 's'}!`)
+      .setDescription(lines.join('\n'))
       .addFields(
-        { name: 'Yen Earned',           value: `¥${totalYen.toLocaleString()} (¥${yenPerShard} per shard)`, inline: true },
-        { name: '✨ Prestige Points',   value: `+${count} → **${newPP}** total on ${killerCard.name}`,       inline: true },
-        { name: `${targetEmoji} Shards Left`, value: `${shards - count}`,                                 inline: true },
+        { name: '💰 Total Yen',         value: `¥${totalYen.toLocaleString()}`,              inline: true },
+        { name: '✨ Prestige Points',   value: `+${totalCount} → **${newPP}** total`,         inline: true },
       )
       .setFooter({ text: 'Prestige points are tracked per killer card!' });
 

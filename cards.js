@@ -264,6 +264,9 @@ const CARDS = [
   // ── Pokémon ───────────────────────────────────────────────
   { id: 'ditto_lt', name: 'Ditto', series: 'Pokémon', rarity: 'LT', desc: 'The Transform Pokémon. Rearranges its cell structure to become an exact copy of whatever it faces — then becomes even stronger than the original.', dittoCard: true },
 
+  // ── Madness (MD) ─────────────────────────────────────────
+  { id: 'scarlet_king', name: 'The Scarlet King', series: 'SCP Foundation', rarity: 'MD', image: process.env.BASE_URL ? `${process.env.BASE_URL}/images/scarlet_king_md.png` : null, desc: 'An entity of infinite destruction imprisoned at the foundation of reality itself. Seven scarlet crowns. The end of all things.' },
+
   // ── Support Cards ─────────────────────────────────────────
   { id: 'support_r',  name: 'Swift Pull Token',       series: 'Support', rarity: 'R',  supportCard: true, supportEffect: 'pull_speed',      desc: 'A shimmering token that speeds up pull charge regeneration by 5 seconds. Passive effect while owned.' },
   { id: 'support_e',  name: 'Conquest Expansion',     series: 'Support', rarity: 'E',  supportCard: true, supportEffect: 'extra_conquest',   desc: 'An ancient war banner granting the right to send one additional card on conquest. Passive effect while owned.' },

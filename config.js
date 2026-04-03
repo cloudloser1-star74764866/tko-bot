@@ -13,11 +13,12 @@ module.exports = {
   // ── Pull Rates ────────────────────────────────────────────
   // Must add up to exactly 100
   PULL_RATES: {
-    R:  80.7,
+    R:  80.699,
     E:   10.6,
     L:   5,
     MY:  2.7,
     UR:  1,
+    MD:  0.001,
   },
 
   // ── Plating ───────────────────────────────────────────────
@@ -50,12 +51,13 @@ module.exports = {
   // (same card always has the same stats). Values are a range
   // within which the specific card's stats are generated.
   STAT_RANGES: {
-    R:  { hpMin:  100, hpMax:  180, dmgMin:  15, dmgMax:  28 },
-    E:  { hpMin:  220, hpMax:  320, dmgMin:  35, dmgMax:  55 },
-    L:  { hpMin:  380, hpMax:  500, dmgMin:  65, dmgMax:  90 },
-    MY: { hpMin:  550, hpMax:  720, dmgMin: 100, dmgMax: 140 },
-    UR: { hpMin:  780, hpMax: 1000, dmgMin: 160, dmgMax: 220 },
-    LT: { hpMin: 1100, hpMax: 1500, dmgMin: 280, dmgMax: 400 },
+    R:  { hpMin:  100, hpMax:  180, dmgMin:   15, dmgMax:   28 },
+    E:  { hpMin:  220, hpMax:  320, dmgMin:   35, dmgMax:   55 },
+    L:  { hpMin:  380, hpMax:  500, dmgMin:   65, dmgMax:   90 },
+    MY: { hpMin:  550, hpMax:  720, dmgMin:  100, dmgMax:  140 },
+    UR: { hpMin:  780, hpMax: 1000, dmgMin:  160, dmgMax:  220 },
+    LT: { hpMin: 1100, hpMax: 1500, dmgMin:  280, dmgMax:  400 },
+    MD: { hpMin: 3300, hpMax: 4500, dmgMin:  840, dmgMax: 1200 },
   },
 
   // ── Raid ──────────────────────────────────────────────────
@@ -112,6 +114,7 @@ module.exports = {
     MY: { label: 'Mythical',   emoji: '❤️',  color: 0xFF4757, stars: '****'     },
     UR: { label: 'Ultra-Rare', emoji: '🩵',  color: 0x00FFF0, stars: '*****'    },
     LT: { label: 'Limited',    emoji: '🩷',  color: 0xFF69B4, stars: 'LIMITED'  },
+    MD: { label: 'Madness',    emoji: '💚',  color: 0x00FF41, stars: 'MADNESS'  },
   },
 
 };
