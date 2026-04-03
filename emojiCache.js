@@ -202,9 +202,27 @@ async function syncEmojis(client, cards, imgCache) {
     try {
       imageBuffer = await fetchBuffer(imageUrl);
     } catch (e) {
-      console.error(`😀 Emoji sync: image download failed for ${card.id}: ${e.message}`);
-      failed++;
-      continue;
+      // If the cached/SEED URL is stale (404), try fetching a fresh URL from AniList
+      if (e.message && e.message.includes('404') && imgCache.fetchFreshUrl) {
+        const freshUrl = await imgCache.fetchFreshUrl(card.id, card.name).catch(() => null);
+        if (freshUrl && freshUrl !== imageUrl) {
+          try {
+            imageBuffer = await fetchBuffer(freshUrl);
+          } catch (e2) {
+            console.error(`😀 Emoji sync: image download failed for ${card.id} (fresh URL also failed): ${e2.message}`);
+            failed++;
+            continue;
+          }
+        } else {
+          console.error(`😀 Emoji sync: image download failed for ${card.id}: ${e.message} (no fresh URL found)`);
+          failed++;
+          continue;
+        }
+      } else {
+        console.error(`😀 Emoji sync: image download failed for ${card.id}: ${e.message}`);
+        failed++;
+        continue;
+      }
     }
 
     const emojiName = card.id.replace(/[^a-zA-Z0-9_]/g, '_').padEnd(2, '_');

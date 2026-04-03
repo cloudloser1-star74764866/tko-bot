@@ -655,6 +655,32 @@ async function fetchFallbackImage(cardId, cardName) {
   return url ?? null;
 }
 
+/**
+ * Bypass the SEED/cache and fetch a fresh URL directly from AniList/Jikan.
+ * Call this when a cached/SEED URL returns a 404 so we can get a working one.
+ * Updates the in-memory cache and saves to disk on success.
+ */
+async function fetchFreshUrl(cardId, cardName) {
+  const term = SEARCH_TERMS[cardId];
+
+  let url = null;
+
+  if (typeof term === 'number') {
+    url = await fetchFromAniList(term);
+  } else {
+    const searchName = term ?? cardName;
+    url = await fetchFromJikan(searchName);
+    if (!url && searchName !== cardName) url = await fetchFromJikan(cardName);
+    if (!url) url = await fetchFromAniList(searchName);
+  }
+
+  if (url) {
+    cache[cardId] = url;
+    saveCache();
+  }
+  return url ?? null;
+}
+
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 /**
@@ -691,4 +717,4 @@ async function refreshMissing() {
 
 loadCache();
 
-module.exports = { getImage, refreshMissing, fetchFallbackImage };
+module.exports = { getImage, refreshMissing, fetchFallbackImage, fetchFreshUrl };
