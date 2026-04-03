@@ -55,6 +55,7 @@
 //    ZP givecandytokens [@user] <amount>
 //    ZP giveitem @user <itemId>
 //    ZP giveshards @user <cardId> <amount>
+//    ZP givecard @user <cardId>
 //    ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]
 //    ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]
 //    ZP deletecode <name>
@@ -1133,7 +1134,20 @@ function cardEmbed(card, title, footer, level = 1, personalCap = null) {
   if (card.supportCard) {
     embed.addFields({ name: '✨ Passive Effect', value: card.desc ?? 'Passive support card.', inline: false });
   } else if (card.weaponCard) {
-    embed.addFields({ name: '⚔️ Weapon Card', value: card.desc ?? 'Equip to a card to boost its stats in battle.', inline: false });
+    const wStats = config.WEAPON_STATS[card.rarity];
+    const sigCard = card.weaponOf ? (lookupCard(card.weaponOf)?.name ?? card.weaponOf) : null;
+    if (wStats) {
+      embed.addFields(
+        { name: '⚡ Power',            value: `${wStats.power.toLocaleString()}`,              inline: true },
+        { name: '❤️ Health Boosted',   value: `${wStats.hp.toLocaleString()}`,                 inline: true },
+        { name: '💨 Speed Boosted',    value: `${wStats.speed.toLocaleString()}`,              inline: true },
+        { name: '⚔️ Attack Boosted',   value: `${wStats.atkMin}–${wStats.atkMax}`,             inline: true },
+        { name: '🃏 Signature Cards',  value: sigCard ?? '—',                                  inline: true },
+        { name: '🏷️ Type',            value: 'Weapon',                                        inline: true },
+      );
+    } else {
+      embed.addFields({ name: '⚔️ Weapon Card', value: card.desc ?? 'Equip to a card to boost its stats in battle.', inline: false });
+    }
   } else {
     const stats = getCardStats(card, lvl);
     embed.addFields(
@@ -1171,7 +1185,7 @@ function singlePullEmbed(card, isDupe, plating, chargeInfo, authorUsername, drop
     if (rTier) descLines.push(`${rTier.emoji} **${rTier.label}** dropped! Use \`${rTier.useCmd}\` to fight a boss!`);
   }
   if (card.supportCard) descLines.push(`✨ *Passive support card — check \`ZP cardinfo ${card.id}\` for its effect.*`);
-  if (card.weaponCard)  descLines.push(`⚔️ *Weapon card — equip it to a card with \`ZP equip\`.*`);
+  if (card.weaponCard)  descLines.push(`⚔️ *Weapon card — equip it to a card with \`ZP equip <card> ${card.id}\`.*`);
 
   const embed = new EmbedBuilder()
     .setColor(plating?.color ?? (isDupe ? 0x888888 : meta.color))
@@ -1179,7 +1193,20 @@ function singlePullEmbed(card, isDupe, plating, chargeInfo, authorUsername, drop
     .setDescription(descLines.join('\n'))
     .setFooter({ text: `Pulled by ${authorUsername} • ${chargeInfo}` });
 
-  if (!card.supportCard && !card.weaponCard) {
+  if (card.weaponCard) {
+    const wStats = config.WEAPON_STATS[card.rarity];
+    const sigCard = card.weaponOf ? (lookupCard(card.weaponOf)?.name ?? card.weaponOf) : null;
+    if (wStats) {
+      embed.addFields(
+        { name: '⚡ Power',           value: `${wStats.power.toLocaleString()}`,  inline: true },
+        { name: '❤️ Health Boosted',  value: `${wStats.hp.toLocaleString()}`,     inline: true },
+        { name: '💨 Speed Boosted',   value: `${wStats.speed.toLocaleString()}`,  inline: true },
+        { name: '⚔️ Attack Boosted',  value: `${wStats.atkMin}–${wStats.atkMax}`, inline: true },
+        { name: '🃏 Signature Cards', value: sigCard ?? '—',                      inline: true },
+        { name: '🏷️ Type',           value: 'Weapon',                            inline: true },
+      );
+    }
+  } else if (!card.supportCard) {
     const stats = getCardStats(card, 1);
     embed.addFields(
       { name: '❤️ Health', value: `${stats.hp}`,  inline: true },
@@ -1543,6 +1570,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         { name: '`ZP allowraidjoins` / `ZP arj`', value: 'Enable others to join your active raid. Run after using a raid ticket.', inline: false },
         { name: '`ZP whitelist @user` / `ZP wh @user`', value: 'Whitelist a player (max 4) to join your collab raid. They click **Join Raid** on the raid card.', inline: false },
         { name: '\u200b', value: '**⚔️ Weapon System**', inline: false },
+        { name: '`ZP equip <card> <weaponId or plating>`', value: 'Unified equip command — equip a weapon card **or** a plating to a card. Handles both automatically.', inline: false },
         { name: '`ZP equipweapon <cardId> <weaponId>` / `ZP ew`', value: 'Equip a weapon card to a card slot. The weapon boosts that card\'s HP and DMG in battle.', inline: false },
         { name: '`ZP unequipweapon <cardId>` / `ZP uew`', value: 'Remove the equipped weapon from a card.', inline: false },
         { name: '`ZP evolveweapon <weaponId>` / `ZP evw`', value: `Evolve a weapon to the next tier (max Tier ${config.WEAPON_EVOLUTION_TIERS.length}). Costs **${config.WEAPON_EVOLVE_SHARDS} weapon shards** + **${config.WEAPON_EVOLVE_PRESTIGE} weapon prestige** per tier. Tiers: Basic → Refined → Enhanced → Masterwork → Legendary.`, inline: false },
@@ -1700,6 +1728,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
               '`ZP giveitem @user <itemId>` – Give a limited item to a player',
               '`ZP giveraidticket @user <tier> [amount]` – Give raid tickets (tiers: `normal` `mythical` `omega` `hellish`)',
               '`ZP giveshards @user <cardId> <amount>` – Give character shards to a player',
+              '`ZP givecard @user <cardId>` – Give a card directly to a player (gives shard if they own it)',
               '`ZP givelimitbreaker [@user] <amount>` – Give Limit Breakers to a player',
               '`ZP givelevelscrolls [@user] <amount>` – Give Level Scrolls 📜 to a player',
               '`ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]` – Create a redeemable code',
@@ -4875,6 +4904,70 @@ client.on('messageCreate', async (message) => {
     return message.reply({ embeds: [embed] });
   }
 
+  // ── equip (unified: plating or weapon) ───────────────────
+  if (command === 'equip') {
+    const nonMention = args.filter(a => !a.startsWith('<@'));
+    if (nonMention.length < 2) {
+      return message.reply(
+        'Usage:\n' +
+        '`ZP equip <card> <plating>` — equip a plating (bronze/silver/gold/diamond)\n' +
+        '`ZP equip <card> <weaponId>` — equip a weapon card'
+      );
+    }
+
+    const inventory = await inv.loadInventory();
+
+    // Try interpreting the last token(s) as a plating tier first
+    const lastArg   = nonMention[nonMention.length - 1].toLowerCase();
+    const platingTr = platingById(lastArg);
+
+    if (platingTr) {
+      // ── plating branch ──
+      const cardQuery = nonMention.slice(0, -1).join(' ');
+      const card = resolveCard(cardQuery);
+      if (!card) return message.reply(`No card found matching \`${cardQuery}\`.`);
+      if (!inv.hasCard(inventory, userId, card.id)) return message.reply(`You don't own **${card.name}**.`);
+      if (card.dittoCard) return message.reply(`**Ditto** cannot equip platings — it copies stats from its allies instead!`);
+      const teamSlot = inv.getTeam(inventory, userId).find(s => s.cardId === card.id);
+      if (!teamSlot) return message.reply(`**${card.name}** is not on your team. Add it first with \`ZP team add ${card.id}\`.`);
+      if ((inv.getPlatings(inventory, userId)[platingTr.id] ?? 0) < 1)
+        return message.reply(`You don't have a **${platingTr.label} Plating** in your inventory.`);
+      const result = inv.equipPlatingToTeam(inventory, userId, card.id, platingTr.id);
+      await inv.saveInventory(inventory);
+      if (result === 'equipped')        return message.reply(`**${platingTr.label} Plating** equipped to **${card.name}**!`);
+      if (result === 'no_plating')      return message.reply(`You don't have a **${platingTr.label} Plating** in your inventory.`);
+      if (result === 'not_in_team')     return message.reply(`**${card.name}** is not on your team.`);
+      if (result === 'already_equipped') return message.reply(`**${card.name}** already has a plating equipped. Unequip it first.`);
+      return message.reply(`Plating equipped!`);
+    }
+
+    // ── weapon branch ──
+    const card   = resolveCard(nonMention[0]);
+    const weapon = resolveCard(nonMention.slice(1).join(' '));
+    if (!card)   return message.reply(`No card found matching \`${nonMention[0]}\`.`);
+    if (!weapon) return message.reply(`No card/weapon found matching \`${nonMention.slice(1).join(' ')}\`. Valid platings: \`bronze\` \`silver\` \`gold\` \`diamond\``);
+    const wDef2 = CARDS.find(c => c.id === weapon.id);
+    if (!wDef2?.weaponCard) return message.reply(`**${weapon.name}** is neither a plating tier nor a weapon card.`);
+    if (!inv.hasCard(inventory, userId, card.id))   return message.reply(`You don't own **${card.name}**.`);
+    if (!inv.hasCard(inventory, userId, weapon.id)) return message.reply(`You don't own **${weapon.name}**.`);
+    inv.equipWeapon(inventory, userId, card.id, weapon.id);
+    await inv.saveInventory(inventory);
+    const wData2    = inv.getWeaponData(inventory, userId, weapon.id);
+    const tierData2 = config.WEAPON_EVOLUTION_TIERS[wData2.evolutionTier - 1];
+    const cardMeta2 = rarityMeta(card.rarity);
+    const embed2 = new EmbedBuilder()
+      .setColor(cardMeta2.color)
+      .setTitle(`⚔️ Weapon Equipped!`)
+      .setDescription(
+        `**${weapon.name}** is now equipped to **${card.name}**!\n\n` +
+        `${tierData2.emoji} **Tier ${wData2.evolutionTier} — ${tierData2.name}** weapon\n` +
+        `+${Math.round(tierData2.statMult * 100)}% stat bonus (at max level)\n\n` +
+        `*Fight with ${card.name} to earn weapon prestige. Evolve with \`ZP evolveweapon ${weapon.id}\`.*`
+      )
+      .setFooter({ text: 'Use ZP unequipweapon <cardId> to remove the weapon' });
+    return message.reply({ embeds: [embed2] });
+  }
+
   // ── equipweapon ───────────────────────────────────────────
   if (command === 'equipweapon' || command === 'ew') {
     const nonMention = args.filter(a => !a.startsWith('<@'));
@@ -5001,6 +5094,9 @@ client.on('messageCreate', async (message) => {
     const owned     = inv.hasCard(inventory, userId, weapon.id);
     const meta      = rarityMeta(weapon.rarity);
 
+    const wStats  = config.WEAPON_STATS[weapon.rarity];
+    const sigName = wDef.weaponOf ? (lookupCard(wDef.weaponOf)?.name ?? wDef.weaponOf) : null;
+
     if (!owned) {
       const img = imgCache.getImage(weapon.id) ?? weapon.image ?? null;
       const tierLines = config.WEAPON_EVOLUTION_TIERS.map(t =>
@@ -5009,8 +5105,19 @@ client.on('messageCreate', async (message) => {
       const embed = new EmbedBuilder()
         .setColor(meta.color)
         .setTitle(`⚔️ ${weapon.name}`)
-        .setDescription(`${meta.emoji} **${meta.label}** weapon — ${weapon.series}\n\n${weapon.desc}\n\n**Weapon of:** ${lookupCard(wDef.weaponOf)?.name ?? wDef.weaponOf}\n\n**Evolution Tiers:**\n${tierLines}`)
+        .setDescription(`${meta.emoji} **${meta.label}** weapon — ${weapon.series}\n\n${weapon.desc}`)
         .setFooter({ text: 'You do not own this weapon yet' });
+      if (wStats) {
+        embed.addFields(
+          { name: '⚡ Power',           value: `${wStats.power.toLocaleString()}`,  inline: true },
+          { name: '❤️ Health Boosted',  value: `${wStats.hp.toLocaleString()}`,     inline: true },
+          { name: '💨 Speed Boosted',   value: `${wStats.speed.toLocaleString()}`,  inline: true },
+          { name: '⚔️ Attack Boosted',  value: `${wStats.atkMin}–${wStats.atkMax}`, inline: true },
+          { name: '🃏 Signature Cards', value: sigName ?? '—',                      inline: true },
+          { name: '🏷️ Type',           value: 'Weapon',                            inline: true },
+        );
+      }
+      embed.addFields({ name: '📈 Evolution Tiers', value: tierLines, inline: false });
       if (img) embed.setImage(img);
       return message.reply({ embeds: [embed] });
     }
@@ -5035,12 +5142,21 @@ client.on('messageCreate', async (message) => {
       .setDescription(
         `${meta.emoji} **${meta.label}** weapon — ${weapon.series}\n\n` +
         `${tierData.emoji} **Tier ${tier} — ${tierData.name}**\n` +
-        `**Level:** ${level} / 100\n` +
-        `**Weapon Prestige:** ${prestige}\n` +
-        `**Stat Bonus:** +${Math.round(tierData.statMult * (level / 100) * 100)}% (at current level)\n` +
+        `**Level:** ${level} / 100  |  **Weapon Prestige:** ${prestige}\n` +
+        `**Stat Bonus:** +${Math.round(tierData.statMult * (level / 100) * 100)}% (at current level)` +
         progressToNext
       )
-      .setFooter({ text: `Equip with: ZP equipweapon <cardId> ${weapon.id}` });
+      .setFooter({ text: `Equip with: ZP equip <cardId> ${weapon.id}` });
+    if (wStats) {
+      embed.addFields(
+        { name: '⚡ Power',           value: `${wStats.power.toLocaleString()}`,  inline: true },
+        { name: '❤️ Health Boosted',  value: `${wStats.hp.toLocaleString()}`,     inline: true },
+        { name: '💨 Speed Boosted',   value: `${wStats.speed.toLocaleString()}`,  inline: true },
+        { name: '⚔️ Attack Boosted',  value: `${wStats.atkMin}–${wStats.atkMax}`, inline: true },
+        { name: '🃏 Signature Cards', value: sigName ?? '—',                      inline: true },
+        { name: '🏷️ Type',           value: 'Weapon',                            inline: true },
+      );
+    }
     if (img) embed.setThumbnail(img);
     return message.reply({ embeds: [embed] });
   }
@@ -5267,6 +5383,29 @@ client.on('messageCreate', async (message) => {
 
     const emoji = emojiCache.getEmoji(cardId) ?? '';
     return message.reply(`Gave **${amount}x ${emoji}${card.name} shard${amount === 1 ? '' : 's'}** to **${target.username}**.`);
+  }
+
+  // ── givecard ──────────────────────────────────────────────
+  if (command === 'givecard' || command === 'gc') {
+    const target = message.mentions.users.first();
+    const nonMentionArgs = args.filter(a => !a.startsWith('<@'));
+    const cardQuery = nonMentionArgs.join(' ');
+
+    if (!target || !cardQuery)
+      return message.reply('Usage: `ZP givecard @user <cardId or name>`');
+
+    const card = resolveCard(cardQuery) ?? lookupCard(cardQuery);
+    if (!card) return message.reply(`❌ No card found matching \`${cardQuery}\`.`);
+
+    const inventory = await inv.loadInventory();
+    const { isDupe } = inv.addCardToInventory(inventory, target.id, card);
+    await inv.saveInventory(inventory);
+    const meta  = rarityMeta(card.rarity);
+    const emoji = emojiCache.getEmoji(card.id) ?? '';
+    if (isDupe) {
+      return message.reply(`**${target.username}** already owns **${card.name}** — gave them **1 ${emoji}${card.name} Shard** instead.`);
+    }
+    return message.reply(`${meta.emoji} Gave **${emoji}${card.name}** (${meta.label}) to **${target.username}**!`);
   }
 
   // ── createcode ────────────────────────────────────────────
