@@ -142,8 +142,9 @@ function isAdmin(userId) { return userId === ADMIN_ID; }
 // ── Support Card Helpers ──────────────────────────────────
 // Returns true if the player owns the given support card.
 function hasSupportCard(inventory, userId, supportId) {
-  const user = inv.ensureUser(inventory, userId);
-  return !!(user.cards && user.cards.some(c => c.cardId === supportId));
+  inv.ensureUser(inventory, userId);
+  const user = inventory.users[userId];
+  return !!(user.cards && user.cards.some(c => c.id === supportId));
 }
 
 // Returns the effective pull regen in ms for a user.

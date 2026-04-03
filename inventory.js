@@ -82,6 +82,7 @@ function ensureUser(inventory, userId) {
   for (const card of u.cards) {
     if (typeof card.level !== 'number') card.level = 1;
   }
+  return u;
 }
 
 // ── Card Operations ───────────────────────────────────────
