@@ -172,6 +172,7 @@ const emojiCache  = require('./emojiCache');
       'ZP giveraidticket @user &lt;tier&gt; [amount]',
       'ZP createcode / editcode / deletecode / listcodes',
       'ZP refresh — re-sync all server emojis',
+      'ZP imgreview [filter] — review all card images/emojis interactively',
     ].map(c => `<li><code>${c}</code></li>`).join('');
 
     res.send(`<!DOCTYPE html><html lang="en"><head>
@@ -1598,6 +1599,84 @@ function buildAllCardsPage(authorId, allCards, page, filter, expiry) {
   return { embed, components: [row] };
 }
 
+// ── Image review (admin) ──────────────────────────────────
+function getImageReviewCards(filter) {
+  const allCards = getSortedAllCards();
+  if (!filter || filter === '_') return allCards;
+  if (filter === 'missing') {
+    const ec = emojiCache.load();
+    return allCards.filter(c => !ec[c.id]);
+  }
+  const f = filter.toLowerCase();
+  return allCards.filter(c =>
+    c.name.toLowerCase().includes(f) ||
+    c.series.toLowerCase().includes(f) ||
+    c.id.toLowerCase().includes(f)
+  );
+}
+
+function buildImageReviewEmbed(authorId, filteredCards, index, filter, expiry) {
+  const card     = filteredCards[index];
+  const meta     = rarityMeta(card.rarity);
+  const emojiStr = emojiCache.getEmoji(card.id);
+  const imageUrl = imgCache.getImage(card.id) ?? card.image ?? null;
+  const ec       = emojiCache.load();
+  const hasEmoji = !!ec[card.id];
+  const filterLabel = (!filter || filter === '_') ? 'all cards' : `filter: "${filter}"`;
+
+  const embed = new EmbedBuilder()
+    .setColor(meta.color)
+    .setTitle(`${emojiStr ?? meta.emoji} ${card.name}`)
+    .setDescription(`🔍 **Admin Image Review** — ${filterLabel}`)
+    .addFields(
+      { name: 'Series',  value: card.series,                    inline: true },
+      { name: 'Rarity',  value: `${meta.emoji} ${meta.label}`, inline: true },
+      { name: 'Card ID', value: `\`${card.id}\``,              inline: true },
+      { name: 'Emoji',   value: hasEmoji ? `${emojiStr} ✅ Cached` : '❌ Not cached', inline: true },
+      { name: 'Image',   value: imageUrl ? `✅ [View](${imageUrl})` : '❌ None',      inline: true },
+    )
+    .setFooter({ text: `Card ${index + 1} of ${filteredCards.length}` });
+
+  if (imageUrl) embed.setImage(imageUrl);
+
+  const base = `imgrev|${authorId}|${expiry}|${index}|${filter || '_'}`;
+
+  const row1 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`${base}|next`)
+      .setLabel('✅ Looks Good')
+      .setStyle(ButtonStyle.Success)
+      .setDisabled(index >= filteredCards.length - 1),
+    new ButtonBuilder()
+      .setCustomId(`${base}|find`)
+      .setLabel('🔄 Find Another')
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(`${base}|skip`)
+      .setLabel('⏭️ Skip')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(index >= filteredCards.length - 1),
+    new ButtonBuilder()
+      .setCustomId(`${base}|done`)
+      .setLabel('❌ Done')
+      .setStyle(ButtonStyle.Danger),
+  );
+
+  const components = [row1];
+
+  if (!hasEmoji && imageUrl) {
+    const row2 = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`${base}|upload`)
+        .setLabel('📤 Upload Emoji')
+        .setStyle(ButtonStyle.Secondary),
+    );
+    components.push(row2);
+  }
+
+  return { embed, components };
+}
+
 function buildCollectionPage(authorId, targetUser, cards, page, filter, inventory, expiry) {
   const enriched = cards.map(enrichCard);
   const filtered = applyFilter(enriched, filter);
@@ -2729,6 +2808,67 @@ client.on('interactionCreate', async (interaction) => {
     const allCards = getSortedAllCards();
     const { embed, components } = buildAllCardsPage(authorId, allCards, page, filter, expiry);
     return interaction.update({ embeds: [embed], components });
+  }
+
+  // ── Image review button handler (admin) ──────────────────
+  if (parts[0] === 'imgrev') {
+    const [, authorId, expiryStr, indexStr, ...rest] = parts;
+    const action = rest.pop();
+    const filter = rest.join('|');
+    const expiry = parseInt(expiryStr, 10);
+    const index  = parseInt(indexStr, 10);
+
+    if (interaction.user.id !== authorId) {
+      return interaction.reply({ content: 'This review is not for you.', ephemeral: true });
+    }
+    if (Date.now() > expiry) {
+      return interaction.update({ content: '⏱️ This review session has expired.', components: [], embeds: [] });
+    }
+
+    const filteredCards = getImageReviewCards(filter === '_' ? '' : filter);
+    if (filteredCards.length === 0) {
+      return interaction.update({ content: 'No cards to review.', components: [], embeds: [] });
+    }
+
+    if (action === 'done') {
+      return interaction.update({ content: '✅ Image review ended.', components: [], embeds: [] });
+    }
+
+    if (action === 'next' || action === 'skip') {
+      const nextIndex = index + 1;
+      if (nextIndex >= filteredCards.length) {
+        return interaction.update({ content: '🎉 All cards reviewed!', components: [], embeds: [] });
+      }
+      const { embed, components } = buildImageReviewEmbed(authorId, filteredCards, nextIndex, filter, expiry);
+      return interaction.update({ embeds: [embed], components });
+    }
+
+    if (action === 'find') {
+      await interaction.deferUpdate();
+      const card     = filteredCards[index];
+      const freshUrl = await imgCache.fetchFreshUrl(card.id, card.name).catch(() => null);
+      const newExpiry = Date.now() + 30 * 60_000;
+      const { embed, components } = buildImageReviewEmbed(authorId, filteredCards, index, filter, newExpiry);
+      if (!freshUrl) {
+        embed.setDescription('🔍 **Admin Image Review** — ⚠️ Could not find a new image. Showing current.');
+      }
+      return interaction.editReply({ embeds: [embed], components });
+    }
+
+    if (action === 'upload') {
+      await interaction.deferUpdate();
+      const card = filteredCards[index];
+      try {
+        await emojiCache.syncEmojis(client, [card], imgCache);
+      } catch (err) {
+        console.error('imgrev upload error:', err);
+      }
+      const newExpiry = Date.now() + 30 * 60_000;
+      const { embed, components } = buildImageReviewEmbed(authorId, filteredCards, index, filter, newExpiry);
+      return interaction.editReply({ embeds: [embed], components });
+    }
+
+    return;
   }
 
   // ── Shards button handler ─────────────────────────────────
@@ -5699,6 +5839,19 @@ client.on('messageCreate', async (message) => {
     inv.addCandyTokens(inventory, target.id, amount);
     await inv.saveInventory(inventory);
     return message.reply(`Gave **${amount}** Candy Token${amount === 1 ? '' : 's'} to **${target.username}**.`);
+  }
+
+  // ── imgreview ─────────────────────────────────────────────
+  if (command === 'imgreview' || command === 'imgrev') {
+    if (!isAdmin(userId)) return;
+    const filter = args.join(' ').trim() || '';
+    const filteredCards = getImageReviewCards(filter);
+    if (filteredCards.length === 0) {
+      return message.reply(`No cards found${filter ? ` matching "${filter}"` : ''}.`);
+    }
+    const expiry = Date.now() + 30 * 60_000;
+    const { embed, components } = buildImageReviewEmbed(userId, filteredCards, 0, filter || '_', expiry);
+    return message.reply({ embeds: [embed], components });
   }
 
   // ── refresh ───────────────────────────────────────────────
