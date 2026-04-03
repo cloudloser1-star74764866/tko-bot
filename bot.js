@@ -109,6 +109,7 @@ process.on('uncaughtException', (err) => { console.error('[uncaughtException]', 
 const {
     Client, GatewayIntentBits, EmbedBuilder,
     ActionRowBuilder, ButtonBuilder, ButtonStyle,
+    ModalBuilder, TextInputBuilder, TextInputStyle,
     REST, Routes, SlashCommandBuilder,
 } = require('discord.js');
 
@@ -1652,6 +1653,10 @@ function buildImageReviewEmbed(authorId, filteredCards, index, filter, expiry) {
       .setLabel('🔄 Find Another')
       .setStyle(ButtonStyle.Primary),
     new ButtonBuilder()
+      .setCustomId(`${base}|typeurl`)
+      .setLabel('✏️ Enter URL')
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
       .setCustomId(`${base}|skip`)
       .setLabel('⏭️ Skip')
       .setStyle(ButtonStyle.Secondary)
@@ -2161,6 +2166,37 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.deferReply();
     const mockMessage = createSlashContext(interaction);
     client.emit('messageCreate', mockMessage);
+    return;
+  }
+
+  // ── Modal submit handler ───────────────────────────────────
+  if (interaction.isModalSubmit()) {
+    const mParts  = interaction.customId.split('|');
+
+    if (mParts[0] === 'imgrev_url') {
+      const [, authorId, expiryStr, indexStr, ...filterRest] = mParts;
+      const filter  = filterRest.join('|');
+      const expiry  = parseInt(expiryStr, 10);
+      const index   = parseInt(indexStr, 10);
+      const url     = interaction.fields.getTextInputValue('url').trim();
+
+      if (interaction.user.id !== authorId) {
+        return interaction.reply({ content: 'This review is not for you.', ephemeral: true });
+      }
+
+      const filteredCards = getImageReviewCards(filter === '_' ? '' : filter);
+      const card = filteredCards[index];
+
+      if (!url.startsWith('http')) {
+        return interaction.reply({ content: '❌ That doesn\'t look like a valid URL.', ephemeral: true });
+      }
+
+      imgCache.setImage(card.id, url);
+      const newExpiry = Date.now() + 30 * 60_000;
+      const { embed, components } = buildImageReviewEmbed(authorId, filteredCards, index, filter, newExpiry);
+      return interaction.update({ embeds: [embed], components });
+    }
+
     return;
   }
 
@@ -2846,14 +2882,29 @@ client.on('interactionCreate', async (interaction) => {
 
     if (action === 'find') {
       await interaction.deferUpdate();
-      const card     = filteredCards[index];
-      const freshUrl = await imgCache.fetchFreshUrl(card.id, card.name).catch(() => null);
+      const card      = filteredCards[index];
+      const freshUrl  = await imgCache.fetchJikanUrl(card.id, card.name).catch(() => null);
       const newExpiry = Date.now() + 30 * 60_000;
       const { embed, components } = buildImageReviewEmbed(authorId, filteredCards, index, filter, newExpiry);
       if (!freshUrl) {
-        embed.setDescription('🔍 **Admin Image Review** — ⚠️ Could not find a new image. Showing current.');
+        embed.setDescription('🔍 **Admin Image Review** — ⚠️ No image found on MyAnimeList. Use ✏️ Enter URL to paste one manually.');
       }
       return interaction.editReply({ embeds: [embed], components });
+    }
+
+    if (action === 'typeurl') {
+      const card  = filteredCards[index];
+      const modal = new ModalBuilder()
+        .setCustomId(`imgrev_url|${authorId}|${expiry}|${index}|${filter}`)
+        .setTitle(`Set image for ${card.name}`);
+      const input = new TextInputBuilder()
+        .setCustomId('url')
+        .setLabel('Image URL')
+        .setPlaceholder('https://...')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true);
+      modal.addComponents(new ActionRowBuilder().addComponents(input));
+      return interaction.showModal(modal);
     }
 
     if (action === 'upload') {

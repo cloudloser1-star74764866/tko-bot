@@ -681,6 +681,35 @@ async function fetchFreshUrl(cardId, cardName) {
   return url ?? null;
 }
 
+/**
+ * Fetch a fresh image URL using Jikan (MyAnimeList) only — no AniList.
+ * Used by the image review "Find Another" button since AniList name searches
+ * often return wrong characters.
+ * Updates the cache on success.
+ */
+async function fetchJikanUrl(cardId, cardName) {
+  const term = SEARCH_TERMS[cardId];
+  const searchName = (typeof term === 'string' ? term : null) ?? cardName;
+
+  let url = await fetchFromJikan(searchName);
+  if (!url && searchName !== cardName) url = await fetchFromJikan(cardName);
+
+  if (url) {
+    cache[cardId] = url;
+    saveCache();
+  }
+  return url ?? null;
+}
+
+/**
+ * Manually set a specific image URL for a card, overriding cache and SEED.
+ * Saves to disk immediately.
+ */
+function setImage(cardId, url) {
+  cache[cardId] = url;
+  saveCache();
+}
+
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 /**
@@ -717,4 +746,4 @@ async function refreshMissing() {
 
 loadCache();
 
-module.exports = { getImage, refreshMissing, fetchFallbackImage, fetchFreshUrl };
+module.exports = { getImage, setImage, refreshMissing, fetchFallbackImage, fetchFreshUrl, fetchJikanUrl };
