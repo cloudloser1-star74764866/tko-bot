@@ -2897,6 +2897,11 @@ client.on('messageCreate', async (message) => {
 
     const inventory = await inv.loadInventory();
     const hasAnyWish = hasSupportCard(inventory, userId, 'support_l');
+    
+    // Block MD rarity from being wished
+    if (card.rarity === 'MD') {
+        return message.reply(`You cannot wish for **MD** rarity cards.`);
+    }
 
     if (card.rarity === 'LT') {
       if (!hasAnyWish) {
