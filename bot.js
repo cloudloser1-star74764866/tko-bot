@@ -1009,15 +1009,24 @@ function generateCollabRaidReward(state, inventory) {
       lines.push(`${meta.emoji} **${boss.name}** joined **${winner.username}**'s collection!${isDupe ? ' *(+1 shard)*' : ''}`);
     }
   } else if (roll < cfg.cardChance + 0.40) {
-    const yenRange = cfg.yenMax - cfg.yenMin;
-    const totalYen = Math.floor(cfg.yenMin + Math.random() * (yenRange + 1));
+    const yenRange  = cfg.yenMax   - cfg.yenMin;
+    const starRange = cfg.starsMax - cfg.starsMin;
+    const totalYen   = Math.floor(cfg.yenMin   + Math.random() * (yenRange  + 1));
+    const totalStars = Math.floor(cfg.starsMin + Math.random() * (starRange + 1));
     for (const p of allPlayers) {
-      const share = Math.floor(totalYen * p.share);
-      if (share > 0) inv.addYen(inventory, p.userId, share);
+      const yShare = Math.floor(totalYen   * p.share);
+      const sShare = Math.floor(totalStars * p.share);
+      if (yShare > 0) inv.addYen(inventory, p.userId, yShare);
+      if (sShare > 0) inv.addStars(inventory, p.userId, sShare);
     }
-    const ownerY = Math.floor(totalYen * 0.5);
+    const ownerY = Math.floor(totalYen   * 0.5);
     const allyY  = totalYen - ownerY;
-    lines.push(`💰 **¥${totalYen.toLocaleString()} Yen** split! **${state.ownerName}** ¥${ownerY.toLocaleString()} (50%)${allies.length > 0 ? `, allies share ¥${allyY.toLocaleString()}` : ''}`);
+    const ownerS = Math.floor(totalStars * 0.5);
+    lines.push(
+      `💰 **¥${totalYen.toLocaleString()} Yen** + ⭐ **${totalStars.toLocaleString()} Stars** split!` +
+      ` **${state.ownerName}** ¥${ownerY.toLocaleString()} / ⭐${ownerS}` +
+      (allies.length > 0 ? `, allies share the rest` : '')
+    );
   } else if (roll < cfg.cardChance + 0.65) {
     const [cMin, cMax] = cfg.cardCount;
     const count  = Math.floor(cMin + Math.random() * (cMax - cMin + 1));
@@ -1034,6 +1043,25 @@ function generateCollabRaidReward(state, inventory) {
       cLines.push(`${meta.emoji} **${dropped.name}**${emoji ? ' ' + emoji : ''} → **${winner.username}**${isDupe ? ' *(+1 shard)*' : ''}`);
     }
     lines.push(`🎴 **${count} card${count === 1 ? '' : 's'}** dropped!\n${cLines.join('\n')}`);
+  } else if (cfg.noLimitBreakers) {
+    // Normal tickets fall back to extra yen+stars instead of LBs
+    const yenRange  = cfg.yenMax   - cfg.yenMin;
+    const starRange = cfg.starsMax - cfg.starsMin;
+    const totalYen   = Math.floor(cfg.yenMin   + Math.random() * (yenRange  + 1));
+    const totalStars = Math.floor(cfg.starsMin + Math.random() * (starRange + 1));
+    for (const p of allPlayers) {
+      const yShare = Math.floor(totalYen   * p.share);
+      const sShare = Math.floor(totalStars * p.share);
+      if (yShare > 0) inv.addYen(inventory, p.userId, yShare);
+      if (sShare > 0) inv.addStars(inventory, p.userId, sShare);
+    }
+    const ownerY = Math.floor(totalYen   * 0.5);
+    const ownerS = Math.floor(totalStars * 0.5);
+    lines.push(
+      `💰 **¥${totalYen.toLocaleString()} Yen** + ⭐ **${totalStars.toLocaleString()} Stars** split!` +
+      ` **${state.ownerName}** ¥${ownerY.toLocaleString()} / ⭐${ownerS}` +
+      (allies.length > 0 ? `, allies share the rest` : '')
+    );
   } else {
     const lbCount  = Math.floor(cfg.lbMin + Math.random() * (cfg.lbMax - cfg.lbMin + 1));
     const ownerLB  = Math.ceil(lbCount * 0.5);
@@ -1051,18 +1079,41 @@ function generateCollabRaidReward(state, inventory) {
 }
 
 // Reward config per ticket tier
+// Yen/stars scale: 0.5× (normal) → 2× (mythical) → 5× (omega) → 10× (hellish)  base of 20 000–40 000 yen / 50–100 stars
+// Limit breakers: normal tickets cannot drop them; all other tiers can.
 const RAID_REWARD_CONFIG = {
   raid_ticket: {
-    cardChance: 0.10, yenMin: 10000,  yenMax: 25000,  cardPool: ['R','E','L'], lbMin: 1, lbMax: 2,  cardCount: [1,3],
+    cardChance: 0.10,
+    yenMin: 10000,  yenMax: 20000,    // 0.5× base
+    starsMin: 25,   starsMax: 50,     // 0.5× base
+    cardPool: ['R','E','L'],
+    noLimitBreakers: true,            // normal tickets never drop LBs
+    lbMin: 0, lbMax: 0,
+    cardCount: [1,3],
   },
   mythical_raid_ticket: {
-    cardChance: 0.15, yenMin: 25000,  yenMax: 60000,  cardPool: ['E','L','MY'], lbMin: 1, lbMax: 3,  cardCount: [1,3],
+    cardChance: 0.15,
+    yenMin: 40000,  yenMax: 80000,    // 2× base
+    starsMin: 100,  starsMax: 200,    // 2× base
+    cardPool: ['E','L','MY'],
+    lbMin: 1, lbMax: 3,
+    cardCount: [1,3],
   },
   omega_raid_ticket: {
-    cardChance: 0.20, yenMin: 50000,  yenMax: 100000, cardPool: ['L','MY','UR'], lbMin: 2, lbMax: 4, cardCount: [1,4],
+    cardChance: 0.20,
+    yenMin: 100000, yenMax: 200000,   // 5× base
+    starsMin: 250,  starsMax: 500,    // 5× base
+    cardPool: ['L','MY','UR'],
+    lbMin: 2, lbMax: 4,
+    cardCount: [1,4],
   },
   hellish_raid_ticket: {
-    cardChance: 0.30, yenMin: 100000, yenMax: 200000, cardPool: ['L','MY','UR'], lbMin: 3, lbMax: 5, cardCount: [1,5],
+    cardChance: 0.30,
+    yenMin: 200000, yenMax: 400000,   // 10× base
+    starsMin: 500,  starsMax: 1000,   // 10× base
+    cardPool: ['L','MY','UR'],
+    lbMin: 3, lbMax: 5,
+    cardCount: [1,5],
   },
 };
 
@@ -1086,12 +1137,15 @@ function generateRaidReward(state, inventory) {
     return `${meta.emoji} **${boss.name}** joined your collection!${isDupe ? ' *(+1 shard)*' : ''}`;
   }
 
-  // Yen
-  const yenRange = cfg.yenMax - cfg.yenMin;
+  // Yen + Stars
+  const yenRange   = cfg.yenMax   - cfg.yenMin;
+  const starRange  = cfg.starsMax - cfg.starsMin;
   if (roll < cfg.cardChance + 0.40) {
-    const yen = Math.floor(cfg.yenMin + Math.random() * (yenRange + 1));
+    const yen   = Math.floor(cfg.yenMin   + Math.random() * (yenRange  + 1));
+    const stars = Math.floor(cfg.starsMin + Math.random() * (starRange + 1));
     inv.addYen(inventory, userId, yen);
-    return `💰 **¥${yen.toLocaleString()} Yen** dropped!`;
+    inv.addStars(inventory, userId, stars);
+    return `💰 **¥${yen.toLocaleString()} Yen** + ⭐ **${stars.toLocaleString()} Stars** dropped!`;
   }
 
   // Random cards
@@ -1110,7 +1164,14 @@ function generateRaidReward(state, inventory) {
     return `🎴 **${count} card${count === 1 ? '' : 's'}** dropped!\n${lines.join('\n')}`;
   }
 
-  // Limit Breakers
+  // Limit Breakers — normal raid tickets cannot drop them; fall back to bonus yen+stars instead
+  if (cfg.noLimitBreakers) {
+    const yen   = Math.floor(cfg.yenMin   + Math.random() * (yenRange  + 1));
+    const stars = Math.floor(cfg.starsMin + Math.random() * (starRange + 1));
+    inv.addYen(inventory, userId, yen);
+    inv.addStars(inventory, userId, stars);
+    return `💰 **¥${yen.toLocaleString()} Yen** + ⭐ **${stars.toLocaleString()} Stars** dropped!`;
+  }
   const lbCount = Math.floor(cfg.lbMin + Math.random() * (cfg.lbMax - cfg.lbMin + 1));
   inv.addLimitBreakers(inventory, userId, lbCount);
   let raidScrollBonus = '';
