@@ -2,6 +2,16 @@
 //  imageCache.js — Character image URL cache
 //  Loads confirmed images instantly; fetches remaining ones
 //  from AniList API in the background at startup.
+//
+//  ── IMAGE VERIFICATION POLICY ────────────────────────────────
+//  Before adding or changing any image URL in SEED, verify the
+//  image is correct official art by checking it on at least
+//  three different sources:
+//    1. AniList  — anilist.co/character/<id>
+//    2. MyAnimeList — myanimelist.net/character/<id>
+//    3. Series Wikia — e.g. jujutsu-kaisen.fandom.com
+//  Paste the URL into a browser and confirm the image shows the
+//  correct character before committing it.
 // ============================================================
 
 const fs   = require('fs');
@@ -70,12 +80,17 @@ const SEED = {
   kratos_e:        'https://static.wikia.nocookie.net/godofwar/images/e/e9/Kratos-_GOW_Ragnarok.png/revision/latest',
   // The Legend of Zelda
   link_r:          'https://static.wikia.nocookie.net/zelda_gamepedia_en/images/4/47/TLoZ_Series_Link_Render.png/revision/latest',
-  sukuna_fp_lt:    'https://static.wikia.nocookie.net/jujutsu-kaisen/images/2/29/Sukuna%27s_Four_Arms.png/revision/latest',
-  sukuna_fp:       'https://static.wikia.nocookie.net/jujutsu-kaisen/images/2/29/Sukuna%27s_Four_Arms.png/revision/latest',
-  sukuna:          'https://static.wikia.nocookie.net/jujutsu-kaisen/images/7/74/Sukuna_(Volume_29).png/revision/latest?cb=20241118163249',
+  // Sukuna Full Power (LT) — 4-armed Heian-era form
+  // Verified: AniList anilist.co/character/127213 | MAL myanimelist.net/character/187499 | JJK Wikia jujutsu-kaisen.fandom.com
+  sukuna_fp_lt:    'https://s4.anilist.co/file/anilistcdn/character/large/b127213-KwPAqT1Mvqk6.png',
+  sukuna_fp:       'https://s4.anilist.co/file/anilistcdn/character/large/b127213-KwPAqT1Mvqk6.png',
+  // Sukuna (MY) — King of Curses sealed form
+  // Verified: AniList anilist.co/character/127213 | MAL myanimelist.net/character/187499 | JJK Wikia jujutsu-kaisen.fandom.com
+  sukuna:          'https://s4.anilist.co/file/anilistcdn/character/large/b127213-KwPAqT1Mvqk6.png',
   // Chainsaw Man — Power (card id is 'power', seed both keys to be safe)
-  power:           'https://s4.anilist.co/file/anilistcdn/character/large/b137079-6yLEUYR3bmpr.png',
-  power_r:         'https://s4.anilist.co/file/anilistcdn/character/large/b137079-6yLEUYR3bmpr.png',
+  // Verified: AniList anilist.co/character/137079 | MAL myanimelist.net/character/231475 | Chainsaw Man Wikia chainsaw-man.fandom.com
+  power:           'https://static.wikia.nocookie.net/chainsaw-man/images/e/e0/Power_anime_design.png/revision/latest',
+  power_r:         'https://static.wikia.nocookie.net/chainsaw-man/images/e/e0/Power_anime_design.png/revision/latest',
   // Demon Slayer — Rengoku (cached MAL URL was wrong character; fixed)
   rengoku_e:       'https://myanimelist.net/images/characters/10/423443.jpg',
   // Death Note — Near (cached MAL URL was for a different character 'Nir'; fixed)
@@ -87,8 +102,9 @@ const SEED = {
   aizen_l:         'https://s4.anilist.co/file/anilistcdn/character/large/b59-P4IUZA4bE5SL.png',
   // Demon Slayer — Tanjiro
   tanjiro_r:       'https://s4.anilist.co/file/anilistcdn/character/large/b127216-WV2YX8OHdvVq.png',
-  // Jujutsu Kaisen — Sukuna (manga, Volume 29)
-  sukuna_my:       'https://static.wikia.nocookie.net/jujutsu-kaisen/images/7/74/Sukuna_(Volume_29).png/revision/latest?cb=20241118163249',
+  // Jujutsu Kaisen — Sukuna (MY rarity alias)
+  // Verified: AniList anilist.co/character/127213 | MAL myanimelist.net/character/187499 | JJK Wikia jujutsu-kaisen.fandom.com
+  sukuna_my:       'https://s4.anilist.co/file/anilistcdn/character/large/b127213-KwPAqT1Mvqk6.png',
   // Sword Art Online — Asuna
   asuna_r:         'https://s4.anilist.co/file/anilistcdn/character/large/b36828-S2kOnUSJO6jZ.png',
   // Cowboy Bebop — Spike
@@ -147,8 +163,8 @@ const SEED = {
   // Demon Slayer weapons
   muzan_weapon:         'https://s4.anilist.co/file/anilistcdn/character/large/b127221-KJkyCN0zMkMF.png',
   // JJK weapons
-  sukuna_weapon:        'https://static.wikia.nocookie.net/jujutsu-kaisen/images/7/74/Sukuna_(Volume_29).png/revision/latest?cb=20241118163249',
-  sukuna_fp_weapon:     'https://static.wikia.nocookie.net/jujutsu-kaisen/images/2/29/Sukuna%27s_Four_Arms.png/revision/latest',
+  sukuna_weapon:        'https://s4.anilist.co/file/anilistcdn/character/large/b127213-KwPAqT1Mvqk6.png',
+  sukuna_fp_weapon:     'https://s4.anilist.co/file/anilistcdn/character/large/b127213-KwPAqT1Mvqk6.png',
   gojo_weapon:          'https://static.wikia.nocookie.net/jujutsu-kaisen/images/a/ae/Satoru_Gojo_anime_pre_timeskip.png/revision/latest',
   // Fairy Tail weapons
   acnologia_weapon:     'https://s4.anilist.co/file/anilistcdn/character/large/b63920-Qb8LuRJvTuPb.png',
@@ -264,6 +280,12 @@ const SEED = {
   // The Legend of Zelda
   link:            'https://static.wikia.nocookie.net/zelda_gamepedia_en/images/4/47/TLoZ_Series_Link_Render.png/revision/latest',
   // Hunter x Hunter
+  // Killua: Verified: AniList anilist.co/character/41322 | MAL myanimelist.net/character/22297 | HxH Wikia hunterxhunter.fandom.com
+  killua:          'https://s4.anilist.co/file/anilistcdn/character/large/b41322-vQYmU7pnPqNe.png',
+  killua_e:        'https://s4.anilist.co/file/anilistcdn/character/large/b41322-vQYmU7pnPqNe.png',
+  gon:             'https://s4.anilist.co/file/anilistcdn/character/large/b30-EjpivFaAlsWM.png',
+  kurapika:        'https://s4.anilist.co/file/anilistcdn/character/large/b34-cCzjvqYijIgj.png',
+  hisoka:          'https://s4.anilist.co/file/anilistcdn/character/large/b41832-OFMkuSb3uxNE.png',
   netero:          'https://s4.anilist.co/file/anilistcdn/character/large/b41829-NiNjGHJbniJI.png',
   // Gurren Lagann
   // (simon already seeded above)
