@@ -2015,7 +2015,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
             name: '\u200b',
             value: [
               '`ZP refresh` – Delete all server emojis and re-sync from scratch',
-              '`ZP imgreview [filter]` – Browse every card\'s image & emoji interactively. Use `missing` to show only uncached cards, or any name/series to filter.',
+              '`ZP imgreview [filter]` – Review card images & emojis interactively (`missing` = uncached only, or filter by name/series).',
               '`ZP giveitem @user <itemId>` – Give a limited item to a player',
               '`ZP giveraidticket @user <tier> [amount]` – Give raid tickets (tiers: `normal` `mythical` `omega` `hellish`)',
               '`ZP giveshards @user <cardId> <amount>` – Give character shards to a player',
