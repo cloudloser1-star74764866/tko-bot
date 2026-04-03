@@ -2793,7 +2793,7 @@ client.on('messageCreate', async (message) => {
     if (wish.pullCount < inv.WISH_THRESHOLD) return null;
 
     const wishCard = lookupCard(wish.cardId);
-    if (!wishCard) {
+    if (!wishCard || wishCard.rarity === 'MD') {
       inv.clearWish(inventory, uid);
       return null;
     }
@@ -2928,7 +2928,16 @@ client.on('messageCreate', async (message) => {
     const cardQuery = args.filter(a => !a.startsWith('<@')).join(' ');
     if (!cardQuery) {
       const inventory = await inv.loadInventory();
-      const wish      = inv.getWish(inventory, userId);
+      let wish        = inv.getWish(inventory, userId);
+      // Auto-clear any stale MD wish (guard against old data)
+      if (wish) {
+        const staleCard = lookupCard(wish.cardId);
+        if (!staleCard || staleCard.rarity === 'MD') {
+          inv.clearWish(inventory, userId);
+          await inv.saveInventory(inventory);
+          wish = null;
+        }
+      }
       if (!wish) {
         return message.reply(
           `You have no wish set. Use \`ZP wish <name or id>\` to wish for a card.\n` +
