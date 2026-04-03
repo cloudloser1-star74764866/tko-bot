@@ -572,13 +572,15 @@ function buildBattleCard(slot) {
   let speed = stats.speed; // plating does not affect speed
 
   if (slot.equippedWeapon) {
-    const { weaponId, weaponName } = slot.equippedWeapon;
-    const wCard  = lookupCard(weaponId);
-    const wStats = wCard ? (config.WEAPON_STATS[wCard.rarity] ?? null) : null;
+    const { weaponId, weaponName, weaponLevel = 1, evolutionTier = 1 } = slot.equippedWeapon;
+    const wCard    = lookupCard(weaponId);
+    const wStats   = wCard ? (config.WEAPON_STATS[wCard.rarity] ?? null) : null;
+    const tierData = config.WEAPON_EVOLUTION_TIERS[evolutionTier - 1] ?? config.WEAPON_EVOLUTION_TIERS[0];
+    const tierMult = 1 + (tierData.statMult * (weaponLevel / 100));
     if (wStats) {
-      hp    += wStats.hp;
-      speed += wStats.speed;
-      dmg   += getWeaponAtkBonus(weaponId);
+      hp    += Math.round(wStats.hp    * tierMult);
+      speed += Math.round(wStats.speed * tierMult);
+      dmg   += Math.round(getWeaponAtkBonus(weaponId) * tierMult);
     }
     equippedWeaponId   = weaponId;
     equippedWeaponName = weaponName;
@@ -1736,7 +1738,7 @@ function buildImageReviewEmbed(authorId, filteredCards, index, filter, expiry) {
 }
 
 function buildCollectionPage(authorId, targetUser, cards, page, filter, inventory, expiry) {
-  const enriched = cards.map(enrichCard);
+  const enriched = cards.map(enrichCard).filter(c => !lookupCard(c.id)?.weaponCard);
   const filtered = applyFilter(enriched, filter);
 
   filtered.sort((a, b) => {
@@ -1796,6 +1798,108 @@ function buildCollectionPage(authorId, targetUser, cards, page, filter, inventor
       .setDisabled(page === 0),
     new ButtonBuilder()
       .setCustomId(`col|${authorId}|${targetUser.id}|${expiry}|close|${filter}`)
+      .setLabel('✕ Close')
+      .setStyle(ButtonStyle.Danger),
+    new ButtonBuilder()
+      .setCustomId(base.replace('%page%', page + 1))
+      .setLabel('Next ▶')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page === filtered.length - 1),
+  );
+
+  return { embed, components: [row] };
+}
+
+// ── Weapon collection page builder ───────────────────────
+
+const WCOL_TIMEOUT_MS = 120_000;
+
+function buildWeaponCollectionPage(authorId, targetUser, cards, page, filter, inventory, expiry) {
+  const enriched = cards.map(enrichCard).filter(c => lookupCard(c.id)?.weaponCard);
+  const filtered = filter
+    ? enriched.filter(c => {
+        const hay = `${c.id} ${c.name} ${c.series}`.toLowerCase();
+        return filter.toLowerCase().split(/\s+/).every(w => hay.includes(w));
+      })
+    : enriched;
+
+  filtered.sort((a, b) => {
+    const ra = RARITY_ORDER.indexOf(a.rarity);
+    const rb = RARITY_ORDER.indexOf(b.rarity);
+    if (ra !== rb) return rb - ra;
+    return a.name.localeCompare(b.name);
+  });
+
+  if (filtered.length === 0) {
+    const embed = new EmbedBuilder()
+      .setColor(0x808080)
+      .setTitle(`⚔️ ${targetUser.username}'s Weapons`)
+      .setDescription(filter
+        ? `No weapons matching **"${filter}"**.`
+        : 'No weapons in your collection yet. Weapon cards drop from pulls!');
+    return { embed, components: [] };
+  }
+
+  page = Math.max(0, Math.min(page, filtered.length - 1));
+  const card     = filtered[page];
+  const wDef     = lookupCard(card.id);
+  const meta     = rarityMeta(card.rarity);
+  const wData    = inv.getWeaponData(inventory, targetUser.id, card.id);
+  const wStats   = config.WEAPON_STATS[card.rarity];
+  const tier     = wData.evolutionTier ?? 1;
+  const prestige = wData.prestige ?? 0;
+  const tierData = config.WEAPON_EVOLUTION_TIERS[tier - 1];
+  const nextTier = config.WEAPON_EVOLUTION_TIERS[tier];
+  const level    = card.level ?? 1;
+  const tierMult = 1 + (tierData.statMult * (level / 100));
+  const shards   = inv.getCharacterShards(inventory, targetUser.id)[card.id] ?? 0;
+  const sigName  = wDef?.weaponOf ? (lookupCard(wDef.weaponOf)?.name ?? wDef.weaponOf) : null;
+  const filterTag = filter ? ` • Filter: "${filter}"` : '';
+
+  const atkBonus = wStats ? Math.round(getWeaponAtkBonus(card.id) * tierMult) : 0;
+  const effectiveHp    = wStats ? Math.round(wStats.hp    * tierMult) : 0;
+  const effectiveSpeed = wStats ? Math.round(wStats.speed * tierMult) : 0;
+
+  const progressLine = nextTier
+    ? `**Progress → Tier ${tier + 1}:** ${prestige}/${config.WEAPON_EVOLVE_PRESTIGE} prestige • ${shards}/${config.WEAPON_EVOLVE_SHARDS} shards`
+    : '⚡ **MAX EVOLUTION — Legendary!**';
+
+  const embed = new EmbedBuilder()
+    .setColor(meta.color)
+    .setTitle(`⚔️ ${meta.emoji} ${card.name}`)
+    .setDescription(`⚔️ **${targetUser.username}'s Weapon Collection**\n${wDef?.desc ?? ''}`)
+    .addFields(
+      { name: 'Series',      value: card.series,                             inline: true },
+      { name: 'Rarity',      value: `${meta.emoji} ${meta.label}`,           inline: true },
+      { name: '🏷️ Type',    value: sigName ? `Signature: ${sigName}` : 'Universal', inline: true },
+      { name: `${tierData.emoji} Tier`,  value: `**${tier} — ${tierData.name}**`,  inline: true },
+      { name: '📊 Level',    value: `${level} / 100`,                        inline: true },
+      { name: '✨ Prestige', value: `${prestige.toLocaleString()}`,          inline: true },
+    );
+
+  if (wStats) {
+    embed.addFields(
+      { name: '❤️ HP Bonus',     value: `+${effectiveHp.toLocaleString()}`, inline: true },
+      { name: '⚔️ ATK Bonus',    value: `+${atkBonus.toLocaleString()}`,    inline: true },
+      { name: '💨 Speed Bonus',  value: `+${effectiveSpeed.toLocaleString()}`, inline: true },
+    );
+  }
+
+  embed.addFields({ name: '📈 Evolution Progress', value: progressLine, inline: false });
+
+  const colImg = imgCache.getImage(card.id) ?? card.image ?? null;
+  if (colImg) embed.setThumbnail(colImg);
+  embed.setFooter({ text: `Weapon ${page + 1} of ${filtered.length}${filterTag} • Earn prestige by winning fights` });
+
+  const base = `wcol|${authorId}|${targetUser.id}|${expiry}|%page%|${filter}`;
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(base.replace('%page%', page - 1))
+      .setLabel('◀ Prev')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page === 0),
+    new ButtonBuilder()
+      .setCustomId(`wcol|${authorId}|${targetUser.id}|${expiry}|close|${filter}`)
       .setLabel('✕ Close')
       .setStyle(ButtonStyle.Danger),
     new ButtonBuilder()
@@ -3042,6 +3146,32 @@ client.on('interactionCreate', async (interaction) => {
     return interaction.update({ embeds: [embed], components });
   }
 
+  // ── wcol (weapon collection) button ───────────────────────
+  if (parts[0] === 'wcol') {
+    const [, wAuthorId, wTargetId, wExpiryStr, wPageStr, ...wFilterParts] = parts;
+    const wFilter = wFilterParts.join('|');
+    const wExpiry = parseInt(wExpiryStr, 10);
+
+    if (interaction.user.id !== wAuthorId) {
+      return interaction.reply({ content: 'These buttons are not for you.', ephemeral: true });
+    }
+    if (Date.now() > wExpiry) {
+      return interaction.update({ components: [], embeds: interaction.message.embeds, content: interaction.message.content || null });
+    }
+    if (wPageStr === 'close') {
+      return interaction.update({ components: [] });
+    }
+
+    const wPage       = parseInt(wPageStr, 10);
+    const wTargetUser = await client.users.fetch(wTargetId).catch(() => null);
+    if (!wTargetUser) return interaction.reply({ content: 'Could not find that user.', ephemeral: true });
+
+    const wInventory = await inv.loadInventory();
+    const wCards     = inv.getCards(wInventory, wTargetId);
+    const { embed, components } = buildWeaponCollectionPage(wAuthorId, wTargetUser, wCards, wPage, wFilter, wInventory, wExpiry);
+    return interaction.update({ embeds: [embed], components });
+  }
+
   if (parts[0] !== 'col') return;
 
   const [, authorId, targetId, expiryStr, pageStr, ...filterParts] = parts;
@@ -3420,7 +3550,7 @@ client.on('messageCreate', async (message) => {
     }
 
     const inventory = await inv.loadInventory();
-    const cards     = inv.getCards(inventory, target.id);
+    const cards     = inv.getCards(inventory, target.id).filter(c => !lookupCard(c.id)?.weaponCard);
 
     if (cards.length === 0) {
       return message.reply(`${target.id === userId ? 'You have' : `**${target.username}** has`} no cards yet. Use \`ZP pull\` to get started!`);
@@ -3428,6 +3558,25 @@ client.on('messageCreate', async (message) => {
 
     const expiry = Date.now() + COLLECTION_TIMEOUT_MS;
     const { embed, components } = buildCollectionPage(userId, target, cards, 0, filter, inventory, expiry);
+    return message.reply({ embeds: [embed], components });
+  }
+
+  // ── wcollection | wcol ───────────────────────────────────
+  if (command === 'wcollection' || command === 'wcol') {
+    const target  = message.mentions.users.first() ?? message.author;
+    const filter  = args.filter(a => !a.startsWith('<@')).join(' ').trim();
+
+    if (target.id !== userId) {
+      const checkInv = await inv.loadInventory();
+      if (inv.getPrivacy(checkInv, target.id)) {
+        return message.reply(`**${target.username}**'s collection is set to private.`);
+      }
+    }
+
+    const inventory = await inv.loadInventory();
+    const cards     = inv.getCards(inventory, target.id);
+    const expiry    = Date.now() + WCOL_TIMEOUT_MS;
+    const { embed, components } = buildWeaponCollectionPage(userId, target, cards, 0, filter, inventory, expiry);
     return message.reply({ embeds: [embed], components });
   }
 
@@ -4069,10 +4218,14 @@ client.on('messageCreate', async (message) => {
   // ── mycard | mc ───────────────────────────────────────────
   if (command === 'mycard' || command === 'mc' || command === 'mci') {
     const cardQuery = args.filter(a => !a.startsWith('<@')).join(' ');
-    if (!cardQuery) return message.reply('Usage: `ZP mycard <name or id>` — e.g. `ZP mc gear5 luffy`');
+    if (!cardQuery) return message.reply('Usage: `ZP mycard <name or id>` — e.g. `ZP mc gear5 luffy`\nFor weapons use `ZP wmci <weaponId>`');
 
     const card = resolveCard(cardQuery);
     if (!card) return message.reply(`No card found matching \`${cardQuery}\`.`);
+
+    if (lookupCard(card.id)?.weaponCard) {
+      return message.reply(`**${card.name}** is a weapon card. Use \`ZP wmci ${card.id}\` to see your weapon's stats.`);
+    }
 
     const inventory = await inv.loadInventory();
     if (!inv.hasCard(inventory, userId, card.id)) {
