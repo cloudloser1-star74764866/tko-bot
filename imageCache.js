@@ -562,7 +562,11 @@ function loadCache() {
       const saved = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
       // SEED always wins — it contains verified official URLs
       cache = { ...saved, ...SEED };
+    } else {
+      cache = { ...SEED };
     }
+    // Persist SEED entries to disk immediately so restarts don't start from scratch
+    saveCache();
   } catch (_) {}
 }
 
@@ -660,6 +664,7 @@ async function refreshMissing() {
   const missing = Object.entries(SEARCH_TERMS).filter(([id]) => !cache[id]);
   if (missing.length === 0) {
     console.log('🖼️  Image cache: all images already cached.');
+    saveCache(); // ensure SEED entries are always on disk
     return;
   }
   console.log(`🖼️  Image cache: fetching ${missing.length} missing character images...`);

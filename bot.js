@@ -2044,7 +2044,7 @@ const recentInteractions = new Set();
 // ── Per-user button cooldown (prevents button-spam bugs) ──────
 // Key: `${userId}:${buttonType}` → timestamp of last click
 const buttonCooldowns = new Map();
-const BUTTON_COOLDOWN_MS = 2000; // 2 seconds per button type per user
+const BUTTON_COOLDOWN_MS = 500; // 0.5 seconds per button type per user
 
 function isButtonOnCooldown(userId, buttonType) {
   const key = `${userId}:${buttonType}`;
