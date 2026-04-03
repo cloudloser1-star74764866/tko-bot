@@ -2041,6 +2041,21 @@ function createSlashContext(interaction) {
 // which would cause duplicate replies.
 const recentInteractions = new Set();
 
+// ── Per-user button cooldown (prevents button-spam bugs) ──────
+// Key: `${userId}:${buttonType}` → timestamp of last click
+const buttonCooldowns = new Map();
+const BUTTON_COOLDOWN_MS = 2000; // 2 seconds per button type per user
+
+function isButtonOnCooldown(userId, buttonType) {
+  const key = `${userId}:${buttonType}`;
+  const last = buttonCooldowns.get(key) ?? 0;
+  if (Date.now() - last < BUTTON_COOLDOWN_MS) return true;
+  buttonCooldowns.set(key, Date.now());
+  // Auto-clean after cooldown expires to avoid memory leak
+  setTimeout(() => buttonCooldowns.delete(key), BUTTON_COOLDOWN_MS + 100);
+  return false;
+}
+
 // ── Interactions (buttons + slash commands) ───────────────
 
 client.on('interactionCreate', async (interaction) => {
@@ -2062,7 +2077,15 @@ client.on('interactionCreate', async (interaction) => {
 
   if (!interaction.isButton()) return;
 
+  // ── Per-user button cooldown check ────────────────────────────
   const parts = interaction.customId.split('|');
+  const buttonType = parts[0];
+  if (isButtonOnCooldown(interaction.user.id, buttonType)) {
+    return interaction.reply({
+      content: '⏳ Please wait a moment before clicking again.',
+      ephemeral: true,
+    });
+  }
 
   // ── Confirmation button handler ───────────────────────────
   if (parts[0] === 'confirm_action' || parts[0] === 'cancel_confirm') {
