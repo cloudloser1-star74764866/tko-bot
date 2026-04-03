@@ -333,7 +333,17 @@ const CARDS = [
 ];
 
 /**
+ * Base pool filter — excludes Limited, weapon, support, and ditto cards.
+ * These are never obtainable through regular pulls.
+ */
+function isNormalPullable(c) {
+  return c.rarity !== 'LT' && !c.weaponCard && !c.supportCard && !c.dittoCard;
+}
+
+/**
  * Pull a random card weighted by PULL_RATES.
+ * Limited (LT) cards are explicitly excluded — they are not in PULL_RATES
+ * and must never appear in any rarity pool during a normal pull.
  */
 function pullCard() {
   const roll = Math.random() * 100;
@@ -345,7 +355,7 @@ function pullCard() {
     if (roll < cumulative) { chosen = rarity; break; }
   }
 
-  const pool = CARDS.filter(c => c.rarity === chosen);
+  const pool = CARDS.filter(c => isNormalPullable(c) && c.rarity === chosen);
   return pool.length ? pool[Math.floor(Math.random() * pool.length)] : CARDS[0];
 }
 

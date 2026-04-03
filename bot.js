@@ -326,7 +326,7 @@ function formatRewards(r) {
 }
 
 function pullCardForced(rarity) {
-  const pool = CARDS.filter(c => c.rarity === rarity);
+  const pool = CARDS.filter(c => c.rarity === rarity && !c.weaponCard && !c.supportCard && !c.dittoCard);
   return pool.length ? pool[Math.floor(Math.random() * pool.length)] : CARDS[0];
 }
 
