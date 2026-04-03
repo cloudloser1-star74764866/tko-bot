@@ -247,6 +247,29 @@ let adminPlatingOverride = null;
 
 function isAdmin(userId) { return userId === ADMIN_ID; }
 
+// ── Banned Users ──────────────────────────────────────────
+const BANNED_FILE = path.join(__dirname, 'data', 'banned_users.json');
+let bannedUsers = new Set();
+try {
+  if (fs.existsSync(BANNED_FILE)) {
+    const raw = JSON.parse(fs.readFileSync(BANNED_FILE, 'utf8'));
+    bannedUsers = new Set(Array.isArray(raw) ? raw : []);
+  }
+} catch (_) {}
+function saveBannedUsers() {
+  try { fs.writeFileSync(BANNED_FILE, JSON.stringify([...bannedUsers], null, 2)); } catch (_) {}
+}
+
+// ── Webhook Log Channels ──────────────────────────────────
+const TRADE_LOG_CHANNEL = '1489593047799955538';
+const RAID_LOG_CHANNEL  = '1489593108663373916';
+async function logToChannel(channelId, embed) {
+  try {
+    const ch = await client.channels.fetch(channelId);
+    if (ch?.isTextBased()) await ch.send({ embeds: [embed] });
+  } catch (_) {}
+}
+
 // ── Support Card Helpers ──────────────────────────────────
 // Returns true if the player owns the given support card.
 function hasSupportCard(inventory, userId, supportId) {
@@ -956,12 +979,20 @@ function generateCollabRaidReward(state, inventory) {
   const roll   = Math.random();
 
   const allies = state.participants.filter(p => p.selectedCard);
+  const rewardShares = state.rewardShares ?? [];
+  const shareDeduction = Math.min(rewardShares.length * 0.20, 0.5); // owner loses up to 50% of their share
+  const ownerShare = 0.5 * (1 - shareDeduction);
+  const sharedUsers = rewardShares.map(s => ({
+    userId: s.userId, username: s.username,
+    share: 0.5 * 0.20, // 20% of owner's base 50%
+  }));
   const allPlayers = [
-    { userId: state.ownerId, username: state.ownerName, share: 0.5 },
+    { userId: state.ownerId, username: state.ownerName, share: ownerShare },
     ...allies.map(p => ({
       userId: p.userId, username: p.username,
       share: allies.length > 0 ? 0.5 / allies.length : 0,
     })),
+    ...sharedUsers,
   ];
 
   const lines = [];
@@ -2101,6 +2132,18 @@ client.on('interactionCreate', async (interaction) => {
         const rewardText = generateRaidReward(state, inventory);
         await inv.saveInventory(inventory);
         log += `\n\n🏆 **${state.attackerName}** defeated the Raid Boss!\n\n${rewardText}`;
+        // Log solo raid completion
+        const raidLogEmbed = new EmbedBuilder()
+          .setColor(0xFFD700)
+          .setTitle('⚔️ Solo Raid Completed')
+          .setDescription(
+            `**Player:** <@${state.attackerId}> (${state.attackerName})\n` +
+            `**Boss:** ${state.defenderName}\n` +
+            `**Tier:** ${state.raidTicketTier ?? 'unknown'}\n\n` +
+            `**Rewards:** ${rewardText}`
+          )
+          .setTimestamp();
+        logToChannel(RAID_LOG_CHANNEL, raidLogEmbed);
         const embed = buildRaidEmbed(state, log);
         return interaction.update({ embeds: [embed], components: [] });
       }
@@ -2424,6 +2467,23 @@ client.on('interactionCreate', async (interaction) => {
         await inv.saveInventory(inventory);
         const winners = [state.ownerName, ...state.participants.map(p => p.username)].join(', ');
         log += `\n\n🏆 **${winners}** defeated the Raid Boss!\n\n${rewardText}`;
+        // Log collab raid completion
+        const rewardSharesText = (state.rewardShares ?? []).length > 0
+          ? '\n**Reward Shares (20% each):** ' + (state.rewardShares).map(s => `<@${s.userId}> (${s.username})`).join(', ')
+          : '';
+        const collabLogEmbed = new EmbedBuilder()
+          .setColor(0xFFD700)
+          .setTitle('🏰 Collab Raid Completed')
+          .setDescription(
+            `**Owner:** <@${state.ownerId}> (${state.ownerName})\n` +
+            `**Participants:** ${winners}\n` +
+            `**Boss:** ${boss.name}\n` +
+            `**Tier:** ${state.raidTicketTier ?? 'unknown'}` +
+            rewardSharesText +
+            `\n\n**Rewards:** ${rewardText}`
+          )
+          .setTimestamp();
+        logToChannel(RAID_LOG_CHANNEL, collabLogEmbed);
         return interaction.update({ embeds: [buildCollabRaidBattleEmbed(state, log)], components: [] });
       }
 
@@ -2681,6 +2741,9 @@ client.on('messageCreate', async (message) => {
   }
   const userId  = message.author.id;
   const guildId = message.guild?.id;
+
+  // ── Banned user check ─────────────────────────────────────
+  if (bannedUsers.has(userId) && !isAdmin(userId)) return;
 
   // ── help | h ─────────────────────────────────────────────
   if (!command || command === 'help' || command === 'h') {
@@ -3315,7 +3378,7 @@ client.on('messageCreate', async (message) => {
       const user   = inv.ensureUser(inventory, userId);
       const slot   = user.cards.find(c => c.cardId === targetCard.id);
       const curLvl = slot?.level ?? 1;
-      const cap    = slot?.levelCap ?? 100;
+      const cap    = inv.getPersonalLevelCap(inventory, userId, targetCard.id);
       if (curLvl >= cap) {
         inv.addItem(inventory, userId, 'level_scroll');
         await inv.saveInventory(inventory);
@@ -3468,7 +3531,18 @@ client.on('messageCreate', async (message) => {
       raidBossCard:   bossCard,
       isDittoBoss,
       expiry: Date.now() + 30 * 60 * 1000,
+      rewardShares: [],
     };
+
+    // Auto-whitelist all clan members of the raid owner
+    const ownerClan = inv.getUserClan(inventory, userId);
+    if (ownerClan) {
+      const clanMembers = ownerClan.members.filter(m => m !== userId);
+      for (const memberId of clanMembers) {
+        if (state.whitelist.length < 4) state.whitelist.push(memberId);
+      }
+    }
+
     activeBattles.set(battleId, state);
     activeCollabRaids.set(userId, battleId);
 
@@ -3529,6 +3603,42 @@ client.on('messageCreate', async (message) => {
       } catch (_) {}
     }
     return message.reply(`✅ **${target.username}** whitelisted for the raid!`);
+  }
+
+  // ── shareraid | sr ────────────────────────────────────────
+  if (command === 'shareraid' || command === 'sr') {
+    const battleId = activeCollabRaids.get(userId);
+    if (!battleId) return message.reply('You don\'t have an active collab raid! Use a raid ticket first.');
+    const state = activeBattles.get(battleId);
+    if (!state?.isCollabRaid) return message.reply('No active collab raid found.');
+
+    const target = message.mentions.users.first();
+    if (!target) return message.reply('Usage: `ZP shareraid @user` or `ZP sr @user`');
+    if (target.id === userId) return message.reply('You can\'t share rewards with yourself!');
+
+    if (!state.rewardShares) state.rewardShares = [];
+    if (state.rewardShares.some(s => s.userId === target.id)) {
+      return message.reply(`**${target.username}** already has a reward share on this raid!`);
+    }
+    if (state.rewardShares.length >= 4) {
+      return message.reply('You can share with at most 4 users!');
+    }
+
+    state.rewardShares.push({ userId: target.id, username: target.username });
+
+    const logEmbed = new EmbedBuilder()
+      .setColor(0xFF9900)
+      .setTitle('🔗 Raid Reward Share Added')
+      .setDescription(
+        `**Raid Owner:** <@${userId}> (${message.author.username})\n` +
+        `**Shared With:** <@${target.id}> (${target.username})\n` +
+        `**Share:** 20% of owner's raid rewards\n` +
+        `**Boss:** ${state.raidBossCard?.name ?? 'Unknown'}`
+      )
+      .setTimestamp();
+    logToChannel(RAID_LOG_CHANNEL, logEmbed);
+
+    return message.reply(`✅ **${target.username}** will automatically receive **20%** of your raid rewards! (No acceptance needed)`);
   }
 
   // ── card | c ─────────────────────────────────────────────
@@ -4571,6 +4681,19 @@ client.on('messageCreate', async (message) => {
         .setTitle(`🎁 Gift Sent!`)
         .setDescription(`**${message.author.username}** gifted **${target.username}**:\n${describeItems(offerItems)}`)
         .setFooter({ text: 'No return gift expected!' });
+
+      // Log gift to trade channel
+      const giftLogEmbed = new EmbedBuilder()
+        .setColor(0x00FFD1)
+        .setTitle('🎁 Gift Logged')
+        .addFields(
+          { name: 'From', value: `<@${userId}> (${message.author.username})`, inline: true },
+          { name: 'To', value: `<@${target.id}> (${target.username})`, inline: true },
+          { name: 'Items', value: describeItems(offerItems), inline: false },
+        )
+        .setTimestamp();
+      logToChannel(TRADE_LOG_CHANNEL, giftLogEmbed);
+
       return message.reply({ embeds: [embed] });
     }
 
@@ -4633,6 +4756,20 @@ client.on('messageCreate', async (message) => {
         { name: `${trade.offerName} received`,         value: describeItems(trade.askItems),   inline: true },
       )
       .setFooter({ text: `Trade ID: ${tradeId}` });
+
+    // Log trade to trade channel
+    const tradeLogEmbed = new EmbedBuilder()
+      .setColor(0x00FFD1)
+      .setTitle('🤝 Trade Logged')
+      .addFields(
+        { name: 'Trade ID', value: tradeId, inline: false },
+        { name: `${trade.offerName} offered`, value: describeItems(trade.offerItems), inline: true },
+        { name: `${message.author.username} offered`, value: describeItems(trade.askItems), inline: true },
+        { name: 'Parties', value: `<@${trade.offerId}> ↔️ <@${userId}>`, inline: false },
+      )
+      .setTimestamp();
+    logToChannel(TRADE_LOG_CHANNEL, tradeLogEmbed);
+
     return message.reply({ embeds: [embed] });
   }
 
@@ -5603,6 +5740,61 @@ client.on('messageCreate', async (message) => {
           .setTitle('🔧 Active Redeem Codes')
           .setDescription(lines.join('\n'))
           .setFooter({ text: `${codes.length} code${codes.length === 1 ? '' : 's'} total` }),
+      ],
+    });
+  }
+
+  // ── rebuildemojis ────────────────────────────────────────
+  if (command === 'rebuildemojis' || command === 're') {
+    if (!isAdmin(userId)) return;
+    const reply = await message.reply('🗑️ Deleting all existing emojis from emoji servers… this will take a while.');
+    try {
+      await emojiCache.deleteAllEmojis(client);
+      await reply.edit('🔄 All emojis deleted. Now re-uploading fresh emojis from updated images… this may take several minutes.');
+      const imgCache = require('./imageCache');
+      await emojiCache.syncEmojis(client, CARDS, imgCache);
+      return reply.edit('✅ Emoji rebuild complete! All card emojis have been refreshed with the latest official art.');
+    } catch (err) {
+      console.error('[rebuildemojis]', err);
+      return reply.edit(`❌ Emoji rebuild encountered an error: ${err.message}`);
+    }
+  }
+
+  // ── banaccount ────────────────────────────────────────────
+  if (command === 'banaccount' || command === 'ban') {
+    if (!isAdmin(userId)) return;
+    const targetId = args.find(a => !a.startsWith('<@')) ?? message.mentions.users.first()?.id;
+    if (!targetId) return message.reply('Usage: `ZP banaccount <userId>` — provide the user\'s Discord account ID.');
+    if (targetId === ADMIN_ID) return message.reply('Cannot ban the admin account.');
+    if (bannedUsers.has(targetId)) return message.reply(`Account \`${targetId}\` is already banned.`);
+    bannedUsers.add(targetId);
+    saveBannedUsers();
+    return message.reply(`🔨 Account \`${targetId}\` has been **fully banned** from using the bot.`);
+  }
+
+  // ── unbanaccount ──────────────────────────────────────────
+  if (command === 'unbanaccount' || command === 'unban') {
+    if (!isAdmin(userId)) return;
+    const targetId = args.find(a => !a.startsWith('<@')) ?? message.mentions.users.first()?.id;
+    if (!targetId) return message.reply('Usage: `ZP unbanaccount <userId>` — provide the user\'s Discord account ID.');
+    if (!bannedUsers.has(targetId)) return message.reply(`Account \`${targetId}\` is not currently banned.`);
+    bannedUsers.delete(targetId);
+    saveBannedUsers();
+    return message.reply(`✅ Account \`${targetId}\` has been **unbanned** and can use the bot again.`);
+  }
+
+  // ── listbanned ────────────────────────────────────────────
+  if (command === 'listbanned') {
+    if (!isAdmin(userId)) return;
+    if (bannedUsers.size === 0) return message.reply('No accounts are currently banned.');
+    const list = [...bannedUsers].map(id => `\`${id}\``).join('\n');
+    return message.reply({
+      embeds: [
+        new EmbedBuilder()
+          .setColor(0xFF0000)
+          .setTitle('🔨 Banned Accounts')
+          .setDescription(list)
+          .setFooter({ text: `${bannedUsers.size} banned account${bannedUsers.size === 1 ? '' : 's'}` }),
       ],
     });
   }
