@@ -93,7 +93,64 @@ function logCacheStatus(cards) {
   const cache   = load();
   const cached  = cards.filter(c => cache[c.id]).length;
   const missing = cards.length - cached;
-  console.log(`😀 Emoji cache: ${cached}/${cards.length} cards ready.${missing > 0 ? ` (${missing} missing — run buildEmojiCache.js to upload)` : ''}`);
+  console.log(`😀 Emoji cache: ${cached}/${cards.length} cards ready.${missing > 0 ? ` (${missing} missing)` : ''}`);
+}
+
+/**
+ * Read all existing emojis from the EMOJI_SERVERS and populate the cache.
+ * Safe to run at every startup — only writes entries not already in the cache.
+ * Returns the number of newly discovered emojis.
+ */
+async function discoverFromDiscord(client, cards) {
+  const cache = load();
+
+  // Build lookup: emojiName → cardId (mirrors upload transformation)
+  const nameToCardId = {};
+  for (const card of cards) {
+    const emojiName = card.id.replace(/[^a-zA-Z0-9_]/g, '_').padEnd(2, '_');
+    nameToCardId[emojiName] = card.id;
+  }
+
+  let discovered = 0;
+  let alreadyCached = 0;
+
+  for (const serverId of EMOJI_SERVERS) {
+    let guild;
+    try {
+      guild = await client.guilds.fetch(serverId);
+    } catch (err) {
+      console.warn(`😀 Emoji discover: could not fetch guild ${serverId}: ${err.message}`);
+      continue;
+    }
+
+    let emojis;
+    try {
+      emojis = await guild.emojis.fetch();
+    } catch (err) {
+      console.warn(`😀 Emoji discover: could not fetch emojis from ${serverId}: ${err.message}`);
+      continue;
+    }
+
+    for (const [, emoji] of emojis) {
+      const cardId = nameToCardId[emoji.name];
+      if (!cardId) continue;
+      if (cache[cardId]) {
+        alreadyCached++;
+        continue;
+      }
+      cache[cardId] = { name: emoji.name, id: emoji.id };
+      discovered++;
+    }
+  }
+
+  if (discovered > 0) {
+    save(cache);
+    console.log(`😀 Emoji discover: found ${discovered} existing emojis on Discord and cached them. (${alreadyCached} were already cached)`);
+  } else {
+    console.log(`😀 Emoji discover: no new emojis found. (${alreadyCached} already cached)`);
+  }
+
+  return discovered;
 }
 
 /**
@@ -215,4 +272,4 @@ async function deleteAllEmojis(client) {
   console.log(`🗑️  Emoji wipe done: ${deleted} deleted, ${errors} errors.`);
 }
 
-module.exports = { load, save, getEmoji, setEmoji, removeEmoji, logCacheStatus, syncEmojis, deleteAllEmojis, EMOJI_SERVERS };
+module.exports = { load, save, getEmoji, setEmoji, removeEmoji, logCacheStatus, discoverFromDiscord, syncEmojis, deleteAllEmojis, EMOJI_SERVERS };

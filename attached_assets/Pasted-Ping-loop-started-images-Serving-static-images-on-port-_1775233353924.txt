@@ -1,0 +1,110 @@
+Ping loop started
+[images] Serving static images on port 3001
+[web] Status page on port 3000
+> tko-bot@1.0.0 start
+> node bot.js
+npm warn config production Use `--omit=dev` instead.
+Starting Container
+(node:25) DeprecationWarning: The ready event has been renamed to clientReady to distinguish it from the gateway READY event and will only emit under that name in v15. Please use clientReady instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+😀 Emoji cache: 0/238 cards ready. (238 missing — run buildEmojiCache.js to upload)
+🖼️  Image cache: fetching 155 missing character images...
+✅ Global slash command /zp registered
+🖼️  Image cache: fetched 24/155 images. Cache saved.
+😀 Emoji sync: 0 already cached, 238 to upload...
+😀 Emoji sync: image download failed for goku: HTTP 404
+😀 Emoji sync: no image for deku, skipping.
+😀 Emoji sync: no image for eren, skipping.
+😀 Emoji sync: image download failed for spike: HTTP 404
+😀 Emoji sync: no image for renji, skipping.
+😀 Emoji sync: image download failed for uryu: HTTP 404
+😀 Emoji sync: no image for orihime, skipping.
+😀 Emoji sync: image download failed for tanjiro: HTTP 404
+😀 Emoji sync: no image for nezuko, skipping.
+😀 Emoji sync: no image for zenitsu, skipping.
+😀 Emoji sync: no image for inosuke, skipping.
+😀 Emoji sync: no image for edward, skipping.
+😀 Emoji sync: no image for alphonse, skipping.
+😀 Emoji sync: no image for winry, skipping.
+😀 Emoji sync: no image for kirito, skipping.
+😀 Emoji sync: image download failed for asuna: HTTP 404
+😀 Emoji sync: no image for nobara, skipping.
+😀 Emoji sync: no image for natsu, skipping.
+😀 Emoji sync: no image for gray, skipping.
+😀 Emoji sync: no image for erza, skipping.
+😀 Emoji sync: no image for light, skipping.
+😀 Emoji sync: no image for l, skipping.
+😀 Emoji sync: no image for mob, skipping.
+😀 Emoji sync: no image for reigen, skipping.
+😀 Emoji sync: image download failed for gon: HTTP 404
+😀 Emoji sync: image download failed for kurapika: HTTP 404
+😀 Emoji sync: no image for denji, skipping.
+😀 Emoji sync: no image for loid, skipping.
+😀 Emoji sync: no image for yor, skipping.
+😀 Emoji sync: no image for anya, skipping.
+😀 Emoji sync: no image for subaru, skipping.
+😀 Emoji sync: no image for emilia, skipping.
+😀 Emoji sync: no image for gintoki, skipping.
+😀 Emoji sync: no image for inuyasha, skipping.
+😀 Emoji sync: no image for okabe, skipping.
+😀 Emoji sync: no image for yusuke, skipping.
+😀 Emoji sync: no image for albedo, skipping.
+😀 Emoji sync: image download failed for near: HTTP 404
+😀 Emoji sync: no image for bakugo, skipping.
+😀 Emoji sync: image download failed for levi: HTTP 404
+😀 Emoji sync: image download failed for killua: HTTP 404
+😀 Emoji sync: no image for julius, skipping.
+😀 Emoji sync: no image for todo, skipping.
+😀 Emoji sync: no image for laxus, skipping.
+😀 Emoji sync: no image for gildarts, skipping.
+😀 Emoji sync: no image for rem, skipping.
+😀 Emoji sync: no image for ban, skipping.
+😀 Emoji sync: no image for thorfinn, skipping.
+😀 Emoji sync: no image for askeladd, skipping.
+😀 Emoji sync: no image for lelouch, skipping.
+😀 Emoji sync: no image for kamina, skipping.
+😀 Emoji sync: no image for makima, skipping.
+😀 Emoji sync: no image for sebastian, skipping.
+😀 Emoji sync: image download failed for goku_ssj4: HTTP 404
+😀 Emoji sync: image download failed for rengoku: HTTP 404
+😀 Emoji sync: no image for tengen, skipping.
+😀 Emoji sync: no image for roy, skipping.
+😀 Emoji sync: no image for armstrong, skipping.
+😀 Emoji sync: image download failed for gojo: HTTP 404
+😀 Emoji sync: no image for allmight, skipping.
+😀 Emoji sync: no image for genos, skipping.
+😀 Emoji sync: image download failed for hisoka: HTTP 404
+😀 Emoji sync: image download failed for aizen: HTTP 404
+😀 Emoji sync: no image for gin, skipping.
+😀 Emoji sync: no image for yuta, skipping.
+😀 Emoji sync: image download failed for mavis: HTTP 404
+😀 Emoji sync: image download failed for netero: HTTP 404
+😀 Emoji sync: image download failed for rimuru: HTTP 404
+😀 Emoji sync: image download failed for saitama: HTTP 404
+😀 Emoji sync: image download failed for kaido: HTTP 404
+😀 Emoji sync: image download failed for muzan: HTTP 404
+😀 Emoji sync: image download failed for sukuna: HTTP 404
+😀 Emoji sync: image download failed for acnologia: HTTP 404
+😀 Emoji sync: image download failed for escanor: HTTP 404
+😀 Emoji sync: image download failed for sage_naruto: HTTP 404
+😀 Emoji sync: image download failed for sukuna_fp: HTTP 404
+😀 Emoji sync: no image for daniel, skipping.
+😀 Emoji sync: no image for jay, skipping.
+😀 Emoji sync: image download failed for zack: HTTP 404
+😀 Emoji sync: no image for vasco, skipping.
+😀 Emoji sync: no image for crystal, skipping.
+😀 Emoji sync: image download failed for gun: HTTP 404
+😀 Emoji sync: image download failed for jake_kim: HTTP 404
+😀 Emoji sync: image download failed for samuel: HTTP 404
+😀 Emoji sync: image download failed for johan: HTTP 404
+😀 Emoji sync: image download failed for tom_lee: HTTP 404
+😀 Emoji sync: no image for eli, skipping.
+😀 Emoji sync: no image for baki, skipping.
+😀 Emoji sync: no image for hanayama, skipping.
+😀 Emoji sync: no image for doppo, skipping.
+😀 Emoji sync: no image for retsu, skipping.
+😀 Emoji sync: no image for jack, skipping.
+😀 Emoji sync: no image for oliva, skipping.
+😀 Emoji sync: no image for shibukawa, skipping.
+😀 Emoji sync: image download failed for pickle: HTTP 404
+😀 Emoji sync: image download failed for musashi: HTTP 404

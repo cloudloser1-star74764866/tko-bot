@@ -1982,11 +1982,16 @@ client.once('ready', async () => {
   console.log(`✅ test Bot online as ${client.user.tag}`);
   client.user.setActivity('ZP help  |  /zp', { type: 0 });
   emojiCache.logCacheStatus(CARDS);
-  // Fetch all missing images first, THEN sync emojis so every card has an image URL ready
-  imgCache.refreshMissing()
-    .catch(err => console.error('Image cache refresh error:', err))
+  // First discover any emojis already on Discord (populates cache without re-uploading).
+  // Then fetch missing images, then upload anything still not cached.
+  emojiCache.discoverFromDiscord(client, CARDS)
+    .catch(err => console.error('Emoji discover error:', err))
     .finally(() => {
-      emojiCache.syncEmojis(client, CARDS, imgCache).catch(err => console.error('Emoji sync error:', err));
+      imgCache.refreshMissing()
+        .catch(err => console.error('Image cache refresh error:', err))
+        .finally(() => {
+          emojiCache.syncEmojis(client, CARDS, imgCache).catch(err => console.error('Emoji sync error:', err));
+        });
     });
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
