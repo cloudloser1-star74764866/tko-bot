@@ -27,10 +27,10 @@ module.exports = {
   // (they must add up to 100).
   PLATING_CHANCE: 0.001,
   PLATING_TIERS: [
-    { id: 'bronze',  label: 'Bronze',  emoji: '🥉', weight: 60, color: 0xCD7F32, statMult: 2.0 },
-    { id: 'silver',  label: 'Silver',  emoji: '🥈', weight: 25, color: 0xC0C0C0, statMult: 3.0 },
-    { id: 'gold',    label: 'Gold',    emoji: '🥇', weight: 20, color: 0xFFD700, statMult: 4.0 },
-    { id: 'diamond', label: 'Diamond', emoji: '💠', weight:  5, color: 0xB9F2FF, statMult: 6.0 },
+    { id: 'bronze',  label: 'Bronze',  emoji: '🥉', weight: 60, color: 0xCD7F32, statMult: 1.5 },
+    { id: 'silver',  label: 'Silver',  emoji: '🥈', weight: 25, color: 0xC0C0C0, statMult: 2.0 },
+    { id: 'gold',    label: 'Gold',    emoji: '🥇', weight: 20, color: 0xFFD700, statMult: 2.5 },
+    { id: 'diamond', label: 'Diamond', emoji: '💠', weight:  5, color: 0xB9F2FF, statMult: 3.0 },
   ],
 
   // ── Fight Rewards ─────────────────────────────────────────
@@ -71,10 +71,10 @@ module.exports = {
 
   // Tier definitions: boss pool, stat multiplier applied to Lv-100 card stats.
   RAID_TICKET_TIERS: [
-    { id: 'raid_ticket',          label: 'Raid Ticket',          emoji: '🎟️', color: 0xFF6B6B, bossPools: ['R','E','L'], statMult: 4, useCmd: 'ZP raid'         },
-    { id: 'mythical_raid_ticket', label: 'Mythical Raid Ticket', emoji: '🌙', color: 0xFF4757, bossPools: ['MY'],        statMult: 5, useCmd: 'ZP raid mythical' },
-    { id: 'omega_raid_ticket',    label: 'Omega Raid Ticket',    emoji: '⚡', color: 0x00FFF0, bossPools: ['UR'],         statMult: 5, useCmd: 'ZP raid omega'   },
-    { id: 'hellish_raid_ticket',  label: 'Hellish Raid Ticket',  emoji: '💀', color: 0xFF0000, bossPools: ['LT'],         statMult: 4, useCmd: 'ZP raid hellish' },
+    { id: 'raid_ticket',          label: 'Raid Ticket',          emoji: '🎟️', color: 0xFF6B6B, bossPools: ['R','E','L'], statMult: 10, useCmd: 'ZP raid'         },
+    { id: 'mythical_raid_ticket', label: 'Mythical Raid Ticket', emoji: '🌙', color: 0xFF4757, bossPools: ['MY'],        statMult: 13, useCmd: 'ZP raid mythical' },
+    { id: 'omega_raid_ticket',    label: 'Omega Raid Ticket',    emoji: '⚡', color: 0x00FFF0, bossPools: ['UR'],         statMult: 16, useCmd: 'ZP raid omega'   },
+    { id: 'hellish_raid_ticket',  label: 'Hellish Raid Ticket',  emoji: '💀', color: 0xFF0000, bossPools: ['LT'],         statMult: 19, useCmd: 'ZP raid hellish' },
   ],
 
   // ── Items ─────────────────────────────────────────────────
