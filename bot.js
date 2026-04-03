@@ -4932,8 +4932,8 @@ client.on('messageCreate', async (message) => {
 
   // ── timeskip | ts ─────────────────────────────────────────
   if (command === 'timeskip' || command === 'ts') {
-    const TIMESKIP_COST    = 1000;
-    const TIMESKIP_FIGHTS  = 100;
+    const TIMESKIP_COST    = 10000;
+    const TIMESKIP_FIGHTS  = 50;
 
     const inventory = await inv.loadInventory();
     const userStars = inv.getStars(inventory, userId);
