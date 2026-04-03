@@ -88,6 +88,7 @@ module.exports = {
     { id: 'mythical_raid_ticket',name: 'Mythical Raid Ticket',  emoji: '🌙', cardId: null, useCmd: 'ZP raid mythical', desc: '0.075% drop. Fight a Mythical Raid Boss!' },
     { id: 'omega_raid_ticket',   name: 'Omega Raid Ticket',     emoji: '⚡', cardId: null, useCmd: 'ZP raid omega',   desc: '0.05% drop. Fight an Ultra Rare Raid Boss!' },
     { id: 'hellish_raid_ticket', name: 'Hellish Raid Ticket',   emoji: '💀', cardId: null, useCmd: 'ZP raid hellish', desc: '0.01% drop. Fight a Limited Raid Boss for massive rewards!' },
+    { id: 'level_scroll',        name: 'Level Scroll',          emoji: '📜', cardId: null, useCmd: 'ZP use level_scroll <cardId>', desc: 'Use on any card to instantly raise its level by 1. Obtained from fights, raids, and daily rewards.' },
   ],
 
   // ── Rarity Metadata (display) ────────────────────────────

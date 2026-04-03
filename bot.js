@@ -139,6 +139,27 @@ let adminPlatingOverride = null;
 
 function isAdmin(userId) { return userId === ADMIN_ID; }
 
+// ── Support Card Helpers ──────────────────────────────────
+// Returns true if the player owns the given support card.
+function hasSupportCard(inventory, userId, supportId) {
+  const user = inv.ensureUser(inventory, userId);
+  return !!(user.cards && user.cards.some(c => c.cardId === supportId));
+}
+
+// Returns the effective pull regen in ms for a user.
+function getEffectiveRegenMs(inventory, userId) {
+  const base = config.PULL_COOLDOWN_SECONDS * 1000;
+  if (hasSupportCard(inventory, userId, 'support_r')) return (config.PULL_COOLDOWN_SECONDS - 5) * 1000;
+  return base;
+}
+
+// Returns the conquest duration in ms for a user.
+function getConquestDurationMs(inventory, userId) {
+  const twoHours = 2 * 60 * 60 * 1000;
+  if (hasSupportCard(inventory, userId, 'support_my')) return 60 * 60 * 1000;
+  return twoHours;
+}
+
 function parseRewardArgs(argList) {
   const rewards = { yen: 0, stars: 0, candyTokens: 0, platings: {}, cardRarity: null };
   for (const arg of argList) {
@@ -199,9 +220,9 @@ function schedulePersist() {
   }, 500);
 }
 
-function getCharges(userId) {
+function getCharges(userId, regenMsOverride) {
   const now      = Date.now();
-  const regenMs  = config.PULL_COOLDOWN_SECONDS * 1000;
+  const regenMs  = regenMsOverride ?? config.PULL_COOLDOWN_SECONDS * 1000;
   const max      = config.MAX_PULL_CHARGES;
   const bucket   = pullCharges.get(userId) ?? { charges: max, lastRefill: now };
   const elapsed  = now - bucket.lastRefill;
@@ -913,7 +934,12 @@ function generateRaidReward(state, inventory) {
   // Limit Breakers
   const lbCount = Math.floor(cfg.lbMin + Math.random() * (cfg.lbMax - cfg.lbMin + 1));
   inv.addLimitBreakers(inventory, userId, lbCount);
-  return `💎 **${lbCount} Limit Breaker${lbCount === 1 ? '' : 's'}** dropped!`;
+  let raidScrollBonus = '';
+  if (hasSupportCard(inventory, userId, 'support_ur') && Math.random() < 0.20) {
+    inv.addItem(inventory, userId, 'level_scroll');
+    raidScrollBonus = '\n📜 **Level Scroll** also dropped!';
+  }
+  return `💎 **${lbCount} Limit Breaker${lbCount === 1 ? '' : 's'}** dropped!${raidScrollBonus}`;
 }
 
 // ── Team / Fight helpers ──────────────────────────────────
@@ -1352,21 +1378,22 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
     // Page 0: Pulling
     new EmbedBuilder()
       .setColor(0x00FFD1)
-      .setTitle('📖 Help — 🎴 Pulling (1/7)')
+      .setTitle('📖 Help — 🎴 Pulling (1/8)')
       .setDescription('Pull random character cards from anime, manga, and games!')
       .addFields(
-        { name: '`ZP pull` / `ZP p` / `ZP pu`',      value: `Pull a random card. You have up to **${config.MAX_PULL_CHARGES}** charges; +1 regenerates every **${config.PULL_COOLDOWN_SECONDS}s**.`, inline: false },
+        { name: '`ZP pull` / `ZP p` / `ZP pu`',      value: `Pull a random card. You have up to **${config.MAX_PULL_CHARGES}** charges; +1 regenerates every **${config.PULL_COOLDOWN_SECONDS}s** (25s with 💙 Swift Pull Token support card).`, inline: false },
         { name: '`ZP allpull` / `ZP ap`',             value: 'Spend **all** your current pull charges at once.', inline: false },
         { name: '`ZP allpull reset` / `ZP ap reset`', value: 'Spend all charges then instantly refill back to max. Costs **1 Candy Token**.', inline: false },
         { name: '`ZP reset` / `ZP rs`',               value: 'Use a Candy Token to instantly refill your pulls to max.', inline: false },
-        { name: '`ZP wish <cardId>` / `ZP wi <cardId>`', value: `Set a card as your wish. After **${inv.WISH_THRESHOLD} pulls**, you are guaranteed to receive that card!`, inline: false },
+        { name: '`ZP wish <cardId>` / `ZP wi <cardId>`', value: `Set a card as your wish. After **${inv.WISH_THRESHOLD} pulls**, you are guaranteed to receive that card! With 💛 Eternal Wish Crystal, you can wish for UR and LT cards too.`, inline: false },
+        { name: '`ZP daily`',                          value: 'Claim your daily reward: **¥100,000 Yen**, **1,000 Stars**, **5 Candy Tokens**, and **Level Scrolls** based on your streak (1 per streak day, caps at 10).', inline: false },
       )
-      .setFooter({ text: 'Page 1 of 7 • ZP help' }),
+      .setFooter({ text: 'Page 1 of 8 • ZP help' }),
 
     // Page 1: Collection & Cards
     new EmbedBuilder()
       .setColor(0x4A90D9)
-      .setTitle('📖 Help — 🗂️ Collection & Cards (2/7)')
+      .setTitle('📖 Help — 🗂️ Collection & Cards (2/8)')
       .setDescription('Browse your collection, inspect cards, and level them up.')
       .addFields(
         { name: '`ZP collection` / `ZP col`',         value: 'Browse your card collection with Prev/Next buttons.', inline: false },
@@ -1379,13 +1406,14 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         { name: '`ZP absorb shard:<id>:<count>` / `ZP ab ...`', value: 'Spend character shards to level up a card. **1 shard = 1 level**. Each level gives **+2% stats**.', inline: false },
         { name: '`ZP increaselevelcap <id> <count>` / `ZP ilc <id> <count>`', value: 'Break a card\'s level cap beyond 100. Each level costs **1 Limit Breaker** + **100 Prestige Points** on that card.', inline: false },
         { name: '`ZP kill <cardId> <shardId>:<count>` / `ZP ki ...`', value: 'Use a card to kill shards — earn **yen** and **prestige points** on the card used. 1 prestige point per shard.', inline: false },
+        { name: '`ZP use level_scroll <cardId>`',      value: 'Use a 📜 Level Scroll to instantly raise a card\'s level by 1 (up to its current level cap). Scrolls drop from fights, raids, and daily rewards.', inline: false },
       )
-      .setFooter({ text: 'Page 2 of 7 • ZP help' }),
+      .setFooter({ text: 'Page 2 of 8 • ZP help' }),
 
     // Page 2: Economy & Profile
     new EmbedBuilder()
       .setColor(0xF1C40F)
-      .setTitle('📖 Help — 💰 Economy & Profile (3/7)')
+      .setTitle('📖 Help — 💰 Economy & Profile (3/8)')
       .setDescription('Manage your currencies and player profile.')
       .addFields(
         { name: '`ZP wallet` / `ZP balance` / `ZP bal`', value: 'Check your Yen, Stars, Candy Tokens, and Limit Breakers. Add `@user` to check someone else.', inline: false },
@@ -1400,15 +1428,15 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         { name: '`ZP profile @user`',                     value: "View another player's profile (if they haven't set it to private).", inline: false },
         { name: '`ZP vote` / `ZP vo`',                    value: 'Get the link to vote for the bot and earn extra pull charges!', inline: false },
         { name: '`ZP privacy` / `ZP pv`',                 value: 'Toggle your profile and collection privacy on/off.', inline: false },
-        { name: '`ZP conquestsend <cardId>` / `ZP cs <cardId>`', value: 'Send a card on a 2-hour conquest mission. Only one card at a time.', inline: false },
-        { name: '`ZP conquestrecall` / `ZP cr`',          value: 'Recall your card after 2 hours to earn **1 Limit Breaker** + **1–10 Candy Tokens**.', inline: false },
+        { name: '`ZP conquestsend <cardId>` / `ZP cs <cardId>`', value: 'Send a card on a conquest mission (2 hrs; 1 hr with ❤️ Time Warp Compass). With 💜 Conquest Expansion, send up to 2 cards at once.', inline: false },
+        { name: '`ZP conquestrecall` / `ZP cr`',          value: 'Recall your card to earn **1 Limit Breaker** + **1–10 Candy Tokens**. Use `ZP cr 2` for the second conquest slot.', inline: false },
       )
-      .setFooter({ text: 'Page 3 of 7 • ZP help' }),
+      .setFooter({ text: 'Page 3 of 8 • ZP help' }),
 
     // Page 3: Team & Battle
     new EmbedBuilder()
       .setColor(0xFF4757)
-      .setTitle('📖 Help — ⚔️ Team & Battle (4/7)')
+      .setTitle('📖 Help — ⚔️ Team & Battle (4/8)')
       .setDescription(`Build a team of **${inv.TEAM_SIZE} cards** and fight other players!\n\n**Plating battle bonuses:**\n${platingList}`)
       .addFields(
         { name: '`ZP team` / `ZP tm`',                   value: 'View your battle team with power scores.', inline: false },
@@ -1431,7 +1459,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         { name: '`ZP allowraidjoins` / `ZP arj`', value: 'Enable others to join your active raid. Run after using a raid ticket.', inline: false },
         { name: '`ZP whitelist @user` / `ZP wh @user`', value: 'Whitelist a player (max 4) to join your collab raid. They click **Join Raid** on the raid card.', inline: false },
       )
-      .setFooter({ text: 'Page 4 of 7 • ZP help' }),
+      .setFooter({ text: 'Page 4 of 8 • ZP help' }),
 
     // Page 4: Trading
     new EmbedBuilder()
@@ -1454,7 +1482,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         { name: '`ZP decline <tradeId>` / `ZP dec <id>`', value: 'Decline or cancel a trade.', inline: false },
         { name: '`ZP trades` / `ZP trs`',                 value: 'List all pending trade offers addressed to you.', inline: false },
       )
-      .setFooter({ text: 'Page 5 of 7 • Trades expire after 5 minutes' }),
+      .setFooter({ text: 'Page 5 of 8 • Trades expire after 5 minutes' }),
 
     // Page 5: Clans & Duos
     new EmbedBuilder()
@@ -1476,7 +1504,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         { name: '`ZP duo`',               value: 'View your duo partnership.', inline: false },
         { name: '`ZP duoremove` / `ZP dr`', value: 'Disband your current duo partnership.', inline: false },
       )
-      .setFooter({ text: 'Page 6 of 7 • ZP help' }),
+      .setFooter({ text: 'Page 6 of 8 • ZP help' }),
 
     // Page 6: Reference
     new EmbedBuilder()
@@ -1513,7 +1541,46 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
           inline: false,
         },
       )
-      .setFooter({ text: 'Page 7 of 7 • ZP help' }),
+      .setFooter({ text: 'Page 7 of 8 • ZP help' }),
+
+    // Page 7: Support Cards & Level Scrolls
+    new EmbedBuilder()
+      .setColor(0xAA00FF)
+      .setTitle('📖 Help — 🌟 Support Cards & Level Scrolls (8/8)')
+      .setDescription('Support cards grant **passive effects** while they are in your collection. They cannot be traded or used offensively — simply owning them unlocks their bonus.')
+      .addFields(
+        {
+          name: '💙 Swift Pull Token (R) — `support_r`',
+          value: 'Pull charge regeneration is reduced from 30s → **25s**.',
+          inline: false,
+        },
+        {
+          name: '💜 Conquest Expansion (E) — `support_e`',
+          value: 'Unlocks a **second conquest slot** — send two cards on missions simultaneously.',
+          inline: false,
+        },
+        {
+          name: '💛 Eternal Wish Crystal (L) — `support_l`',
+          value: 'Allows you to **wish for UR and LT cards** in addition to R/E/L/MY.',
+          inline: false,
+        },
+        {
+          name: '❤️ Time Warp Compass (MY) — `support_my`',
+          value: 'Conquest mission duration is halved: **1 hour** instead of 2.',
+          inline: false,
+        },
+        {
+          name: '🟡 Scroll Awakener (UR) — `support_ur`',
+          value: '📜 **Level Scrolls** now drop from fights, raids, and daily rewards.',
+          inline: false,
+        },
+        {
+          name: '📜 Level Scroll — `ZP use level_scroll <cardId>`',
+          value: 'Instantly raises a card\'s level by 1 (up to its current level cap). Earned via fights/raids/daily when you own the Scroll Awakener support card. Daily rewards scale with your streak (max 10 scrolls at day 10+).',
+          inline: false,
+        },
+      )
+      .setFooter({ text: 'Page 8 of 8 • ZP help' }),
   ];
 
   if (showAdmin) {
@@ -1545,6 +1612,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
               '`ZP giveraidticket @user <tier> [amount]` – Give raid tickets (tiers: `normal` `mythical` `omega` `hellish`)',
               '`ZP giveshards @user <cardId> <amount>` – Give character shards to a player',
               '`ZP givelimitbreaker [@user] <amount>` – Give Limit Breakers to a player',
+              '`ZP givelevelscrolls [@user] <amount>` – Give Level Scrolls 📜 to a player',
               '`ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]` – Create a redeemable code',
               '`ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]` – Edit a code\'s rewards',
               '`ZP deletecode <name>` – Delete a code',
@@ -1737,9 +1805,14 @@ client.on('interactionCreate', async (interaction) => {
       const starsEarned = Math.floor(starMin + Math.random() * (starMax - starMin + 1));
       inv.addYen(inventory, state.attackerId, yenEarned);
       inv.addStars(inventory, state.attackerId, starsEarned);
+      let scrollDropText = '';
+      if (hasSupportCard(inventory, state.attackerId, 'support_ur') && Math.random() < 0.08) {
+        inv.addItem(inventory, state.attackerId, 'level_scroll');
+        scrollDropText = '  +📜 Level Scroll';
+      }
       await inv.saveInventory(inventory);
       const winLabel = state.isBotFight ? '🤖 Bot Team defeated!' : `🏆 **${state.attackerName}** wins!`;
-      log += `\n\n${winLabel}\n+¥${yenEarned.toLocaleString()} Yen  +${starsEarned.toLocaleString()} Stars`;
+      log += `\n\n${winLabel}\n+¥${yenEarned.toLocaleString()} Yen  +${starsEarned.toLocaleString()} Stars${scrollDropText}`;
       const embed = buildBattleEmbed(state, log);
       return interaction.update({ embeds: [embed], components: [] });
     }
@@ -2352,16 +2425,19 @@ client.on('messageCreate', async (message) => {
   if (command === 'pull' || command === 'p' || command === 'pu') {
     if (args.filter(a => !a.startsWith('<@')).length > 0)
       return message.reply('`ZP pull` takes no arguments. Just use `ZP pull`, `ZP p`, or `ZP pu`.');
-    const { charges, lastRefill } = getCharges(userId);
+
+    const inventory                              = await inv.loadInventory();
+    const effectiveRegenMs                       = getEffectiveRegenMs(inventory, userId);
+    const effectiveRegenSecs                     = Math.round(effectiveRegenMs / 1000);
+    const { charges, lastRefill }                = getCharges(userId, effectiveRegenMs);
 
     if (charges <= 0) {
-      const secsUntilNext = Math.ceil(config.PULL_COOLDOWN_SECONDS - (Date.now() - lastRefill) / 1000);
-      return message.reply(`No pulls left! Next charge in **${secsUntilNext}s**. Charges refill 1 every **${config.PULL_COOLDOWN_SECONDS}s** (max **${config.MAX_PULL_CHARGES}**).`);
+      const secsUntilNext = Math.ceil(effectiveRegenSecs - (Date.now() - lastRefill) / 1000);
+      return message.reply(`No pulls left! Next charge in **${secsUntilNext}s**. Charges refill 1 every **${effectiveRegenSecs}s** (max **${config.MAX_PULL_CHARGES}**).`);
     }
 
     setCharges(userId, charges - 1, lastRefill);
 
-    const inventory                              = await inv.loadInventory();
     const { card, isDupe, plating, droppedTickets } = executeSinglePull(inventory, userId);
     const wishGrant                                  = checkAndGrantWish(inventory, userId);
     await inv.saveInventory(inventory);
@@ -2369,7 +2445,7 @@ client.on('messageCreate', async (message) => {
     const remaining  = charges - 1;
     const chargeInfo = remaining > 0
       ? `${remaining} pull${remaining === 1 ? '' : 's'} remaining`
-      : `No pulls left — next charge in ${config.PULL_COOLDOWN_SECONDS}s`;
+      : `No pulls left — next charge in ${effectiveRegenSecs}s`;
 
     const embed = singlePullEmbed(card, isDupe, plating, chargeInfo, message.author.username, droppedTickets);
     await message.reply({ embeds: [embed] });
@@ -2500,11 +2576,13 @@ client.on('messageCreate', async (message) => {
       return message.reply(`No card found matching \`${cardQuery}\`. Use \`ZP all\` to browse available cards.`);
     }
 
-    if (card.rarity === 'UR' || card.rarity === 'LT') {
-      return message.reply(`You cannot wish for **${rarityMeta(card.rarity).label}** cards. Wishes are limited to Mythical rarity and below.`);
+    const inventory = await inv.loadInventory();
+    const hasAnyWish = hasSupportCard(inventory, userId, 'support_l');
+
+    if ((card.rarity === 'UR' || card.rarity === 'LT') && !hasAnyWish) {
+      return message.reply(`You cannot wish for **${rarityMeta(card.rarity).label}** cards. Wishes are limited to Mythical rarity and below.\n*Own the 💛 Eternal Wish Crystal (L) support card to unlock UR and LT wishes!*`);
     }
 
-    const inventory = await inv.loadInventory();
     inv.setWish(inventory, userId, card.id);
     await inv.saveInventory(inventory);
 
@@ -2520,6 +2598,48 @@ client.on('messageCreate', async (message) => {
       )
       .setFooter({ text: 'Keep pulling! The pity resets after you receive your wish.' });
     if (wImg) embed.setThumbnail(wImg);
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── daily ────────────────────────────────────────────────
+  if (command === 'daily') {
+    const inventory = await inv.loadInventory();
+    const dailyInfo = inv.getDailyInfo(inventory, userId);
+    const now = Date.now();
+    const ONE_DAY = 24 * 60 * 60 * 1000;
+    const TWO_DAYS = 48 * 60 * 60 * 1000;
+    const lastDate = dailyInfo.lastDate;
+
+    if (lastDate && (now - lastDate) < ONE_DAY) {
+      const nextMs = lastDate + ONE_DAY - now;
+      const nextHrs  = Math.floor(nextMs / 3600000);
+      const nextMins = Math.floor((nextMs % 3600000) / 60000);
+      return message.reply(`You already claimed your daily! Come back in **${nextHrs}h ${nextMins}m**.`);
+    }
+
+    const hasScrollAwakener = hasSupportCard(inventory, userId, 'support_ur');
+    const result = inv.claimDaily(inventory, userId, hasScrollAwakener);
+    await inv.saveInventory(inventory);
+
+    const streakBroken = lastDate && (now - lastDate) >= TWO_DAYS;
+    const streakLabel  = streakBroken ? '🔄 Streak reset!' : `🔥 Day **${result.streak}** streak!`;
+    const scrollsText  = result.scrolls > 0 ? `\n> 📜 **${result.scrolls} Level Scroll${result.scrolls === 1 ? '' : 's'}**` : '';
+    const scrollsNote  = result.scrolls === 0
+      ? '\n\n*Own the 🟡 Scroll Awakener (UR) support card to earn Level Scrolls from daily rewards!*'
+      : '';
+
+    const embed = new EmbedBuilder()
+      .setColor(0xFFD700)
+      .setTitle('📅 Daily Reward Claimed!')
+      .setDescription(
+        `${streakLabel}\n\n**Rewards:**\n` +
+        `> 💰 **¥100,000 Yen**\n` +
+        `> ⭐ **1,000 Stars**\n` +
+        `> 🍬 **5 Candy Tokens**` +
+        scrollsText +
+        scrollsNote
+      )
+      .setFooter({ text: `Come back tomorrow to keep your streak! Scrolls cap at ${inv.DAILY_SCROLL_CAP} (day ${inv.DAILY_SCROLL_CAP}+).` });
     return message.reply({ embeds: [embed] });
   }
 
@@ -2838,6 +2958,49 @@ client.on('messageCreate', async (message) => {
   if (command === 'use') {
     const itemId = args[0]?.toLowerCase();
     if (!itemId) return message.reply('Usage: `ZP use <itemId>` — check `ZP items` to see what you have.');
+
+    // ── Level Scroll special handling ────────────────────────
+    if (itemId === 'level_scroll') {
+      const cardQuery = args.slice(1).filter(a => !a.startsWith('<@')).join(' ');
+      if (!cardQuery) {
+        return message.reply('Usage: `ZP use level_scroll <cardId>` — specify which card to level up!');
+      }
+      const targetCard = resolveCard(cardQuery);
+      if (!targetCard) {
+        return message.reply(`No card found matching \`${cardQuery}\`. Use \`ZP col\` to see your cards.`);
+      }
+      const inventory = await inv.loadInventory();
+      if (!inv.hasCard(inventory, userId, targetCard.id)) {
+        return message.reply(`You don't own **${targetCard.name}**.`);
+      }
+      if (!inv.removeItem(inventory, userId, 'level_scroll')) {
+        return message.reply(`You don't have a 📜 **Level Scroll**. Earn one from fights, raids, or daily rewards (requires 🟡 Scroll Awakener support card).`);
+      }
+      const user   = inv.ensureUser(inventory, userId);
+      const slot   = user.cards.find(c => c.cardId === targetCard.id);
+      const curLvl = slot?.level ?? 1;
+      const cap    = slot?.levelCap ?? 100;
+      if (curLvl >= cap) {
+        inv.addItem(inventory, userId, 'level_scroll');
+        await inv.saveInventory(inventory);
+        return message.reply(`**${targetCard.name}** is already at its level cap (**${cap}**). Use \`ZP ilc\` to raise the cap first.`);
+      }
+      slot.level = curLvl + 1;
+      await inv.saveInventory(inventory);
+      const meta = rarityMeta(targetCard.rarity);
+      const embed = new EmbedBuilder()
+        .setColor(meta.color)
+        .setTitle('📜 Level Scroll Used!')
+        .setDescription(
+          `${meta.emoji} **${targetCard.name}** leveled up!\n\n` +
+          `**Level:** ${curLvl} → **${curLvl + 1}** / ${cap}\n` +
+          `+2% stats from the new level!`
+        )
+        .setFooter({ text: 'Level Scrolls drop from fights, raids, and daily rewards (Scroll Awakener required)' });
+      const img = imgCache.getImage(targetCard.id) ?? targetCard.image ?? null;
+      if (img) embed.setThumbnail(img);
+      return message.reply({ embeds: [embed] });
+    }
 
     const item = config.ITEMS.find(i => i.id === itemId);
     if (!item) return message.reply(`Unknown item \`${itemId}\`. Check \`ZP items\` for your available items.`);
@@ -4282,7 +4445,7 @@ client.on('messageCreate', async (message) => {
     if (!cardQuery) {
       return message.reply(
         'Usage: `ZP conquestsend <name or id>` — e.g. `ZP cs gear5 luffy`\n' +
-        'Send a card on a 2-hour conquest. Recall it with `ZP conquestrecall` to earn **1 Limit Breaker** and **1–10 Candy Tokens**.'
+        'Send a card on a conquest mission. Recall it with `ZP conquestrecall` to earn **1 Limit Breaker** and **1–10 Candy Tokens**.'
       );
     }
 
@@ -4294,29 +4457,52 @@ client.on('messageCreate', async (message) => {
       return message.reply(`You don't own **${card.name}**.`);
     }
 
-    const existing = inv.getConquest(inventory, userId);
-    if (existing) {
+    const conquestDurationMs   = getConquestDurationMs(inventory, userId);
+    const conquestDurationHrs  = conquestDurationMs / (60 * 60 * 1000);
+    const hasExtraSlot         = hasSupportCard(inventory, userId, 'support_e');
+
+    const existing  = inv.getConquest(inventory, userId);
+    const existing2 = hasExtraSlot ? inv.getConquest2(inventory, userId) : null;
+
+    if (existing && existing2 && hasExtraSlot) {
+      const elapsed1 = Math.floor((Date.now() - existing.sentAt) / 60000);
+      const elapsed2 = Math.floor((Date.now() - existing2.sentAt) / 60000);
+      return message.reply(
+        `Both conquest slots are occupied!\n` +
+        `**Slot 1:** ${lookupCard(existing.cardId)?.name ?? existing.cardId} (${elapsed1} min ago)\n` +
+        `**Slot 2:** ${lookupCard(existing2.cardId)?.name ?? existing2.cardId} (${elapsed2} min ago)\n` +
+        `Use \`ZP conquestrecall\` or \`ZP cr 2\` to recall a card first.`
+      );
+    }
+
+    if (existing && !hasExtraSlot) {
       const existingCard = lookupCard(existing.cardId);
       const elapsed = Math.floor((Date.now() - existing.sentAt) / 60000);
       return message.reply(
         `**${existingCard?.name ?? existing.cardId}** is already on conquest (${elapsed} min ago). ` +
-        `Use \`ZP conquestrecall\` after 2 hours to claim your rewards.`
+        `Use \`ZP conquestrecall\` to claim your rewards. ` +
+        (hasExtraSlot ? '' : '*Own 💜 Conquest Expansion to send a second card!*')
       );
     }
 
-    inv.setConquest(inventory, userId, card.id);
+    if (!existing) {
+      inv.setConquest(inventory, userId, card.id);
+    } else {
+      inv.setConquest2(inventory, userId, card.id);
+    }
     await inv.saveInventory(inventory);
 
+    const slotLabel = (!existing) ? 'Slot 1' : 'Slot 2';
     const meta = rarityMeta(card.rarity);
     const embed = new EmbedBuilder()
       .setColor(meta.color)
-      .setTitle(`${card.name} Sent on Conquest!`)
+      .setTitle(`${card.name} Sent on Conquest! (${slotLabel})`)
       .setDescription(
         `**${card.name}** has been dispatched on a conquest mission.\n\n` +
-        `Come back in **2 hours** and use \`ZP conquestrecall\` to claim:\n` +
+        `Come back in **${conquestDurationHrs === 1 ? '1 hour' : '2 hours'}** and use \`ZP conquestrecall\` to claim:\n` +
         `> **1 Limit Breaker** + **1–10 Candy Tokens**`
       )
-      .setFooter({ text: 'Only one card can be on conquest at a time' });
+      .setFooter({ text: hasExtraSlot ? 'You have 2 conquest slots (Conquest Expansion active)' : 'Own 💜 Conquest Expansion to unlock a second slot' });
     const img = imgCache.getImage(card.id) ?? card.image ?? null;
     if (img) embed.setThumbnail(img);
     return message.reply({ embeds: [embed] });
@@ -4324,17 +4510,28 @@ client.on('messageCreate', async (message) => {
 
   // ── conquestrecall ────────────────────────────────────────
   if (command === 'conquestrecall' || command === 'cr') {
+    const slotArg   = args[0];
+    const useSlot2  = slotArg === '2';
     const inventory = await inv.loadInventory();
-    const conquest  = inv.getConquest(inventory, userId);
 
-    if (!conquest) {
-      return message.reply(`You don't have a card on conquest. Send one with \`ZP conquestsend <cardId>\`.`);
+    const hasExtraSlot = hasSupportCard(inventory, userId, 'support_e');
+    if (useSlot2 && !hasExtraSlot) {
+      return message.reply(`You don't have a second conquest slot. Own 💜 Conquest Expansion to unlock it.`);
     }
 
-    const elapsedMs  = Date.now() - conquest.sentAt;
-    const TWO_HOURS  = 2 * 60 * 60 * 1000;
-    if (elapsedMs < TWO_HOURS) {
-      const remaining = Math.ceil((TWO_HOURS - elapsedMs) / 60000);
+    const conquest = useSlot2 ? inv.getConquest2(inventory, userId) : inv.getConquest(inventory, userId);
+    if (!conquest) {
+      return message.reply(
+        useSlot2
+          ? `Slot 2 is empty. Send a card with \`ZP conquestsend <cardId>\`.`
+          : `You don't have a card on conquest. Send one with \`ZP conquestsend <cardId>\`.`
+      );
+    }
+
+    const conquestDurationMs = getConquestDurationMs(inventory, userId);
+    const elapsedMs = Date.now() - conquest.sentAt;
+    if (elapsedMs < conquestDurationMs) {
+      const remaining = Math.ceil((conquestDurationMs - elapsedMs) / 60000);
       return message.reply(`**${lookupCard(conquest.cardId)?.name ?? conquest.cardId}** is still on conquest. Come back in **${remaining} more minute${remaining === 1 ? '' : 's'}**.`);
     }
 
@@ -4343,13 +4540,17 @@ client.on('messageCreate', async (message) => {
 
     inv.addLimitBreakers(inventory, userId, 1);
     inv.addCandyTokens(inventory, userId, candyEarned);
-    inv.clearConquest(inventory, userId);
+    if (useSlot2) {
+      inv.clearConquest2(inventory, userId);
+    } else {
+      inv.clearConquest(inventory, userId);
+    }
     await inv.saveInventory(inventory);
 
     const meta = card ? rarityMeta(card.rarity) : { color: 0x00FFD1 };
     const embed = new EmbedBuilder()
       .setColor(meta.color)
-      .setTitle(`Conquest Complete!`)
+      .setTitle(`Conquest Complete!${useSlot2 ? ' (Slot 2)' : ''}`)
       .setDescription(
         `**${card?.name ?? conquest.cardId}** has returned from conquest!\n\n` +
         `**Rewards earned:**\n` +
@@ -4504,6 +4705,18 @@ client.on('messageCreate', async (message) => {
     inv.addLimitBreakers(inventory, target.id, amount);
     await inv.saveInventory(inventory);
     return message.reply(`Gave **${amount} Limit Breaker${amount === 1 ? '' : 's'}** to **${target.username}**.`);
+  }
+
+  // ── givelevelscrolls ──────────────────────────────────────
+  if (command === 'givelevelscrolls' || command === 'gls') {
+    if (!isAdmin(userId)) return;
+    const target = message.mentions.users.first() ?? message.author;
+    const amount = parseInt(args.find(a => !a.startsWith('<@')), 10);
+    if (isNaN(amount) || amount <= 0) return message.reply('Usage: `ZP givelevelscrolls [@user] <amount>`');
+    const inventory = await inv.loadInventory();
+    for (let i = 0; i < amount; i++) inv.addItem(inventory, target.id, 'level_scroll');
+    await inv.saveInventory(inventory);
+    return message.reply(`Gave **${amount} 📜 Level Scroll${amount === 1 ? '' : 's'}** to **${target.username}**.`);
   }
 
   // ── giveitem ──────────────────────────────────────────────

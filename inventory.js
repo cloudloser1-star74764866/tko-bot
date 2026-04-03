@@ -74,6 +74,9 @@ function ensureUser(inventory, userId) {
   if (typeof u.totalPulls   !== 'number') u.totalPulls  = 0;
   if (typeof u.totalKills   !== 'number') u.totalKills  = 0;
   if (u.conquest === undefined)         u.conquest       = null;
+  if (u.conquest2 === undefined)        u.conquest2      = null;
+  if (typeof u.dailyStreak  !== 'number') u.dailyStreak = 0;
+  if (u.lastDailyDate === undefined)    u.lastDailyDate  = null;
   if ('shards' in u)                    delete u.shards;
   for (const card of u.cards) {
     if (typeof card.level !== 'number') card.level = 1;
@@ -210,6 +213,71 @@ function setConquest(inventory, userId, cardId) {
 function clearConquest(inventory, userId) {
   ensureUser(inventory, userId);
   inventory.users[userId].conquest = null;
+}
+
+// ── Second Conquest Slot (Epic Support Card) ──────────────
+
+function getConquest2(inventory, userId) {
+  ensureUser(inventory, userId);
+  return inventory.users[userId].conquest2;
+}
+
+function setConquest2(inventory, userId, cardId) {
+  ensureUser(inventory, userId);
+  inventory.users[userId].conquest2 = { cardId, sentAt: Date.now() };
+}
+
+function clearConquest2(inventory, userId) {
+  ensureUser(inventory, userId);
+  inventory.users[userId].conquest2 = null;
+}
+
+// ── Daily Streak ──────────────────────────────────────────
+
+const DAILY_SCROLL_CAP = 10;
+
+function getDailyInfo(inventory, userId) {
+  ensureUser(inventory, userId);
+  const u = inventory.users[userId];
+  return { streak: u.dailyStreak, lastDate: u.lastDailyDate };
+}
+
+/**
+ * Attempt to claim the daily reward.
+ * Returns { success: false, hoursLeft } if on cooldown,
+ * or { success: true, streak, scrolls } with the rewards applied.
+ */
+function claimDaily(inventory, userId, giveScrolls = false) {
+  ensureUser(inventory, userId);
+  const u    = inventory.users[userId];
+  const now  = Date.now();
+  const MS24 = 24 * 60 * 60 * 1000;
+  const MS48 = 48 * 60 * 60 * 1000;
+
+  if (u.lastDailyDate) {
+    const elapsed = now - u.lastDailyDate;
+    if (elapsed < MS24) {
+      return { success: false, hoursLeft: Math.ceil((MS24 - elapsed) / 3600000) };
+    }
+    if (elapsed >= MS48) {
+      u.dailyStreak = 0;
+    }
+  }
+
+  u.dailyStreak   = (u.dailyStreak ?? 0) + 1;
+  u.lastDailyDate = now;
+
+  const scrolls = Math.min(u.dailyStreak, DAILY_SCROLL_CAP);
+  u.yen          = (u.yen         ?? 0) + 100000;
+  u.stars        = (u.stars       ?? 0) + 1000;
+  u.candyTokens  = (u.candyTokens ?? 0) + 5;
+
+  if (giveScrolls && scrolls > 0) {
+    u.items        = u.items ?? {};
+    u.items['level_scroll'] = (u.items['level_scroll'] ?? 0) + scrolls;
+  }
+
+  return { success: true, streak: u.dailyStreak, scrolls: giveScrolls ? scrolls : 0 };
 }
 
 // ── Wish System ───────────────────────────────────────────
@@ -687,6 +755,8 @@ module.exports = {
   getPrestigePoints, addPrestigePoints, removePrestigePoints,
   getLimitBreakers, addLimitBreakers, removeLimitBreaker,
   getConquest, setConquest, clearConquest,
+  getConquest2, setConquest2, clearConquest2,
+  getDailyInfo, claimDaily, DAILY_SCROLL_CAP,
   getWish, setWish, clearWish, incrementWishPulls, WISH_THRESHOLD,
   getTotalPulls, incrementTotalPulls, incrementTotalKills,
   getPrivacy, setPrivacy,
