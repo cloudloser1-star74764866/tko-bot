@@ -5664,6 +5664,85 @@ client.on('messageCreate', async (message) => {
     return message.reply(`Gave **${amount}x ${emoji}${card.name} shard${amount === 1 ? '' : 's'}** to **${target.username}**.`);
   }
 
+  // ── removecard ────────────────────────────────────────────
+  if (command === 'removecard' || command === 'rc') {
+    if (!isAdmin(userId)) return;
+    const target = message.mentions.users.first();
+    const nonMentionArgs = args.filter(a => !a.startsWith('<@'));
+    const cardQuery = nonMentionArgs.join(' ');
+
+    if (!target || !cardQuery)
+      return message.reply('Usage: `ZP removecard @user <cardId or name>`');
+
+    const card = resolveCard(cardQuery) ?? lookupCard(cardQuery.toLowerCase());
+    if (!card) return message.reply(`❌ No card found matching \`${cardQuery}\`.`);
+
+    const inventory = await inv.loadInventory();
+    if (!inv.hasCard(inventory, target.id, card.id))
+      return message.reply(`❌ **${target.username}** does not own **${card.name}**.`);
+
+    inv.removeCardFromInventory(inventory, target.id, card.id);
+    await inv.saveInventory(inventory);
+
+    const emoji = emojiCache.getEmoji(card.id) ?? '';
+    return message.reply(`🗑️ Removed **${emoji}${card.name}** from **${target.username}**'s collection.`);
+  }
+
+  // ── removeshards ──────────────────────────────────────────
+  if (command === 'removeshards' || command === 'rs') {
+    if (!isAdmin(userId)) return;
+    const target = message.mentions.users.first();
+    const nonMentionArgs = args.filter(a => !a.startsWith('<@'));
+    const cardQuery = nonMentionArgs.slice(0, -1).join(' ') || nonMentionArgs[0];
+    const amountArg = nonMentionArgs[nonMentionArgs.length - 1];
+    const amount = parseInt(amountArg, 10);
+
+    if (!target || !cardQuery || isNaN(amount) || amount <= 0)
+      return message.reply('Usage: `ZP removeshards @user <cardId or name> <amount>`\nUse `all` as amount to wipe every shard.');
+
+    const card = resolveCard(cardQuery) ?? lookupCard(cardQuery.toLowerCase());
+    if (!card) return message.reply(`❌ No card found matching \`${cardQuery}\`.`);
+
+    const inventory = await inv.loadInventory();
+    const userShards = inv.getCharacterShards(inventory, target.id);
+    const current = userShards[card.id] ?? 0;
+    if (current === 0)
+      return message.reply(`❌ **${target.username}** has no **${card.name}** shards.`);
+
+    const toRemove = Math.min(amount, current);
+    inv.removeCharacterShards(inventory, target.id, card.id, toRemove);
+    await inv.saveInventory(inventory);
+
+    const emoji = emojiCache.getEmoji(card.id) ?? '';
+    return message.reply(`🗑️ Removed **${toRemove}x ${emoji}${card.name} shard${toRemove === 1 ? '' : 's'}** from **${target.username}** (had ${current}, now has ${current - toRemove}).`);
+  }
+
+  // ── clearshards ───────────────────────────────────────────
+  if (command === 'clearshards' || command === 'cs') {
+    if (!isAdmin(userId)) return;
+    const target = message.mentions.users.first();
+    const nonMentionArgs = args.filter(a => !a.startsWith('<@'));
+    const cardQuery = nonMentionArgs.join(' ');
+
+    if (!target || !cardQuery)
+      return message.reply('Usage: `ZP clearshards @user <cardId or name>` — wipes ALL shards of that card.');
+
+    const card = resolveCard(cardQuery) ?? lookupCard(cardQuery.toLowerCase());
+    if (!card) return message.reply(`❌ No card found matching \`${cardQuery}\`.`);
+
+    const inventory = await inv.loadInventory();
+    const userShards = inv.getCharacterShards(inventory, target.id);
+    const current = userShards[card.id] ?? 0;
+    if (current === 0)
+      return message.reply(`❌ **${target.username}** has no **${card.name}** shards to clear.`);
+
+    delete userShards[card.id];
+    await inv.saveInventory(inventory);
+
+    const emoji = emojiCache.getEmoji(card.id) ?? '';
+    return message.reply(`🗑️ Cleared all **${current}x ${emoji}${card.name} shard${current === 1 ? '' : 's'}** from **${target.username}**.`);
+  }
+
   // ── givecard ──────────────────────────────────────────────
   if (command === 'givecard' || command === 'gc') {
     const target = message.mentions.users.first();
