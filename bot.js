@@ -129,6 +129,104 @@ const emojiCache  = require('./emojiCache');
   imageApp.listen(imgPort, () => console.log(`[images] Serving static images on port ${imgPort}`));
 }
 
+// ── Status / Info web page ────────────────────────────────
+{
+  const webApp = express();
+  webApp.get('/', (req, res) => {
+    const cfg = require('./config');
+    const rarityRows = Object.entries(cfg.RARITY_META).map(([key, m]) => {
+      const sr = cfg.STAT_RANGES[key];
+      const rate = cfg.PULL_RATES[key] != null ? cfg.PULL_RATES[key] + '%' : '(event)';
+      return `<tr>
+        <td>${m.emoji} <b>${m.label}</b> (${key})</td>
+        <td>${rate}</td>
+        <td>${sr ? sr.hpMin + '–' + sr.hpMax : '—'}</td>
+        <td>${sr ? sr.dmgMin + '–' + sr.dmgMax : '—'}</td>
+        <td>${sr ? Math.round(sr.hpMin*0.45) + '–' + Math.round(sr.hpMax*0.55) : '—'}</td>
+      </tr>`;
+    }).join('');
+
+    const weaponRows = Object.entries(cfg.WEAPON_STATS).map(([key, w]) => {
+      const m = cfg.RARITY_META[key];
+      return `<tr>
+        <td>${m?.emoji ?? ''} <b>${m?.label ?? key}</b></td>
+        <td>${w.power.toLocaleString()}</td>
+        <td>+${w.hp.toLocaleString()}</td>
+        <td>+${w.speed.toLocaleString()}</td>
+        <td>+${w.atkMin}–${w.atkMax}</td>
+      </tr>`;
+    }).join('');
+
+    const adminCmds = [
+      'ZP setrarity &lt;rarity|reset&gt;',
+      'ZP setplating &lt;tier|reset&gt;',
+      'ZP resetcooldown',
+      'ZP giveyen [@user] &lt;amount&gt;',
+      'ZP givestars [@user] &lt;amount&gt;',
+      'ZP givecandytokens [@user] &lt;amount&gt;',
+      'ZP giveitem @user &lt;itemId&gt;',
+      'ZP giveshards @user &lt;cardId&gt; &lt;amount&gt;',
+      'ZP givecard @user &lt;cardId&gt; — give a card directly',
+      'ZP givelimitbreaker [@user] &lt;amount&gt;',
+      'ZP givelevelscrolls [@user] &lt;amount&gt;',
+      'ZP giveraidticket @user &lt;tier&gt; [amount]',
+      'ZP createcode / editcode / deletecode / listcodes',
+      'ZP refresh — re-sync all server emojis',
+    ].map(c => `<li><code>${c}</code></li>`).join('');
+
+    res.send(`<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TKO Bot — Info</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',sans-serif;background:#0d1117;color:#c9d1d9;padding:24px}
+  h1{color:#58a6ff;margin-bottom:4px}
+  h2{color:#79c0ff;margin-top:28px;margin-bottom:10px;border-bottom:1px solid #30363d;padding-bottom:6px}
+  p{color:#8b949e;margin-bottom:16px;font-size:14px}
+  table{width:100%;border-collapse:collapse;margin-bottom:20px;font-size:13px}
+  th{background:#161b22;color:#58a6ff;text-align:left;padding:8px 12px;border:1px solid #30363d}
+  td{padding:7px 12px;border:1px solid #30363d}
+  tr:nth-child(even) td{background:#161b22}
+  code{background:#161b22;color:#f0883e;padding:2px 6px;border-radius:4px;font-size:12px}
+  ul{margin-left:20px;line-height:2}
+  .badge{display:inline-block;background:#21262d;border:1px solid #30363d;border-radius:6px;padding:2px 8px;font-size:12px;color:#8b949e}
+</style></head><body>
+<h1>⚔️ TKO Bot</h1>
+<p>Prefix: <code>ZP</code> &nbsp;•&nbsp; Discord card-pulling &amp; battle bot</p>
+
+<h2>✨ Rarities &amp; Base Stats (Lv 1)</h2>
+<table>
+  <tr><th>Rarity</th><th>Pull Rate</th><th>HP Range</th><th>DMG Range</th><th>Speed Range</th></tr>
+  ${rarityRows}
+</table>
+
+<h2>⚔️ Weapon Stat Bonuses by Rarity</h2>
+<table>
+  <tr><th>Rarity</th><th>⚡ Power</th><th>❤️ Health Boost</th><th>💨 Speed Boost</th><th>Attack Boost</th></tr>
+  ${weaponRows}
+</table>
+
+<h2>🛠️ Admin Commands</h2>
+<ul>${adminCmds}</ul>
+
+<h2>💨 Speed Stat</h2>
+<p>Base speed = <b>0.45–0.55× the card's base HP</b>. Higher speed means the card attacks first in battle. Weapons add a flat speed bonus on top.</p>
+
+<h2>🔗 Key Commands</h2>
+<ul>
+  <li><code>ZP equip &lt;card&gt; &lt;weaponId or plating&gt;</code> — unified equip (auto-detects weapon or plating)</li>
+  <li><code>ZP equipweapon &lt;card&gt; &lt;weaponId&gt;</code> / <code>ZP ew</code></li>
+  <li><code>ZP unequipweapon &lt;card&gt;</code> / <code>ZP uew</code></li>
+  <li><code>ZP weaponinfo &lt;weaponId&gt;</code> / <code>ZP winfo</code></li>
+  <li><code>ZP evolveweapon &lt;weaponId&gt;</code> / <code>ZP evw</code></li>
+  <li><code>ZP help</code> — full command list in Discord</li>
+</ul>
+</body></html>`);
+  });
+  const webPort = process.env.WEB_PORT ? parseInt(process.env.WEB_PORT) : 3000;
+  webApp.listen(webPort, '0.0.0.0', () => console.log(`[web] Status page on port ${webPort}`));
+}
+
 
 const client = new Client({
   intents: [
@@ -1152,8 +1250,9 @@ function cardEmbed(card, title, footer, level = 1, personalCap = null) {
     const stats = getCardStats(card, lvl);
     embed.addFields(
       { name: '📊 Level', value: levelLabel, inline: true },
-      { name: '❤️ Health', value: `${stats.hp}`, inline: true },
-      { name: card.technique ? '🔵 Technique' : '⚔️ Damage', value: `${stats.dmg}`, inline: true },
+      { name: '❤️ Health', value: `${stats.hp.toLocaleString()}`, inline: true },
+      { name: card.technique ? '🔵 Technique' : '⚔️ Damage', value: `${stats.dmg.toLocaleString()}`, inline: true },
+      { name: '💨 Speed', value: `${stats.speed.toLocaleString()}`, inline: true },
     );
   }
 
@@ -1209,8 +1308,9 @@ function singlePullEmbed(card, isDupe, plating, chargeInfo, authorUsername, drop
   } else if (!card.supportCard) {
     const stats = getCardStats(card, 1);
     embed.addFields(
-      { name: '❤️ Health', value: `${stats.hp}`,  inline: true },
-      { name: card.technique ? '🔵 Technique' : '⚔️ Damage', value: `${stats.dmg}`, inline: true },
+      { name: '❤️ Health', value: `${stats.hp.toLocaleString()}`,  inline: true },
+      { name: card.technique ? '🔵 Technique' : '⚔️ Damage', value: `${stats.dmg.toLocaleString()}`, inline: true },
+      { name: '💨 Speed', value: `${stats.speed.toLocaleString()}`, inline: true },
     );
   }
 
@@ -1371,8 +1471,9 @@ function buildAllCardsPage(authorId, allCards, page, filter, expiry) {
       { name: 'Series',      value: card.series,                    inline: true },
       { name: 'Rarity',      value: `${meta.emoji} ${meta.label}`, inline: true },
       { name: 'Stars',       value: meta.stars || '—',              inline: true },
-      { name: '❤️ Health',   value: `${stats.hp}`,                 inline: true },
-      { name: card.technique ? '🔵 Technique' : '⚔️ Damage', value: `${stats.dmg}`, inline: true },
+      { name: '❤️ Health',   value: `${stats.hp.toLocaleString()}`,  inline: true },
+      { name: card.technique ? '🔵 Technique' : '⚔️ Damage', value: `${stats.dmg.toLocaleString()}`, inline: true },
+      { name: '💨 Speed',   value: `${stats.speed.toLocaleString()}`, inline: true },
       { name: '🪪 Card ID',  value: `\`${card.id}\``,              inline: true },
     )
     .setFooter({ text: `Card ${page + 1} of ${filtered.length}${filterTag}` });
@@ -1442,10 +1543,11 @@ function buildCollectionPage(authorId, targetUser, cards, page, filter, inventor
       { name: 'Series',      value: card.series,                    inline: true },
       { name: 'Rarity',      value: `${meta.emoji} ${meta.label}`, inline: true },
       { name: 'Stars',       value: meta.stars || '—',              inline: true },
-      { name: '📊 Level',    value: levelLabel,                     inline: true },
-      { name: '❤️ Health',   value: `${stats.hp}`,                 inline: true },
-      { name: card.technique ? '🔵 Technique' : '⚔️ Damage', value: `${stats.dmg}`, inline: true },
-      { name: '🪪 Card ID',  value: `\`${card.id}\``,              inline: true },
+      { name: '📊 Level',    value: levelLabel,                       inline: true },
+      { name: '❤️ Health',   value: `${stats.hp.toLocaleString()}`,  inline: true },
+      { name: card.technique ? '🔵 Technique' : '⚔️ Damage', value: `${stats.dmg.toLocaleString()}`, inline: true },
+      { name: '💨 Speed',    value: `${stats.speed.toLocaleString()}`, inline: true },
+      { name: '🪪 Card ID',  value: `\`${card.id}\``,                inline: true },
     )
     .setFooter({ text: `Card ${page + 1} of ${filtered.length}${filterTag}${shardTag}` });
 
@@ -1653,8 +1755,15 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
           inline: false,
         },
         {
-          name: '📊 Card Power Formula',
-          value: 'Power = (HP + DMG) × level bonus × plating multiplier\nLevel bonus: ×(1 + 0.02 × (level − 1))',
+          name: '📊 Card Stats',
+          value: [
+            '**❤️ Health** — base HP, scales with level',
+            '**⚔️ Damage / 🔵 Technique** — base attack power',
+            '**💨 Speed** — determines who attacks first in battle (0.45–0.55× base HP)',
+            '',
+            '**Power Formula:** Power = (HP + DMG) × level bonus × plating multiplier',
+            '**Level bonus:** ×(1 + 0.02 × (level − 1))',
+          ].join('\n'),
           inline: false,
         },
       )
@@ -3501,24 +3610,26 @@ client.on('messageCreate', async (message) => {
         { name: 'Series',           value: card.series,                    inline: true },
         { name: 'Rarity',           value: `${meta.emoji} ${meta.label}`, inline: true },
         { name: 'Stars',            value: meta.stars || '—',              inline: true },
-        { name: '📊 Level',         value: levelLabel,                     inline: true },
-        { name: '❤️ Health',        value: `${stats.hp}`,                 inline: true },
-        { name: card.technique ? '🔵 Technique' : '⚔️ Damage', value: `${stats.dmg}`, inline: true },
-        { name: '✨ Prestige Points', value: `${pp}`,                      inline: true },
-        { name: '🔮 Shards',        value: `${shards}`,                   inline: true },
-        { name: 'Plating',           value: tierData ? tierData.label : 'None',                  inline: true },
-        { name: '⚔️ Equipped Weapon', value: weaponLine,                  inline: false },
+        { name: '📊 Level',         value: levelLabel,                        inline: true },
+        { name: '❤️ Health',        value: `${stats.hp.toLocaleString()}`,   inline: true },
+        { name: card.technique ? '🔵 Technique' : '⚔️ Damage', value: `${stats.dmg.toLocaleString()}`, inline: true },
+        { name: '💨 Speed',         value: `${stats.speed.toLocaleString()}`, inline: true },
+        { name: '✨ Prestige Points', value: `${pp}`,                         inline: true },
+        { name: '🔮 Shards',        value: `${shards}`,                      inline: true },
+        { name: 'Plating',           value: tierData ? tierData.label : 'None', inline: true },
+        { name: '⚔️ Equipped Weapon', value: weaponLine,                    inline: false },
       );
 
     if (tierData) {
       const base       = getCardStats(card, level);
       const platedHp   = Math.round(base.hp  * tierData.statMult);
       const platedDmg  = Math.round(base.dmg * tierData.statMult);
+      const baseSpeed  = base.speed;
       embed.addFields({
         name: `Battle Stats (with ${tierData.label} Plating)`,
         value: card.technique
-          ? `❤️ **${platedHp}** HP  🔵 **${platedDmg}** TEC  *(x${tierData.statMult} boost)*`
-          : `❤️ **${platedHp}** HP  ⚔️ **${platedDmg}** DMG  *(x${tierData.statMult} boost)*`,
+          ? `❤️ **${platedHp.toLocaleString()}** HP  🔵 **${platedDmg.toLocaleString()}** TEC  💨 **${baseSpeed.toLocaleString()}** SPD  *(x${tierData.statMult} HP/DMG boost)*`
+          : `❤️ **${platedHp.toLocaleString()}** HP  ⚔️ **${platedDmg.toLocaleString()}** DMG  💨 **${baseSpeed.toLocaleString()}** SPD  *(x${tierData.statMult} HP/DMG boost)*`,
         inline: false,
       });
     }
@@ -3552,8 +3663,9 @@ client.on('messageCreate', async (message) => {
         { name: 'Series',      value: card.series,                    inline: true },
         { name: 'Rarity',      value: `${meta.emoji} ${meta.label}`, inline: true },
         { name: 'Stars',       value: meta.stars || '—',              inline: true },
-        { name: card.dittoCard ? '❤️ Copied HP' : '❤️ Base HP',  value: card.dittoCard ? '(copied in battle)' : `${stats.hp}`, inline: true },
-        { name: card.dittoCard ? '⚔️ Copied DMG' : (card.technique ? '🔵 Base TEC' : '⚔️ Base DMG'), value: card.dittoCard ? '(copied in battle)' : `${stats.dmg}`, inline: true },
+        { name: card.dittoCard ? '❤️ Copied HP' : '❤️ Base HP',  value: card.dittoCard ? '(copied in battle)' : `${stats.hp.toLocaleString()}`, inline: true },
+        { name: card.dittoCard ? '⚔️ Copied DMG' : (card.technique ? '🔵 Base TEC' : '⚔️ Base DMG'), value: card.dittoCard ? '(copied in battle)' : `${stats.dmg.toLocaleString()}`, inline: true },
+        { name: card.dittoCard ? '💨 Copied SPD' : '💨 Base SPD', value: card.dittoCard ? '(copied in battle)' : `${stats.speed.toLocaleString()}`, inline: true },
         { name: '🪪 Card ID',  value: `\`${card.id}\``,              inline: true },
         {
           name: '💀 Kill Value',
@@ -5482,6 +5594,12 @@ client.on('error', (err) => {
 
 // ── Login ─────────────────────────────────────────────────
 
-client.login(process.env.DISCORD_TOKEN);
-
 console.log("Ping loop started");
+
+if (!process.env.DISCORD_TOKEN) {
+  console.warn('[bot] No DISCORD_TOKEN set — running in web-only mode (status page still available).');
+} else {
+  client.login(process.env.DISCORD_TOKEN).catch(err => {
+    console.error('[bot] Discord login failed:', err.message, '— web status page is still running.');
+  });
+}
