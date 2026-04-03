@@ -44,7 +44,7 @@ module.exports = {
   BOT_FIGHT_YEN_MIN:   1000,
   BOT_FIGHT_YEN_MAX:  10000,
   BOT_FIGHT_STAR_MIN:   10,
-  BOT_FIGHT_STAR_MAX:  100,
+  BOT_FIGHT_STAR_MAX:  10000,
 
   // ── Card Stats (scale by rarity) ─────────────────────────
   // Each card gets deterministic HP and DMG based on its card ID
