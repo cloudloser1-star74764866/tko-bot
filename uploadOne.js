@@ -20,7 +20,19 @@ function saveCache(data) {
 function fetchBuffer(url, redirectsLeft = 5) {
   return new Promise((resolve, reject) => {
     const lib = url.startsWith('https') ? https : http;
-    const req = lib.get(url, { timeout: 15000 }, res => {
+    const parsedUrl = new URL(url);
+    const options = {
+      hostname: parsedUrl.hostname,
+      path: parsedUrl.pathname + parsedUrl.search,
+      timeout: 15000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Referer': `${parsedUrl.protocol}//${parsedUrl.hostname}/`,
+      },
+    };
+    const req = lib.get(options, res => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         if (redirectsLeft <= 0) return reject(new Error('Too many redirects'));
         return resolve(fetchBuffer(res.headers.location, redirectsLeft - 1));
