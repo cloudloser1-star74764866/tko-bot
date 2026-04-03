@@ -93,9 +93,18 @@ module.exports = {
     { id: 'level_scroll',        name: 'Level Scroll',          emoji: '📜', cardId: null, useCmd: 'ZP use level_scroll <cardId>', desc: 'Use on any card to instantly raise its level by 1. Obtained from fights, raids, and daily rewards.' },
   ],
 
+  // ── Weapon Flat Stat Bonuses (by rarity) ──────────────────
+  // Flat boosts applied to the equipped card in battle.
+  // atkMin/atkMax: the attack bonus range — a deterministic value is picked per weapon card.
+  WEAPON_STATS: {
+    MY: { power: 1000, hp:  400, speed:  200, atkMin: 100, atkMax: 150 },
+    UR: { power: 1500, hp:  700, speed:  400, atkMin: 200, atkMax: 250 },
+    LT: { power: 2000, hp: 1000, speed:  500, atkMin: 300, atkMax: 350 },
+    MD: { power: 3000, hp: 1800, speed:  800, atkMin: 500, atkMax: 600 },
+  },
+
   // ── Weapon Evolution Tiers ────────────────────────────────
   // Cost per evolution: WEAPON_EVOLVE_SHARDS weapon shards + WEAPON_EVOLVE_PRESTIGE weapon prestige
-  // statMult: bonus applied to equipped card → boost = 1 + statMult × (weaponLevel / 100)
   WEAPON_EVOLVE_SHARDS:   10,
   WEAPON_EVOLVE_PRESTIGE: 300,
   WEAPON_EVOLUTION_TIERS: [

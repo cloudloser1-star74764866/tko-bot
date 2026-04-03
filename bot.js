@@ -269,21 +269,36 @@ function getCardStats(card, level = 1) {
   const lvl  = Math.max(1, level ?? 1);
   const mult = 1 + 0.02 * (lvl - 1);
   if (card.fixedHp != null && card.fixedDmg != null) {
+    const baseSpeedFixed = Math.round(card.fixedHp * 0.50);
     return {
-      hp:  Math.round(card.fixedHp  * mult),
-      dmg: Math.round(card.fixedDmg * mult),
+      hp:    Math.round(card.fixedHp  * mult),
+      dmg:   Math.round(card.fixedDmg * mult),
+      speed: Math.round(baseSpeedFixed * mult),
     };
   }
   let hash = 0;
   for (const ch of card.id) hash = (hash * 31 + ch.charCodeAt(0)) & 0xffffffff;
-  const t = (hash >>> 0) % 1000 / 1000;
-  const range = config.STAT_RANGES[card.rarity] ?? config.STAT_RANGES['R'];
-  const baseHp  = Math.round(range.hpMin  + t * (range.hpMax  - range.hpMin));
-  const baseDmg = Math.round(range.dmgMin + t * (range.dmgMax - range.dmgMin));
+  const t      = (hash >>> 0) % 1000 / 1000;
+  const tSpeed = ((hash >>> 7) % 1000) / 1000; // independent fraction for speed
+  const range    = config.STAT_RANGES[card.rarity] ?? config.STAT_RANGES['R'];
+  const baseHp   = Math.round(range.hpMin  + t * (range.hpMax  - range.hpMin));
+  const baseDmg  = Math.round(range.dmgMin + t * (range.dmgMax - range.dmgMin));
+  const baseSpeed = Math.round(baseHp * (0.45 + tSpeed * 0.10)); // 0.45–0.55× HP
   return {
-    hp:  Math.round(baseHp  * mult),
-    dmg: Math.round(baseDmg * mult),
+    hp:    Math.round(baseHp    * mult),
+    dmg:   Math.round(baseDmg   * mult),
+    speed: Math.round(baseSpeed * mult),
   };
+}
+
+/** Deterministic weapon ATK bonus from the weapon card's ID hash */
+function getWeaponAtkBonus(weaponId) {
+  const wStats = config.WEAPON_STATS[lookupCard(weaponId)?.rarity];
+  if (!wStats) return 0;
+  let wHash = 0;
+  for (const ch of weaponId) wHash = (wHash * 31 + ch.charCodeAt(0)) & 0xffffffff;
+  const t = (wHash >>> 0) % 1000 / 1000;
+  return Math.round(wStats.atkMin + t * (wStats.atkMax - wStats.atkMin));
 }
 
 // ── Trade item helpers ────────────────────────────────────
@@ -408,24 +423,27 @@ function buildBattleCard(slot) {
   const stats   = getCardStats(card, level);
   const plating = slot.plating ? config.PLATING_TIERS.find(t => t.id === slot.plating) : null;
 
-  // Additive bonus system: plating bonus + weapon bonus are summed, not multiplied
-  const platingBonus = plating ? (plating.statMult - 1) : 0;
+  // Plating is a stat multiplier; weapon gives flat additive bonuses
+  const platMult = plating ? plating.statMult : 1;
 
   let equippedWeaponId   = null;
   let equippedWeaponName = null;
-  let weaponBonus = 0;
+  let hp    = Math.round(stats.hp    * platMult);
+  let dmg   = Math.round(stats.dmg   * platMult);
+  let speed = stats.speed; // plating does not affect speed
+
   if (slot.equippedWeapon) {
-    const { weaponId, weaponName, weaponLevel } = slot.equippedWeapon;
-    // Linear scale: 1.1x at level 1 → 2.0x at level 100 (bonus = 0.1 to 1.0)
-    const wLvl = Math.max(1, Math.min(100, weaponLevel ?? 1));
-    weaponBonus    = 0.1 + 0.9 * (wLvl - 1) / 99;
+    const { weaponId, weaponName } = slot.equippedWeapon;
+    const wCard  = lookupCard(weaponId);
+    const wStats = wCard ? (config.WEAPON_STATS[wCard.rarity] ?? null) : null;
+    if (wStats) {
+      hp    += wStats.hp;
+      speed += wStats.speed;
+      dmg   += getWeaponAtkBonus(weaponId);
+    }
     equippedWeaponId   = weaponId;
     equippedWeaponName = weaponName;
   }
-
-  const totalMult = 1 + platingBonus + weaponBonus;
-  let hp  = Math.round(stats.hp  * totalMult);
-  let dmg = Math.round(stats.dmg * totalMult);
 
   const meta    = rarityMeta(card.rarity);
   return {
@@ -440,6 +458,7 @@ function buildBattleCard(slot) {
     dmgMin:    Math.round(dmg * 0.8),
     dmgMax:    Math.round(dmg * 1.2),
     dmg,
+    speed,
     technique: card.technique ?? false,
     alive:     true,
     equippedWeaponId,
@@ -523,12 +542,13 @@ function cardBattleLine(bc) {
   if (!bc.alive) {
     return `~~=> **${bc.name}** | Lv. ${bc.level}~~\nDefeated`;
   }
+  const spdStr = bc.speed != null ? ` | SPD ${bc.speed.toLocaleString()}` : '';
   return [
     hpBar(bc.hp, bc.maxHp),
     `=> **${bc.name}** | Lv. ${bc.level}`,
     bc.technique
-      ? `HP ${bc.hp.toLocaleString()}/${bc.maxHp.toLocaleString()} | TEC ${bc.dmgMin}–${bc.dmgMax}`
-      : `HP ${bc.hp.toLocaleString()}/${bc.maxHp.toLocaleString()} | DMG ${bc.dmgMin}–${bc.dmgMax}`,
+      ? `HP ${bc.hp.toLocaleString()}/${bc.maxHp.toLocaleString()} | TEC ${bc.dmgMin}–${bc.dmgMax}${spdStr}`
+      : `HP ${bc.hp.toLocaleString()}/${bc.maxHp.toLocaleString()} | DMG ${bc.dmgMin}–${bc.dmgMax}${spdStr}`,
   ].join('\n');
 }
 
