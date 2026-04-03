@@ -3747,7 +3747,7 @@ client.on('messageCreate', async (message) => {
       if (!inv.removeItem(inventory, userId, 'level_scroll')) {
         return message.reply(`You don't have a 📜 **Level Scroll**. Earn one from fights, raids, or daily rewards (requires 🟡 Scroll Awakener support card).`);
       }
-      const user   = inv.ensureUser(inventory, userId);
+      const user   = inventory.users[userId];
       const slot   = user.cards.find(c => c.id === targetCard.id);
       if (!slot) {
         inv.addItem(inventory, userId, 'level_scroll');
