@@ -77,6 +77,7 @@ function ensureUser(inventory, userId) {
   if (u.conquest2 === undefined)        u.conquest2      = null;
   if (typeof u.dailyStreak  !== 'number') u.dailyStreak = 0;
   if (u.lastDailyDate === undefined)    u.lastDailyDate  = null;
+  if (!u.weapons)                       u.weapons        = {};
   if ('shards' in u)                    delete u.shards;
   for (const card of u.cards) {
     if (typeof card.level !== 'number') card.level = 1;
@@ -230,6 +231,90 @@ function setConquest2(inventory, userId, cardId) {
 function clearConquest2(inventory, userId) {
   ensureUser(inventory, userId);
   inventory.users[userId].conquest2 = null;
+}
+
+// ── Weapon System ─────────────────────────────────────────
+
+function getWeaponData(inventory, userId, weaponId) {
+  ensureUser(inventory, userId);
+  const u = inventory.users[userId];
+  if (!u.weapons[weaponId]) {
+    u.weapons[weaponId] = { prestige: 0, evolutionTier: 1 };
+  }
+  return u.weapons[weaponId];
+}
+
+function addWeaponPrestige(inventory, userId, weaponId, amount) {
+  const data = getWeaponData(inventory, userId, weaponId);
+  data.prestige = (data.prestige ?? 0) + amount;
+}
+
+function getWeaponPrestige(inventory, userId, weaponId) {
+  return getWeaponData(inventory, userId, weaponId).prestige ?? 0;
+}
+
+function getWeaponEvolutionTier(inventory, userId, weaponId) {
+  return getWeaponData(inventory, userId, weaponId).evolutionTier ?? 1;
+}
+
+/**
+ * Evolve a weapon one tier. Returns { success, reason } or { success: true }.
+ * Costs WEAPON_EVOLVE_SHARDS weapon shards + WEAPON_EVOLVE_PRESTIGE weapon prestige.
+ * Config must be passed in since inventory.js doesn't require config.js.
+ */
+function evolveWeapon(inventory, userId, weaponId, config) {
+  ensureUser(inventory, userId);
+  const u      = inventory.users[userId];
+  const data   = getWeaponData(inventory, userId, weaponId);
+  const tier   = data.evolutionTier ?? 1;
+  const maxTier = config.WEAPON_EVOLUTION_TIERS.length;
+
+  if (tier >= maxTier) return { success: false, reason: `**${weaponId}** is already at max evolution tier (Tier ${maxTier}).` };
+
+  const shards    = u.characterShards[weaponId] ?? 0;
+  const prestige  = data.prestige ?? 0;
+
+  if (shards < config.WEAPON_EVOLVE_SHARDS) {
+    return { success: false, reason: `Not enough weapon shards. Need **${config.WEAPON_EVOLVE_SHARDS}**, have **${shards}**.` };
+  }
+  if (prestige < config.WEAPON_EVOLVE_PRESTIGE) {
+    return { success: false, reason: `Not enough weapon prestige. Need **${config.WEAPON_EVOLVE_PRESTIGE}**, have **${prestige}**.` };
+  }
+
+  u.characterShards[weaponId] = shards - config.WEAPON_EVOLVE_SHARDS;
+  data.prestige  = prestige - config.WEAPON_EVOLVE_PRESTIGE;
+  data.evolutionTier = tier + 1;
+  return { success: true, newTier: tier + 1 };
+}
+
+/**
+ * Equip a weapon card to a card slot. Stores equippedWeapon on the invCard object.
+ * Returns false if the card or weapon is not found in user's collection.
+ */
+function equipWeapon(inventory, userId, cardId, weaponId) {
+  ensureUser(inventory, userId);
+  const u = inventory.users[userId];
+  const card   = u.cards.find(c => c.id === cardId);
+  const weapon = u.cards.find(c => c.id === weaponId);
+  if (!card || !weapon) return false;
+  card.equippedWeapon = weaponId;
+  return true;
+}
+
+function unequipWeapon(inventory, userId, cardId) {
+  ensureUser(inventory, userId);
+  const u    = inventory.users[userId];
+  const card = u.cards.find(c => c.id === cardId);
+  if (!card) return false;
+  card.equippedWeapon = null;
+  return true;
+}
+
+function getEquippedWeapon(inventory, userId, cardId) {
+  ensureUser(inventory, userId);
+  const u    = inventory.users[userId];
+  const card = u.cards.find(c => c.id === cardId);
+  return card?.equippedWeapon ?? null;
 }
 
 // ── Daily Streak ──────────────────────────────────────────
@@ -756,6 +841,8 @@ module.exports = {
   getLimitBreakers, addLimitBreakers, removeLimitBreaker,
   getConquest, setConquest, clearConquest,
   getConquest2, setConquest2, clearConquest2,
+  getWeaponData, addWeaponPrestige, getWeaponPrestige, getWeaponEvolutionTier,
+  evolveWeapon, equipWeapon, unequipWeapon, getEquippedWeapon,
   getDailyInfo, claimDaily, DAILY_SCROLL_CAP,
   getWish, setWish, clearWish, incrementWishPulls, WISH_THRESHOLD,
   getTotalPulls, incrementTotalPulls, incrementTotalKills,

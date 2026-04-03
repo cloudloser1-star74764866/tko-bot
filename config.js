@@ -91,6 +91,19 @@ module.exports = {
     { id: 'level_scroll',        name: 'Level Scroll',          emoji: '📜', cardId: null, useCmd: 'ZP use level_scroll <cardId>', desc: 'Use on any card to instantly raise its level by 1. Obtained from fights, raids, and daily rewards.' },
   ],
 
+  // ── Weapon Evolution Tiers ────────────────────────────────
+  // Cost per evolution: WEAPON_EVOLVE_SHARDS weapon shards + WEAPON_EVOLVE_PRESTIGE weapon prestige
+  // statMult: bonus applied to equipped card → boost = 1 + statMult × (weaponLevel / 100)
+  WEAPON_EVOLVE_SHARDS:   10,
+  WEAPON_EVOLVE_PRESTIGE: 300,
+  WEAPON_EVOLUTION_TIERS: [
+    { tier: 1, name: 'Basic',      emoji: '⚙️',  statMult: 0.10 },
+    { tier: 2, name: 'Refined',    emoji: '🔧',  statMult: 0.20 },
+    { tier: 3, name: 'Enhanced',   emoji: '⚔️',  statMult: 0.40 },
+    { tier: 4, name: 'Masterwork', emoji: '🔥',  statMult: 0.70 },
+    { tier: 5, name: 'Legendary',  emoji: '⚡',  statMult: 1.00 },
+  ],
+
   // ── Rarity Metadata (display) ────────────────────────────
   RARITY_META: {
     R:  { label: 'Rare',       emoji: '💙',  color: 0x4A90D9, stars: '*'        },

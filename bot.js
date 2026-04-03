@@ -398,8 +398,24 @@ function buildBattleCard(slot) {
   const stats   = getCardStats(card, level);
   const plating = slot.plating ? config.PLATING_TIERS.find(t => t.id === slot.plating) : null;
   const mult    = plating ? plating.statMult : 1;
-  const hp      = Math.round(stats.hp  * mult);
-  const dmg     = Math.round(stats.dmg * mult);
+  let hp        = Math.round(stats.hp  * mult);
+  let dmg       = Math.round(stats.dmg * mult);
+
+  // Apply equipped weapon stat boost
+  let equippedWeaponId   = null;
+  let equippedWeaponName = null;
+  if (slot.equippedWeapon) {
+    const { weaponId, weaponName, weaponLevel, evolutionTier } = slot.equippedWeapon;
+    const tierData = config.WEAPON_EVOLUTION_TIERS[evolutionTier - 1];
+    if (tierData) {
+      const weaponBoost = 1 + tierData.statMult * (weaponLevel / 100);
+      hp  = Math.round(hp  * weaponBoost);
+      dmg = Math.round(dmg * weaponBoost);
+    }
+    equippedWeaponId   = weaponId;
+    equippedWeaponName = weaponName;
+  }
+
   const meta    = rarityMeta(card.rarity);
   return {
     cardId:    card.id,
@@ -415,6 +431,8 @@ function buildBattleCard(slot) {
     dmg,
     technique: card.technique ?? false,
     alive:     true,
+    equippedWeaponId,
+    equippedWeaponName,
   };
 }
 
@@ -959,7 +977,25 @@ function resolveTeamSlots(team, inventory, userId) {
     const card     = lookupCard(slot.cardId);
     const invCard  = inv.getCards(inventory, userId).find(c => c.id === slot.cardId);
     const level    = invCard?.level ?? 1;
-    return { ...slot, card, level };
+
+    // Load equipped weapon data for this card
+    const equippedWeaponId = inv.getEquippedWeapon(inventory, userId, slot.cardId);
+    let equippedWeapon = null;
+    if (equippedWeaponId) {
+      const wCard    = lookupCard(equippedWeaponId);
+      const wInvCard = inv.getCards(inventory, userId).find(c => c.id === equippedWeaponId);
+      const wData    = inv.getWeaponData(inventory, userId, equippedWeaponId);
+      if (wCard && wInvCard) {
+        equippedWeapon = {
+          weaponId:      equippedWeaponId,
+          weaponName:    wCard.name,
+          weaponLevel:   wInvCard.level ?? 1,
+          evolutionTier: wData.evolutionTier ?? 1,
+        };
+      }
+    }
+
+    return { ...slot, card, level, equippedWeapon };
   });
 }
 
@@ -1458,6 +1494,11 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
           ].join('\n'), inline: false },
         { name: '`ZP allowraidjoins` / `ZP arj`', value: 'Enable others to join your active raid. Run after using a raid ticket.', inline: false },
         { name: '`ZP whitelist @user` / `ZP wh @user`', value: 'Whitelist a player (max 4) to join your collab raid. They click **Join Raid** on the raid card.', inline: false },
+        { name: '\u200b', value: '**⚔️ Weapon System**', inline: false },
+        { name: '`ZP equipweapon <cardId> <weaponId>` / `ZP ew`', value: 'Equip a weapon card to a card slot. The weapon boosts that card\'s HP and DMG in battle.', inline: false },
+        { name: '`ZP unequipweapon <cardId>` / `ZP uew`', value: 'Remove the equipped weapon from a card.', inline: false },
+        { name: '`ZP evolveweapon <weaponId>` / `ZP evw`', value: `Evolve a weapon to the next tier (max Tier ${config.WEAPON_EVOLUTION_TIERS.length}). Costs **${config.WEAPON_EVOLVE_SHARDS} weapon shards** + **${config.WEAPON_EVOLVE_PRESTIGE} weapon prestige** per tier. Tiers: Basic → Refined → Enhanced → Masterwork → Legendary.`, inline: false },
+        { name: '`ZP weaponinfo <weaponId>` / `ZP winfo`', value: 'View your weapon\'s evolution tier, prestige, and shard progress.', inline: false },
       )
       .setFooter({ text: 'Page 4 of 8 • ZP help' }),
 
@@ -1782,6 +1823,12 @@ client.on('interactionCreate', async (interaction) => {
     target.hp       = Math.max(0, target.hp - dmgDealt);
     if (target.hp === 0) target.alive = false;
 
+    // Track weapon kills: if attacker has a weapon equipped and just killed the target
+    if (!target.alive && attacker.equippedWeaponId) {
+      if (!state.weaponKills) state.weaponKills = {};
+      state.weaponKills[attacker.equippedWeaponId] = (state.weaponKills[attacker.equippedWeaponId] ?? 0) + 1;
+    }
+
     let log = `⚔️ **${attacker.name}** attacked **${target.name}** for **${dmgDealt.toLocaleString()}** damage!`;
     if (!target.alive) log += ` **${target.name}** was defeated!`;
 
@@ -1809,6 +1856,14 @@ client.on('interactionCreate', async (interaction) => {
       if (hasSupportCard(inventory, state.attackerId, 'support_ur') && Math.random() < 0.08) {
         inv.addItem(inventory, state.attackerId, 'level_scroll');
         scrollDropText = '  +📜 Level Scroll';
+      }
+      // Apply weapon prestige earned during this fight
+      if (state.weaponKills && Object.keys(state.weaponKills).length > 0) {
+        for (const [weaponId, kills] of Object.entries(state.weaponKills)) {
+          if (inv.hasCard(inventory, state.attackerId, weaponId)) {
+            inv.addWeaponPrestige(inventory, state.attackerId, weaponId, kills);
+          }
+        }
       }
       await inv.saveInventory(inventory);
       const winLabel = state.isBotFight ? '🤖 Bot Team defeated!' : `🏆 **${state.attackerName}** wins!`;
@@ -3268,6 +3323,19 @@ client.on('messageCreate', async (message) => {
     const slot     = team.find(s => s.cardId === card.id);
     const tierData = slot?.plating ? config.PLATING_TIERS.find(t => t.id === slot.plating) : null;
 
+    // Equipped weapon
+    const equippedWeaponId = inv.getEquippedWeapon(inventory, userId, card.id);
+    let weaponLine = 'None';
+    if (equippedWeaponId) {
+      const wCard    = lookupCard(equippedWeaponId);
+      const wData    = inv.getWeaponData(inventory, userId, equippedWeaponId);
+      const wTier    = config.WEAPON_EVOLUTION_TIERS[wData.evolutionTier - 1];
+      const wLevel   = (inv.getCards(inventory, userId).find(c => c.id === equippedWeaponId)?.level ?? 1);
+      weaponLine = wCard
+        ? `${wTier?.emoji ?? '⚔️'} **${wCard.name}** (Tier ${wData.evolutionTier} ${wTier?.name ?? ''}) Lv${wLevel}`
+        : equippedWeaponId;
+    }
+
     const embed = new EmbedBuilder()
       .setColor(meta.color)
       .setTitle(`${meta.emoji} ${card.name} (Your Card)`)
@@ -3281,6 +3349,7 @@ client.on('messageCreate', async (message) => {
         { name: '✨ Prestige Points', value: `${pp}`,                      inline: true },
         { name: '🔮 Shards',        value: `${shards}`,                   inline: true },
         { name: 'Plating',           value: tierData ? tierData.label : 'None',                  inline: true },
+        { name: '⚔️ Equipped Weapon', value: weaponLine,                  inline: false },
       );
 
     if (tierData) {
@@ -3921,6 +3990,7 @@ client.on('messageCreate', async (message) => {
       defenderName: opponent.username,
       attackerCards,
       defenderCards,
+      weaponKills:  {},
       expiry: Date.now() + 5 * 60 * 1000,
     };
     activeBattles.set(battleId, state);
@@ -3960,6 +4030,7 @@ client.on('messageCreate', async (message) => {
       attackerCards,
       defenderCards,
       isBotFight:   true,
+      weaponKills:  {},
       expiry: Date.now() + 5 * 60 * 1000,
     };
     activeBattles.set(battleId, state);
@@ -4559,6 +4630,176 @@ client.on('messageCreate', async (message) => {
       )
       .setFooter({ text: 'Use ZP ilc <cardId> to break a card\'s level cap with Limit Breakers' });
     const img = card ? (imgCache.getImage(card.id) ?? card.image ?? null) : null;
+    if (img) embed.setThumbnail(img);
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── equipweapon ───────────────────────────────────────────
+  if (command === 'equipweapon' || command === 'ew') {
+    const nonMention = args.filter(a => !a.startsWith('<@'));
+    const cardQuery   = nonMention[0];
+    const weaponQuery = nonMention.slice(1).join(' ') || nonMention[0];
+
+    if (nonMention.length < 2) {
+      return message.reply('Usage: `ZP equipweapon <cardId> <weaponId>`\nExample: `ZP ew gojo gojo_weapon`');
+    }
+
+    const card   = resolveCard(nonMention[0]);
+    const weapon = resolveCard(nonMention.slice(1).join(' '));
+
+    if (!card)   return message.reply(`No card found matching \`${nonMention[0]}\`.`);
+    if (!weapon) return message.reply(`No weapon card found matching \`${nonMention.slice(1).join(' ')}\`.`);
+
+    const wDef = CARDS.find(c => c.id === weapon.id);
+    if (!wDef?.weaponCard) {
+      return message.reply(`**${weapon.name}** is not a weapon card. Only weapon cards can be equipped.`);
+    }
+
+    const inventory = await inv.loadInventory();
+
+    if (!inv.hasCard(inventory, userId, card.id)) {
+      return message.reply(`You don't own **${card.name}**.`);
+    }
+    if (!inv.hasCard(inventory, userId, weapon.id)) {
+      return message.reply(`You don't own **${weapon.name}**.`);
+    }
+
+    inv.equipWeapon(inventory, userId, card.id, weapon.id);
+    await inv.saveInventory(inventory);
+
+    const wData    = inv.getWeaponData(inventory, userId, weapon.id);
+    const tierData = config.WEAPON_EVOLUTION_TIERS[wData.evolutionTier - 1];
+    const cardMeta = rarityMeta(card.rarity);
+    const embed = new EmbedBuilder()
+      .setColor(cardMeta.color)
+      .setTitle(`⚔️ Weapon Equipped!`)
+      .setDescription(
+        `**${weapon.name}** is now equipped to **${card.name}**!\n\n` +
+        `${tierData.emoji} **Tier ${wData.evolutionTier} — ${tierData.name}** weapon\n` +
+        `+${Math.round(tierData.statMult * 100)}% stat bonus (at max level)\n\n` +
+        `*Fight with ${card.name} to earn weapon prestige. Evolve the weapon with \`ZP evolveweapon ${weapon.id}\`.*`
+      )
+      .setFooter({ text: 'Use ZP unequipweapon <cardId> to remove the weapon' });
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── unequipweapon ─────────────────────────────────────────
+  if (command === 'unequipweapon' || command === 'uew') {
+    const cardQuery = args.filter(a => !a.startsWith('<@')).join(' ');
+    if (!cardQuery) return message.reply('Usage: `ZP unequipweapon <cardId>`');
+
+    const card = resolveCard(cardQuery);
+    if (!card) return message.reply(`No card found matching \`${cardQuery}\`.`);
+
+    const inventory = await inv.loadInventory();
+    if (!inv.hasCard(inventory, userId, card.id)) {
+      return message.reply(`You don't own **${card.name}**.`);
+    }
+    const currentWeaponId = inv.getEquippedWeapon(inventory, userId, card.id);
+    if (!currentWeaponId) {
+      return message.reply(`**${card.name}** doesn't have a weapon equipped.`);
+    }
+    inv.unequipWeapon(inventory, userId, card.id);
+    await inv.saveInventory(inventory);
+    const wCard = lookupCard(currentWeaponId);
+    return message.reply(`⚔️ **${wCard?.name ?? currentWeaponId}** has been unequipped from **${card.name}**.`);
+  }
+
+  // ── evolveweapon ──────────────────────────────────────────
+  if (command === 'evolveweapon' || command === 'evw') {
+    const weaponQuery = args.filter(a => !a.startsWith('<@')).join(' ');
+    if (!weaponQuery) return message.reply('Usage: `ZP evolveweapon <weaponId>`');
+
+    const weapon = resolveCard(weaponQuery);
+    if (!weapon) return message.reply(`No card found matching \`${weaponQuery}\`.`);
+
+    const wDef = CARDS.find(c => c.id === weapon.id);
+    if (!wDef?.weaponCard) return message.reply(`**${weapon.name}** is not a weapon card.`);
+
+    const inventory = await inv.loadInventory();
+    if (!inv.hasCard(inventory, userId, weapon.id)) {
+      return message.reply(`You don't own **${weapon.name}**.`);
+    }
+
+    const result = inv.evolveWeapon(inventory, userId, weapon.id, config);
+    if (!result.success) {
+      return message.reply(`❌ Cannot evolve **${weapon.name}**: ${result.reason}`);
+    }
+    await inv.saveInventory(inventory);
+
+    const newTierData = config.WEAPON_EVOLUTION_TIERS[result.newTier - 1];
+    const meta = rarityMeta(weapon.rarity);
+    const img  = imgCache.getImage(weapon.id) ?? weapon.image ?? null;
+    const embed = new EmbedBuilder()
+      .setColor(meta.color)
+      .setTitle(`${newTierData.emoji} Weapon Evolved!`)
+      .setDescription(
+        `**${weapon.name}** evolved to **Tier ${result.newTier} — ${newTierData.name}**!\n\n` +
+        `**Stat Bonus (at Lv100):** +${Math.round(newTierData.statMult * 100)}%\n` +
+        (result.newTier < config.WEAPON_EVOLUTION_TIERS.length
+          ? `\n*Next tier (Tier ${result.newTier + 1}) costs **${config.WEAPON_EVOLVE_SHARDS} weapon shards** + **${config.WEAPON_EVOLVE_PRESTIGE} weapon prestige**.*`
+          : '\n*This weapon is at its maximum evolution tier — LEGENDARY!*')
+      )
+      .setFooter({ text: 'Gain weapon prestige by winning fights with the weapon equipped on a killing card' });
+    if (img) embed.setThumbnail(img);
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── weaponinfo ────────────────────────────────────────────
+  if (command === 'weaponinfo' || command === 'winfo' || command === 'wp') {
+    const weaponQuery = args.filter(a => !a.startsWith('<@')).join(' ');
+    if (!weaponQuery) return message.reply('Usage: `ZP weaponinfo <weaponId>`');
+
+    const weapon = resolveCard(weaponQuery);
+    if (!weapon) return message.reply(`No weapon found matching \`${weaponQuery}\`.`);
+
+    const wDef = CARDS.find(c => c.id === weapon.id);
+    if (!wDef?.weaponCard) return message.reply(`**${weapon.name}** is not a weapon card.`);
+
+    const inventory = await inv.loadInventory();
+    const owned     = inv.hasCard(inventory, userId, weapon.id);
+    const meta      = rarityMeta(weapon.rarity);
+
+    if (!owned) {
+      const img = imgCache.getImage(weapon.id) ?? weapon.image ?? null;
+      const tierLines = config.WEAPON_EVOLUTION_TIERS.map(t =>
+        `${t.emoji} **Tier ${t.tier} — ${t.name}**: +${Math.round(t.statMult * 100)}% stats at Lv100`
+      ).join('\n');
+      const embed = new EmbedBuilder()
+        .setColor(meta.color)
+        .setTitle(`⚔️ ${weapon.name}`)
+        .setDescription(`${meta.emoji} **${meta.label}** weapon — ${weapon.series}\n\n${weapon.desc}\n\n**Weapon of:** ${lookupCard(wDef.weaponOf)?.name ?? wDef.weaponOf}\n\n**Evolution Tiers:**\n${tierLines}`)
+        .setFooter({ text: 'You do not own this weapon yet' });
+      if (img) embed.setImage(img);
+      return message.reply({ embeds: [embed] });
+    }
+
+    const wData    = inv.getWeaponData(inventory, userId, weapon.id);
+    const tier     = wData.evolutionTier ?? 1;
+    const prestige = wData.prestige ?? 0;
+    const tierData = config.WEAPON_EVOLUTION_TIERS[tier - 1];
+    const nextTier = config.WEAPON_EVOLUTION_TIERS[tier];
+    const shards   = (inv.getCharacterShards(inventory, userId)[weapon.id] ?? 0);
+    const invCard  = inv.getCards(inventory, userId).find(c => c.id === weapon.id);
+    const level    = invCard?.level ?? 1;
+
+    const progressToNext = nextTier
+      ? `\n**Progress to Tier ${tier + 1}:** ${prestige}/${config.WEAPON_EVOLVE_PRESTIGE} prestige  |  ${shards}/${config.WEAPON_EVOLVE_SHARDS} shards`
+      : '\n**⚡ Maximum evolution reached!**';
+
+    const img = imgCache.getImage(weapon.id) ?? weapon.image ?? null;
+    const embed = new EmbedBuilder()
+      .setColor(meta.color)
+      .setTitle(`⚔️ ${weapon.name} — Your Weapon`)
+      .setDescription(
+        `${meta.emoji} **${meta.label}** weapon — ${weapon.series}\n\n` +
+        `${tierData.emoji} **Tier ${tier} — ${tierData.name}**\n` +
+        `**Level:** ${level} / 100\n` +
+        `**Weapon Prestige:** ${prestige}\n` +
+        `**Stat Bonus:** +${Math.round(tierData.statMult * (level / 100) * 100)}% (at current level)\n` +
+        progressToNext
+      )
+      .setFooter({ text: `Equip with: ZP equipweapon <cardId> ${weapon.id}` });
     if (img) embed.setThumbnail(img);
     return message.reply({ embeds: [embed] });
   }
