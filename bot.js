@@ -543,10 +543,12 @@ function buildBattleCard(slot) {
   if (!card) return null;
   const level   = slot.level ?? 1;
   const stats   = getCardStats(card, level);
-  const plating = slot.plating ? config.PLATING_TIERS.find(t => t.id === slot.plating) : null;
+  const platings = inv.getSlotPlatings(slot)
+    .map(id => config.PLATING_TIERS.find(t => t.id === id))
+    .filter(Boolean);
 
-  // Plating is a stat multiplier; weapon gives flat additive bonuses
-  const platMult = plating ? plating.statMult : 1;
+  // Each plating adds its bonus on top of the base 1×; bonuses are additive
+  const platMult = platings.reduce((acc, p) => acc + (p.statMult - 1), 1);
 
   let equippedWeaponId   = null;
   let equippedWeaponName = null;
@@ -572,8 +574,8 @@ function buildBattleCard(slot) {
     cardId:    card.id,
     name:      card.name,
     level,
-    plating:   slot.plating ?? null,
-    platEmoji: plating?.emoji ?? '',
+    platings:  platings.map(p => p.id),
+    platEmoji: platings.map(p => p.emoji).join(''),
     rarEmoji:  meta.emoji,
     hp,
     maxHp:     hp,
@@ -1189,8 +1191,10 @@ function slotPower(slot) {
   if (!card) return 0;
   const level     = slot.level ?? 1;
   const stats     = getCardStats(card, level);
-  const plating   = slot.plating ? config.PLATING_TIERS.find(t => t.id === slot.plating) : null;
-  const platMult  = plating ? plating.statMult : 1;
+  const platings  = inv.getSlotPlatings(slot)
+    .map(id => config.PLATING_TIERS.find(t => t.id === id))
+    .filter(Boolean);
+  const platMult  = platings.reduce((acc, p) => acc + (p.statMult - 1), 1);
   return (stats.hp + stats.dmg) * platMult;
 }
 
@@ -3730,16 +3734,18 @@ client.on('messageCreate', async (message) => {
     if (owned) {
       const team     = inv.getTeam(inventory, userId);
       const slot     = team.find(s => s.cardId === card.id);
-      const tierData = slot?.plating ? config.PLATING_TIERS.find(t => t.id === slot.plating) : null;
-      if (tierData) {
-        const base       = getCardStats(card, level);
-        const platedHp   = Math.round(base.hp  * tierData.statMult);
-        const platedDmg  = Math.round(base.dmg * tierData.statMult);
+      const slotPlatDefs2 = inv.getSlotPlatings(slot ?? {}).map(id => config.PLATING_TIERS.find(t => t.id === id)).filter(Boolean);
+      if (slotPlatDefs2.length > 0) {
+        const combinedMult = slotPlatDefs2.reduce((acc, p) => acc + (p.statMult - 1), 1);
+        const base         = getCardStats(card, level);
+        const platedHp     = Math.round(base.hp  * combinedMult);
+        const platedDmg    = Math.round(base.dmg * combinedMult);
+        const platLabel    = slotPlatDefs2.map(p => p.label).join(' + ');
         embed.addFields({
-          name: `${tierData.label} Plating (in battle)`,
+          name: `${platLabel} Plating (in battle)`,
           value: card.technique
-            ? `❤️ **${platedHp}** HP  🔵 **${platedDmg}** TEC  *(x${tierData.statMult} boost)*`
-            : `❤️ **${platedHp}** HP  ⚔️ **${platedDmg}** DMG  *(x${tierData.statMult} boost)*`,
+            ? `❤️ **${platedHp}** HP  🔵 **${platedDmg}** TEC  *(x${combinedMult.toFixed(1)} boost)*`
+            : `❤️ **${platedHp}** HP  ⚔️ **${platedDmg}** DMG  *(x${combinedMult.toFixed(1)} boost)*`,
           inline: false,
         });
       }
@@ -3781,9 +3787,10 @@ client.on('messageCreate', async (message) => {
     const levelLabel  = isMax ? `✨ MAX (${level}/${personalCap})` : `Lv. ${level} / ${personalCap}`;
     const img         = imgCache.getImage(card.id) ?? card.image ?? null;
 
-    const team     = inv.getTeam(inventory, userId);
-    const slot     = team.find(s => s.cardId === card.id);
-    const tierData = slot?.plating ? config.PLATING_TIERS.find(t => t.id === slot.plating) : null;
+    const team          = inv.getTeam(inventory, userId);
+    const slot          = team.find(s => s.cardId === card.id);
+    const mycardPlatings = inv.getSlotPlatings(slot ?? {})
+      .map(id => config.PLATING_TIERS.find(t => t.id === id)).filter(Boolean);
 
     // Equipped weapon
     const equippedWeaponId = inv.getEquippedWeapon(inventory, userId, card.id);
@@ -3811,20 +3818,22 @@ client.on('messageCreate', async (message) => {
         { name: '💨 Speed',         value: `${stats.speed.toLocaleString()}`, inline: true },
         { name: '✨ Prestige Points', value: `${pp}`,                         inline: true },
         { name: '🔮 Shards',        value: `${shards}`,                      inline: true },
-        { name: 'Plating',           value: tierData ? tierData.label : 'None', inline: true },
+        { name: 'Plating',           value: mycardPlatings.length ? mycardPlatings.map(p => p.label).join(' + ') : 'None', inline: true },
         { name: '⚔️ Equipped Weapon', value: weaponLine,                    inline: false },
       );
 
-    if (tierData) {
-      const base       = getCardStats(card, level);
-      const platedHp   = Math.round(base.hp  * tierData.statMult);
-      const platedDmg  = Math.round(base.dmg * tierData.statMult);
-      const baseSpeed  = base.speed;
+    if (mycardPlatings.length > 0) {
+      const combinedMult = mycardPlatings.reduce((acc, p) => acc + (p.statMult - 1), 1);
+      const base         = getCardStats(card, level);
+      const platedHp     = Math.round(base.hp  * combinedMult);
+      const platedDmg    = Math.round(base.dmg * combinedMult);
+      const baseSpeed    = base.speed;
+      const platLabel    = mycardPlatings.map(p => p.label).join(' + ');
       embed.addFields({
-        name: `Battle Stats (with ${tierData.label} Plating)`,
+        name: `Battle Stats (with ${platLabel} Plating)`,
         value: card.technique
-          ? `❤️ **${platedHp.toLocaleString()}** HP  🔵 **${platedDmg.toLocaleString()}** TEC  💨 **${baseSpeed.toLocaleString()}** SPD  *(x${tierData.statMult} HP/DMG boost)*`
-          : `❤️ **${platedHp.toLocaleString()}** HP  ⚔️ **${platedDmg.toLocaleString()}** DMG  💨 **${baseSpeed.toLocaleString()}** SPD  *(x${tierData.statMult} HP/DMG boost)*`,
+          ? `❤️ **${platedHp.toLocaleString()}** HP  🔵 **${platedDmg.toLocaleString()}** TEC  💨 **${baseSpeed.toLocaleString()}** SPD  *(x${combinedMult.toFixed(1)} HP/DMG boost)*`
+          : `❤️ **${platedHp.toLocaleString()}** HP  ⚔️ **${platedDmg.toLocaleString()}** DMG  💨 **${baseSpeed.toLocaleString()}** SPD  *(x${combinedMult.toFixed(1)} HP/DMG boost)*`,
         inline: false,
       });
     }
@@ -4363,8 +4372,8 @@ client.on('messageCreate', async (message) => {
           const meta    = rarityMeta(slot.card.rarity);
           const power   = slotPower(slot);
           totalPower   += power;
-          const plating = slot.plating ? config.PLATING_TIERS.find(t => t.id === slot.plating) : null;
-          const platStr = plating ? ` [${plating.label}]` : '';
+          const slotPlatDefs = inv.getSlotPlatings(slot).map(id => config.PLATING_TIERS.find(t => t.id === id)).filter(Boolean);
+          const platStr = slotPlatDefs.length ? ` [${slotPlatDefs.map(p => p.label).join('+')}]` : '';
           const cap     = inv.getPersonalLevelCap(inventory, target.id, slot.cardId);
           return `${i + 1}. ${meta.emoji} **${slot.card.name}**${platStr} — Lv.${slot.level}/${cap} • ⚡ ${Math.round(power).toLocaleString()} power`;
         });
@@ -4411,14 +4420,16 @@ client.on('messageCreate', async (message) => {
       const slot      = inv.removeFromTeam(inventory, userId, card.id);
       if (!slot) return message.reply(`**${card.name}** is not on your team.`);
 
-      if (slot.plating) {
-        inv.addPlating(inventory, userId, slot.plating);
-        const tier = config.PLATING_TIERS.find(t => t.id === slot.plating);
-        await inv.saveInventory(inventory);
-        return message.reply(`**${card.name}** removed from your team. **${tier?.label} Plating** returned to inventory.`);
+      const removedPlatings = inv.getSlotPlatings(slot);
+      for (const tier of removedPlatings) {
+        inv.addPlating(inventory, userId, tier);
       }
-
       await inv.saveInventory(inventory);
+
+      if (removedPlatings.length > 0) {
+        const names = removedPlatings.map(id => config.PLATING_TIERS.find(t => t.id === id)?.label ?? id).join(', ');
+        return message.reply(`**${card.name}** removed from your team. **${names} Plating${removedPlatings.length > 1 ? 's' : ''}** returned to inventory.`);
+      }
       return message.reply(`**${card.name}** removed from your team.`);
     }
 
@@ -4442,24 +4453,35 @@ client.on('messageCreate', async (message) => {
       if (result === 'equipped')        return message.reply(`**${tier.label} Plating** equipped to **${card.name}**!`);
       if (result === 'not_on_team')     return message.reply(`**${card.name}** is not on your team.`);
       if (result === 'no_plating')      return message.reply(`You don't have a **${tier.label} Plating** in your inventory.`);
-      if (result === 'already_equipped') return message.reply(`**${card.name}** already has a plating equipped. Unequip it first.`);
+      if (result === 'already_equipped') return message.reply(`**${card.name}** already has a **${tier.label} Plating** equipped.`);
     }
 
     // ── ZP team unequip ───────────────────────────────────
     if (sub === 'unequip') {
-      const cardQuery = args.slice(1).filter(a => !a.startsWith('<@')).join(' ');
-      if (!cardQuery) return message.reply('Usage: `ZP team unequip <name or id>`');
+      const unequipArgs = args.slice(1).filter(a => !a.startsWith('<@'));
+      if (!unequipArgs.length) return message.reply('Usage: `ZP team unequip <name or id> [plating]` — omit plating to remove all.\nExample: `ZP team unequip gojo gold`');
 
+      const lastArg       = unequipArgs[unequipArgs.length - 1].toLowerCase();
+      const targetTier    = platingById(lastArg);
+      const cardQuery     = targetTier
+        ? unequipArgs.slice(0, -1).join(' ')
+        : unequipArgs.join(' ');
+
+      if (!cardQuery) return message.reply('Usage: `ZP team unequip <name or id> [plating]`');
       const card = resolveCard(cardQuery);
       if (!card) return message.reply(`No card found matching \`${cardQuery}\`.`);
 
       const inventory = await inv.loadInventory();
-      const tier      = inv.unequipPlatingFromTeam(inventory, userId, card.id);
+      const removed   = inv.unequipPlatingFromTeam(inventory, userId, card.id, targetTier?.id ?? null);
       await inv.saveInventory(inventory);
 
-      if (!tier) return message.reply(`**${card.name}** doesn't have a plating equipped.`);
-      const tierData = config.PLATING_TIERS.find(t => t.id === tier);
-      return message.reply(`**${tierData?.label} Plating** unequipped from **${card.name}** and returned to your inventory.`);
+      if (removed.length === 0) {
+        return message.reply(targetTier
+          ? `**${card.name}** doesn't have a **${targetTier.label} Plating** equipped.`
+          : `**${card.name}** doesn't have any platings equipped.`);
+      }
+      const names = removed.map(id => config.PLATING_TIERS.find(t => t.id === id)?.label ?? id).join(', ');
+      return message.reply(`**${names} Plating${removed.length > 1 ? 's' : ''}** unequipped from **${card.name}** and returned to your inventory.`);
     }
   }
 
@@ -4496,14 +4518,16 @@ client.on('messageCreate', async (message) => {
     const slot      = inv.removeFromTeam(inventory, userId, card.id);
     if (!slot) return message.reply(`**${card.name}** is not on your team.`);
 
-    if (slot.plating) {
-      inv.addPlating(inventory, userId, slot.plating);
-      const tier = config.PLATING_TIERS.find(t => t.id === slot.plating);
-      await inv.saveInventory(inventory);
-      return message.reply(`**${card.name}** removed from your team. **${tier?.label} Plating** returned to inventory.`);
+    const removedPlatings2 = inv.getSlotPlatings(slot);
+    for (const tier of removedPlatings2) {
+      inv.addPlating(inventory, userId, tier);
     }
-
     await inv.saveInventory(inventory);
+
+    if (removedPlatings2.length > 0) {
+      const names = removedPlatings2.map(id => config.PLATING_TIERS.find(t => t.id === id)?.label ?? id).join(', ');
+      return message.reply(`**${card.name}** removed from your team. **${names} Plating${removedPlatings2.length > 1 ? 's' : ''}** returned to inventory.`);
+    }
     return message.reply(`**${card.name}** removed from your team.`);
   }
 
@@ -5278,7 +5302,7 @@ client.on('messageCreate', async (message) => {
       if (result === 'equipped')        return message.reply(`**${platingTr.label} Plating** equipped to **${card.name}**!`);
       if (result === 'no_plating')      return message.reply(`You don't have a **${platingTr.label} Plating** in your inventory.`);
       if (result === 'not_in_team')     return message.reply(`**${card.name}** is not on your team.`);
-      if (result === 'already_equipped') return message.reply(`**${card.name}** already has a plating equipped. Unequip it first.`);
+      if (result === 'already_equipped') return message.reply(`**${card.name}** already has a **${platingTr.label} Plating** equipped.`);
       return message.reply(`Plating equipped!`);
     }
 
@@ -5289,9 +5313,18 @@ client.on('messageCreate', async (message) => {
     if (!weapon) return message.reply(`No card/weapon found matching \`${nonMention.slice(1).join(' ')}\`. Valid platings: \`bronze\` \`silver\` \`gold\` \`diamond\``);
     const wDef2 = CARDS.find(c => c.id === weapon.id);
     if (!wDef2?.weaponCard) return message.reply(`**${weapon.name}** is neither a plating tier nor a weapon card.`);
+    if (wDef2.weaponOf && wDef2.weaponOf !== card.id) {
+      const sigCard = lookupCard(wDef2.weaponOf);
+      return message.reply(`**${weapon.name}** is a signature weapon for **${sigCard?.name ?? wDef2.weaponOf}** and cannot be equipped to **${card.name}**.`);
+    }
     if (!inv.hasCard(inventory, userId, card.id))   return message.reply(`You don't own **${card.name}**.`);
     if (!inv.hasCard(inventory, userId, weapon.id)) return message.reply(`You don't own **${weapon.name}**.`);
-    inv.equipWeapon(inventory, userId, card.id, weapon.id);
+    const equipResult2 = inv.equipWeapon(inventory, userId, card.id, weapon.id);
+    if (equipResult2 === 'already_in_use') {
+      const otherCard = inv.getCards(inventory, userId).find(c => c.id !== card.id && c.equippedWeapon === weapon.id);
+      const otherName = lookupCard(otherCard?.id)?.name ?? otherCard?.id ?? 'another card';
+      return message.reply(`**${weapon.name}** is already equipped to **${otherName}**. Unequip it first with \`ZP unequipweapon ${otherCard?.id}\`.`);
+    }
     await inv.saveInventory(inventory);
     const wData2    = inv.getWeaponData(inventory, userId, weapon.id);
     const tierData2 = config.WEAPON_EVOLUTION_TIERS[wData2.evolutionTier - 1];
@@ -5329,6 +5362,10 @@ client.on('messageCreate', async (message) => {
     if (!wDef?.weaponCard) {
       return message.reply(`**${weapon.name}** is not a weapon card. Only weapon cards can be equipped.`);
     }
+    if (wDef.weaponOf && wDef.weaponOf !== card.id) {
+      const sigCard = lookupCard(wDef.weaponOf);
+      return message.reply(`**${weapon.name}** is a signature weapon for **${sigCard?.name ?? wDef.weaponOf}** and cannot be equipped to **${card.name}**.`);
+    }
 
     const inventory = await inv.loadInventory();
 
@@ -5339,7 +5376,12 @@ client.on('messageCreate', async (message) => {
       return message.reply(`You don't own **${weapon.name}**.`);
     }
 
-    inv.equipWeapon(inventory, userId, card.id, weapon.id);
+    const equipResult = inv.equipWeapon(inventory, userId, card.id, weapon.id);
+    if (equipResult === 'already_in_use') {
+      const otherCard = inv.getCards(inventory, userId).find(c => c.id !== card.id && c.equippedWeapon === weapon.id);
+      const otherName = lookupCard(otherCard?.id)?.name ?? otherCard?.id ?? 'another card';
+      return message.reply(`**${weapon.name}** is already equipped to **${otherName}**. Unequip it first with \`ZP unequipweapon ${otherCard?.id}\`.`);
+    }
     await inv.saveInventory(inventory);
 
     const wData    = inv.getWeaponData(inventory, userId, weapon.id);

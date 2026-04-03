@@ -291,6 +291,7 @@ function evolveWeapon(inventory, userId, weaponId, config) {
 /**
  * Equip a weapon card to a card slot. Stores equippedWeapon on the invCard object.
  * Returns false if the card or weapon is not found in user's collection.
+ * Returns 'already_in_use' if the weapon is already equipped to another card.
  */
 function equipWeapon(inventory, userId, cardId, weaponId) {
   ensureUser(inventory, userId);
@@ -298,6 +299,8 @@ function equipWeapon(inventory, userId, cardId, weaponId) {
   const card   = u.cards.find(c => c.id === cardId);
   const weapon = u.cards.find(c => c.id === weaponId);
   if (!card || !weapon) return false;
+  const alreadyOn = u.cards.find(c => c.id !== cardId && c.equippedWeapon === weaponId);
+  if (alreadyOn) return 'already_in_use';
   card.equippedWeapon = weaponId;
   return true;
 }
@@ -471,8 +474,19 @@ function swapTeamPositions(inventory, userId, cardId1, cardId2) {
 }
 
 /**
+ * Normalise a team slot's plating data into an array.
+ * Handles both the old { plating: 'gold' } format and the new { platings: ['gold', 'diamond'] } format.
+ */
+function getSlotPlatings(slot) {
+  if (Array.isArray(slot.platings)) return slot.platings;
+  if (slot.plating) return [slot.plating];
+  return [];
+}
+
+/**
  * Equip a plating to a card on the team.
  * Consumes the plating from inventory.
+ * A card can have multiple platings but each tier can only be equipped once per card.
  * Returns 'equipped', 'not_on_team', 'no_plating', or 'already_equipped'.
  */
 function equipPlatingToTeam(inventory, userId, cardId, platingTier) {
@@ -480,29 +494,46 @@ function equipPlatingToTeam(inventory, userId, cardId, platingTier) {
   const team = inventory.users[userId].team;
   const slot = team.find(s => s.cardId === cardId);
   if (!slot) return 'not_on_team';
-  if (slot.plating) return 'already_equipped';
+  const current = getSlotPlatings(slot);
+  if (current.includes(platingTier)) return 'already_equipped';
   const p = inventory.users[userId].platings;
   if ((p[platingTier] ?? 0) < 1) return 'no_plating';
   p[platingTier]--;
   if (p[platingTier] === 0) delete p[platingTier];
-  slot.plating = platingTier;
+  slot.platings = [...current, platingTier];
+  delete slot.plating;
   return 'equipped';
 }
 
 /**
- * Unequip a plating from a team card.
- * Returns the plating tier that was removed, or null.
+ * Unequip a specific plating tier from a team card and return it to inventory.
+ * If platingTier is omitted, all platings are removed.
+ * Returns an array of removed tiers (may be empty).
  */
-function unequipPlatingFromTeam(inventory, userId, cardId) {
+function unequipPlatingFromTeam(inventory, userId, cardId, platingTier) {
   ensureUser(inventory, userId);
   const team = inventory.users[userId].team;
   const slot = team.find(s => s.cardId === cardId);
-  if (!slot || !slot.plating) return null;
-  const tier = slot.plating;
-  slot.plating = null;
+  if (!slot) return [];
+  const current = getSlotPlatings(slot);
+  if (current.length === 0) return [];
   const p = inventory.users[userId].platings;
-  p[tier] = (p[tier] ?? 0) + 1;
-  return tier;
+
+  let removed;
+  if (platingTier) {
+    if (!current.includes(platingTier)) return [];
+    removed = [platingTier];
+    slot.platings = current.filter(t => t !== platingTier);
+  } else {
+    removed = [...current];
+    slot.platings = [];
+  }
+  delete slot.plating;
+
+  for (const tier of removed) {
+    p[tier] = (p[tier] ?? 0) + 1;
+  }
+  return removed;
 }
 
 // ── Character Shard Operations ────────────────────────────
@@ -849,7 +880,7 @@ module.exports = {
   getTotalPulls, incrementTotalPulls, incrementTotalKills,
   getPrivacy, setPrivacy,
   TEAM_SIZE, getTeam, addToTeam, removeFromTeam, swapTeamPositions,
-  equipPlatingToTeam, unequipPlatingFromTeam,
+  getSlotPlatings, equipPlatingToTeam, unequipPlatingFromTeam,
   getCharacterShards, addCharacterShards, removeCharacterShards,
   getPlatings, addPlating, addPlatings, removePlating,
   getYen, addYen, removeYen,
