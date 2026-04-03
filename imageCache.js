@@ -186,6 +186,103 @@ const SEED = {
   kaiser_impact_weapon: 'https://s4.anilist.co/file/anilistcdn/character/large/b268963-0i8SgRcs6ibf.png',
   noa_weapon:           'https://s4.anilist.co/file/anilistcdn/character/large/b268966-obcuMQxnKJSq.jpg',
   ego_jinpachi_weapon:  'https://s4.anilist.co/file/anilistcdn/character/large/b140857-DOTyKBCufon9.png',
+  // ── Plain card-ID aliases (card IDs carry no rarity suffix) ─────────────
+  // Naruto
+  naruto:          'https://s4.anilist.co/file/anilistcdn/character/large/b17-phjcWCkRuIhu.png',
+  sasuke:          'https://s4.anilist.co/file/anilistcdn/character/large/b13-SISLEw1oAD7a.png',
+  itachi:          'https://s4.anilist.co/file/anilistcdn/character/large/b14-9Kb1E5oel1ke.png',
+  madara:          'https://s4.anilist.co/file/anilistcdn/character/large/b53901-HnRKSoHMG5Vg.png',
+  kaguya:          'https://static.wikia.nocookie.net/naruto/images/6/6c/Kaguya_%C5%8Ctsutsuki.png/revision/latest',
+  // Dragon Ball
+  goku:            'https://s4.anilist.co/file/anilistcdn/character/large/246-wsRRr6z1kii8.png',
+  vegeta:          'https://s4.anilist.co/file/anilistcdn/character/large/b913-NIFkKazWM8VO.png',
+  beerus:          'https://s4.anilist.co/file/anilistcdn/character/large/b76348-pGWrznfxgPIV.png',
+  zeno:            'https://s4.anilist.co/file/anilistcdn/character/large/b67753-QzWNHsalPyWu.jpg',
+  ultra_goku:      'https://static.wikia.nocookie.net/dragonball/images/b/b9/Ultra_Instinct_Goku.png/revision/latest?cb=20180930060236',
+  // One Piece
+  luffy:           'https://s4.anilist.co/file/anilistcdn/character/large/b40-MNypXsxSRb1R.png',
+  zoro:            'https://s4.anilist.co/file/anilistcdn/character/large/b62-S7oAeA9WInjV.png',
+  nami:            'https://s4.anilist.co/file/anilistcdn/character/large/b723-vp5hPptgnNEC.png',
+  usopp:           'https://s4.anilist.co/file/anilistcdn/character/large/b724-GFGgI9AJQkfy.jpg',
+  chopper:         'https://s4.anilist.co/file/anilistcdn/character/large/b309-H64NhbJ2ywIQ.jpg',
+  sanji:           'https://s4.anilist.co/file/anilistcdn/character/large/b305-6lisPmHtCnLT.png',
+  robin:           'https://s4.anilist.co/file/anilistcdn/character/large/b61-ywXUyyocEEqt.png',
+  ace:             'https://s4.anilist.co/file/anilistcdn/character/large/b2072-Lc6jEdsueJUK.jpg',
+  law:             'https://s4.anilist.co/file/anilistcdn/character/large/b13767-U604OJN9dxCn.jpg',
+  kid:             'https://s4.anilist.co/file/anilistcdn/character/large/b14989-uykLqnBTdAc2.jpg',
+  shanks:          'https://s4.anilist.co/file/anilistcdn/character/large/b727-wUJx7M1z5xON.png',
+  mihawk:          'https://s4.anilist.co/file/anilistcdn/character/large/n2064-OpnF4nLi6bvL.png',
+  whitebeard:      'https://s4.anilist.co/file/anilistcdn/character/large/b2751-NnzW0N2vCTjX.jpg',
+  kaido:           'https://s4.anilist.co/file/anilistcdn/character/large/b63935-MkiAzBnYgqAi.jpg',
+  blackbeard:      'https://s4.anilist.co/file/anilistcdn/character/large/b3331-7ZJDc4BNv9Yp.jpg',
+  joyboy:          'https://s4.anilist.co/file/anilistcdn/character/large/b341936-l61bq77sTJBM.png',
+  gear5_luffy:     'https://static.wikia.nocookie.net/onepiece/images/0/06/Nika_Anime_Infobox.png/revision/latest?cb=20240407020958',
+  // Bleach
+  ichigo:          'https://s4.anilist.co/file/anilistcdn/character/large/b5-a7bkJgjhhigE.png',
+  aizen:           'https://s4.anilist.co/file/anilistcdn/character/large/b59-P4IUZA4bE5SL.png',
+  yhwach:          'https://s4.anilist.co/file/anilistcdn/character/large/b68537-1bRB5OdseCp0.jpg',
+  // Jujutsu Kaisen
+  itadori:         'https://s4.anilist.co/file/anilistcdn/character/large/b127212-FVm2tD0erQ5B.png',
+  // Demon Slayer
+  tanjiro:         'https://s4.anilist.co/file/anilistcdn/character/large/b127216-WV2YX8OHdvVq.png',
+  muzan:           'https://s4.anilist.co/file/anilistcdn/character/large/b127221-KJkyCN0zMkMF.png',
+  // Black Clover
+  asta:            'https://s4.anilist.co/file/anilistcdn/character/large/b123285-tKijiuQErDS0.png',
+  noelle:          'https://s4.anilist.co/file/anilistcdn/character/large/b123283-7nJHtKha0LSm.png',
+  yuno:            'https://s4.anilist.co/file/anilistcdn/character/large/b4963-7ZMcCtXW5hkY.png',
+  yami:            'https://s4.anilist.co/file/anilistcdn/character/large/b124440-Lpdo6y8cljV6.png',
+  licht:           'https://s4.anilist.co/file/anilistcdn/character/large/b141532-2AXEveTbFfPU.jpg',
+  // Yu Yu Hakusho
+  hiei:            'https://s4.anilist.co/file/anilistcdn/character/large/b732-rg4H7yyv3LRo.png',
+  kurama:          'https://s4.anilist.co/file/anilistcdn/character/large/b731-cv0jfjVrD09V.jpg',
+  // Attack on Titan
+  levi:            'https://static.wikia.nocookie.net/shingekinokyojin/images/9/94/Levi_Ackerman_character_image.png/revision/latest',
+  // Fairy Tail
+  acnologia:       'https://s4.anilist.co/file/anilistcdn/character/large/b63920-Qb8LuRJvTuPb.png',
+  escanor:         'https://s4.anilist.co/file/anilistcdn/character/large/b107815-4PJPMGBpVuFk.png',
+  // JoJo's Bizarre Adventure
+  kira:            'https://s4.anilist.co/file/anilistcdn/character/large/b12055-eCEkIVV4qoCu.png',
+  giorno:          'https://s4.anilist.co/file/anilistcdn/character/large/b10529-AloL8jjZwjsg.png',
+  dio_wr:          'https://s4.anilist.co/file/anilistcdn/character/large/b4004-w0OtWuvjhftG.png',
+  // That Time I Got Reincarnated as a Slime
+  rimuru:          'https://s4.anilist.co/file/anilistcdn/character/large/b127022-7LqHtJa0RQMG.png',
+  // One Punch Man
+  saitama:         'https://s4.anilist.co/file/anilistcdn/character/large/b73935-7OlCCKJXJfyR.png',
+  // Pokémon
+  pikachu:         'https://img.pokemondb.net/artwork/large/pikachu.jpg',
+  mewtwo:          'https://img.pokemondb.net/artwork/large/mewtwo.jpg',
+  arceus:          'https://img.pokemondb.net/artwork/large/arceus.jpg',
+  // Sword Art Online
+  asuna:           'https://s4.anilist.co/file/anilistcdn/character/large/b36828-S2kOnUSJO6jZ.png',
+  // Cowboy Bebop
+  spike:           'https://s4.anilist.co/file/anilistcdn/character/large/b1-kAQO5FWbVHHi.png',
+  // God of War
+  kratos:          'https://static.wikia.nocookie.net/godofwar/images/e/e9/Kratos-_GOW_Ragnarok.png/revision/latest',
+  // Final Fantasy VII
+  cloud:           'https://static.wikia.nocookie.net/finalfantasy/images/e/ec/Cloud_Strife_from_FFVII_Rebirth_promo_render.png/revision/latest',
+  sephiroth:       'https://static.wikia.nocookie.net/finalfantasy/images/a/af/Sephiroth_from_FFVII_Rebirth_promo_render.png/revision/latest',
+  // The Legend of Zelda
+  link:            'https://static.wikia.nocookie.net/zelda_gamepedia_en/images/4/47/TLoZ_Series_Link_Render.png/revision/latest',
+  // Hunter x Hunter
+  netero:          'https://s4.anilist.co/file/anilistcdn/character/large/b41829-NiNjGHJbniJI.png',
+  // Gurren Lagann
+  // (simon already seeded above)
+  // Lookism
+  zack:            'https://s4.anilist.co/file/anilistcdn/character/large/b194059-cA6HetSwYUFk.png',
+  jake_kim:        'https://s4.anilist.co/file/anilistcdn/character/large/b194066-BNUCT5vPpIHw.png',
+  samuel:          'https://s4.anilist.co/file/anilistcdn/character/large/b194062-ELKqVSFBWXLm.png',
+  gun:             'https://s4.anilist.co/file/anilistcdn/character/large/b194065-W1k43WBR2tpF.png',
+  johan:           'https://s4.anilist.co/file/anilistcdn/character/large/b194064-kqIBGUv7I4p0.png',
+  tom_lee:         'https://s4.anilist.co/file/anilistcdn/character/large/b194067-cKaRE7I7ZfxT.png',
+  // Baki
+  pickle:          'https://s4.anilist.co/file/anilistcdn/character/large/b117083-xQjVUeZYQNpK.png',
+  musashi:         'https://s4.anilist.co/file/anilistcdn/character/large/b117084-d5pQOdXZL4FW.png',
+  yujiro:          'https://s4.anilist.co/file/anilistcdn/character/large/b20049-ZA3TDCuFfSHy.png',
+  // Death Note
+  near:            'https://myanimelist.net/images/characters/13/77339.jpg',
+  // Demon Slayer
+  rengoku:         'https://myanimelist.net/images/characters/10/423443.jpg',
+
   // Blue Lock
   isagi:           'https://s4.anilist.co/file/anilistcdn/character/large/b140856-wVzKSyvU7R5B.png',
   bachira:         'https://s4.anilist.co/file/anilistcdn/character/large/b162213-4czykzdxmWG6.png',
@@ -284,6 +381,86 @@ const SEARCH_TERMS = {
   retsu:       'Retsu Kaioh',          jack:        'Jack Hanma',
   oliva:       'Biscuit Oliva',        shibukawa:   'Goki Shibukawa',
   pickle:      'Pickle',               musashi:     'Miyamoto Musashi',
+  // ── Plain card-ID search terms (no rarity suffix) ───────────────────────
+  // My Hero Academia
+  deku:        'Izuku Midoriya',       bakugo:      'Katsuki Bakugo',
+  allmight:    'All Might',
+  // Attack on Titan
+  eren:        'Eren Yeager',
+  // Bleach
+  rukia:       'Rukia Kuchiki',        renji:       'Renji Abarai',
+  orihime:     'Orihime Inoue',        chad:        'Yasutora Sado',
+  byakuya:     'Byakuya Kuchiki',      grimmjow:    'Grimmjow Jaegerjaquez',
+  ulquiorra:   'Ulquiorra Cifer',      gin:         'Gin Ichimaru',
+  // JoJo's Bizarre Adventure
+  joseph:      'Joseph Joestar',       caesar:      'Caesar Zeppeli',
+  noriaki:     'Noriaki Kakyoin',      jotaro:      'Jotaro Kujo',
+  josuke:      'Josuke Higashikata',   dio:         'Dio Brando',
+  // Demon Slayer
+  nezuko:      'Nezuko Kamado',        zenitsu:     'Zenitsu Agatsuma',
+  inosuke:     'Inosuke Hashibira',    tengen:      'Tengen Uzui',
+  // Fullmetal Alchemist: Brotherhood
+  edward:      'Edward Elric',         alphonse:    'Alphonse Elric',
+  winry:       'Winry Rockbell',       roy:         'Roy Mustang',
+  armstrong:   'Alex Louis Armstrong', father:      'Father',
+  // Sword Art Online
+  kirito:      'Kazuto Kirigaya',
+  // Jujutsu Kaisen
+  nobara:      'Nobara Kugisaki',      todo:        'Aoi Todo',
+  yuta:        'Yuta Okkotsu',
+  // Fairy Tail
+  natsu:       'Natsu Dragneel',       gray:        'Gray Fullbuster',
+  erza:        'Erza Scarlet',         laxus:       'Laxus Dreyar',
+  gildarts:    'Gildarts Clive',       mavis:       'Mavis Vermillion',
+  // Death Note
+  light:       'Light Yagami',         l:           'L Lawliet',
+  // Mob Psycho 100
+  mob:         'Shigeo Kageyama',      reigen:      'Reigen Arataka',
+  // Hunter x Hunter
+  gon:         'Gon Freecss',          kurapika:    'Kurapika',
+  killua:      'Killua Zoldyck',       hisoka:      'Hisoka Morow',
+  // Chainsaw Man
+  denji:       'Denji',                makima:      'Makima',
+  // Spy x Family
+  loid:        'Loid Forger',          yor:         'Yor Briar',
+  anya:        'Anya Forger',
+  // Re:Zero
+  subaru:      'Subaru Natsuki',       emilia:      'Emilia',
+  rem:         'Rem',
+  // Gintama
+  gintoki:     'Gintoki Sakata',
+  // Inuyasha
+  inuyasha:    'Inuyasha',
+  // Steins;Gate
+  okabe:       'Rintarou Okabe',
+  // Yu Yu Hakusho
+  yusuke:      'Yusuke Urameshi',
+  // Overlord
+  albedo:      'Albedo',
+  // Black Clover
+  julius:      'Julius Novachrono',
+  // One Punch Man
+  genos:       'Genos',
+  // Seven Deadly Sins
+  ban:         'Ban',                  escanor:     'Escanor',
+  // Vinland Saga
+  thorfinn:    'Thorfinn',             askeladd:    'Askeladd',
+  // Code Geass
+  lelouch:     'Lelouch Lamperouge',
+  // Gurren Lagann
+  kamina:      'Kamina',
+  // Black Butler
+  sebastian:   'Sebastian Michaelis',
+  // Lookism
+  daniel:      'Daniel Park',          jay:         'Jay Hong',
+  vasco:       'Vasco',                crystal:     'Crystal Choi',
+  eli:         'Eli Jang',
+  // Baki
+  baki:        'Baki Hanma',           hanayama:    'Kaoru Hanayama',
+  doppo:       'Doppo Orochi',         retsu:       'Retsu Kaioh',
+  jack:        'Jack Hanma',           oliva:       'Biscuit Oliva',
+  shibukawa:   'Goki Shibukawa',
+
   // Weapon card fallbacks (character name searches for action images)
   madara_weapon:    'Madara Uchiha',   itachi_weapon:    'Itachi Uchiha',
   shanks_weapon:    'Shanks',          aizen_weapon:     'Sosuke Aizen',

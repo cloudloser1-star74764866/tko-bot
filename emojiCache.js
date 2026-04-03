@@ -119,7 +119,10 @@ async function syncEmojis(client, cards, imgCache) {
   for (let i = 0; i < todo.length; i++) {
     const card = todo[i];
 
-    const imageUrl = imgCache.getImage(card.id) ?? card.image ?? null;
+    let imageUrl = imgCache.getImage(card.id) ?? card.image ?? null;
+    if (!imageUrl) {
+      imageUrl = await imgCache.fetchFallbackImage(card.id, card.name).catch(() => null);
+    }
     if (!imageUrl) {
       console.warn(`😀 Emoji sync: no image for ${card.id}, skipping.`);
       failed++;
