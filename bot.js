@@ -658,6 +658,46 @@ function generateBotTeam() {
   return picked;
 }
 
+/**
+ * Simulate a single botfight without user interaction.
+ * Returns { won, weaponKills } where weaponKills is a map of weaponId → kill count.
+ */
+function simulateSingleBotFight(attackerCards, defenderCards) {
+  const atk = attackerCards.map(c => ({ ...c, hp: c.maxHp, alive: true }));
+  const def = defenderCards.map(c => ({ ...c, hp: c.maxHp, alive: true }));
+  const weaponKills = {};
+
+  while (atk.some(c => c.alive) && def.some(c => c.alive)) {
+    const attacker = atk.find(c => c.alive);
+    const target   = def.find(c => c.alive);
+    if (!attacker || !target) break;
+
+    const dmg = attacker.technique
+      ? Math.round(target.maxHp * (attacker.dmg / 10000) * (0.9 + Math.random() * 0.2))
+      : Math.round(attacker.dmg * (0.8 + Math.random() * 0.4));
+    target.hp = Math.max(0, target.hp - dmg);
+    if (target.hp === 0) {
+      target.alive = false;
+      if (attacker.equippedWeaponId) {
+        weaponKills[attacker.equippedWeaponId] = (weaponKills[attacker.equippedWeaponId] ?? 0) + 1;
+      }
+    }
+
+    if (def.every(c => !c.alive)) break;
+
+    const retaliator = def.find(c => c.alive);
+    const atkTarget  = atk.find(c => c.alive);
+    if (retaliator && atkTarget) {
+      const retDmg = Math.round(retaliator.dmg * (0.8 + Math.random() * 0.4));
+      atkTarget.hp = Math.max(0, atkTarget.hp - retDmg);
+      if (atkTarget.hp === 0) atkTarget.alive = false;
+    }
+  }
+
+  const won = def.every(c => !c.alive);
+  return { won, weaponKills };
+}
+
 function hpBar(current, max) {
   const pct    = max <= 0 ? 0 : Math.max(0, Math.min(1, current / max));
   const filled = Math.round(pct * 10);
@@ -1767,104 +1807,119 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
     .map(t => `${t.emoji} **${t.label}** — x${t.statMult} battle stats (+${Math.round((t.statMult - 1) * 100)}%)`)
     .join('\n');
 
+  const TOTAL = showAdmin ? 10 : 9;
+
   const pages = [
     // Page 0: Pulling
     new EmbedBuilder()
       .setColor(0x00FFD1)
-      .setTitle('📖 Help — 🎴 Pulling (1/8)')
+      .setTitle(`📖 Help — 🎴 Pulling (1/${TOTAL})`)
       .setDescription('Pull random character cards from anime, manga, and games!')
       .addFields(
-        { name: '`ZP pull` / `ZP p` / `ZP pu`',      value: `Pull a random card. You have up to **${config.MAX_PULL_CHARGES}** charges; +1 regenerates every **${config.PULL_COOLDOWN_SECONDS}s** (25s with 💙 Swift Pull Token support card).`, inline: false },
-        { name: '`ZP allpull` / `ZP ap`',             value: 'Spend **all** your current pull charges at once.', inline: false },
-        { name: '`ZP allpull reset` / `ZP ap reset`', value: 'Spend all charges then instantly refill back to max. Costs **1 Candy Token**.', inline: false },
-        { name: '`ZP reset` / `ZP rs`',               value: 'Use a Candy Token to instantly refill your pulls to max.', inline: false },
-        { name: '`ZP wish <cardId>` / `ZP wi <cardId>`', value: `Set a card as your wish. After **${inv.WISH_THRESHOLD} pulls**, you are guaranteed to receive that card! With 💛 Eternal Wish Crystal, you can wish for UR cards and Limited cards you already own.`, inline: false },
-        { name: '`ZP daily`',                          value: 'Claim your daily reward: **¥100,000 Yen**, **1,000 Stars**, **5 Candy Tokens**, and **Level Scrolls** based on your streak (1 per streak day, caps at 10).', inline: false },
+        { name: '`ZP pull` / `ZP p` / `ZP pu`',          value: `Pull a random card. You have up to **${config.MAX_PULL_CHARGES}** charges; +1 regenerates every **${config.PULL_COOLDOWN_SECONDS}s** (25s with 💙 Swift Pull Token support card).`, inline: false },
+        { name: '`ZP allpull` / `ZP ap`',                 value: 'Spend **all** your current pull charges at once.', inline: false },
+        { name: '`ZP allpull reset` / `ZP ap reset`',     value: 'Spend all charges then instantly refill back to max. Costs **1 Candy Token**.', inline: false },
+        { name: '`ZP reset` / `ZP rs`',                   value: 'Use a Candy Token to instantly refill your pulls to max.', inline: false },
+        { name: '`ZP wish <cardId>` / `ZP wi <cardId>`',  value: `Set a card as your wish. After **${inv.WISH_THRESHOLD} pulls**, you are guaranteed to receive that card! With 💛 Eternal Wish Crystal, you can wish for UR cards and Limited cards you already own.`, inline: false },
+        { name: '`ZP daily`',                              value: 'Claim your daily reward: **¥100,000 Yen**, **1,000 Stars**, **5 Candy Tokens**, and **Level Scrolls** based on your streak (1 per streak day, caps at 10).', inline: false },
       )
-      .setFooter({ text: 'Page 1 of 8 • ZP help' }),
+      .setFooter({ text: `Page 1 of ${TOTAL} • ZP help` }),
 
     // Page 1: Collection & Cards
     new EmbedBuilder()
       .setColor(0x4A90D9)
-      .setTitle('📖 Help — 🗂️ Collection & Cards (2/8)')
+      .setTitle(`📖 Help — 🗂️ Collection & Cards (2/${TOTAL})`)
       .setDescription('Browse your collection, inspect cards, and level them up.')
       .addFields(
-        { name: '`ZP collection` / `ZP col`',         value: 'Browse your card collection with Prev/Next buttons.', inline: false },
-        { name: '`ZP col [rarity or keyword]`',        value: 'Filter by rarity code (e.g. `LT`, `MY`) or a name/series keyword.', inline: false },
-        { name: '`ZP col @user [filter]`',             value: "Browse another player's collection.", inline: false },
-        { name: '`ZP all` / `ZP all [filter]`',       value: 'Browse every card in the game, sorted by rarity.', inline: false },
-        { name: '`ZP card <id>` / `ZP c <id>` / `ZP ca <id>`', value: 'Inspect a specific card — shows level, stats, shards.', inline: false },
-        { name: '`ZP mycard <id>` / `ZP mc <id>` / `ZP mci <id>`', value: 'Inspect your own card with prestige points.', inline: false },
-        { name: '`ZP cardinfo <id>` / `ZP ci <id>`',  value: 'View base game info for any card.', inline: false },
-        { name: '`ZP absorb shard:<id>:<count>` / `ZP ab ...`', value: 'Spend character shards to level up a card. **1 shard = 1 level**. Each level gives **+2% stats**.', inline: false },
-        { name: '`ZP increaselevelcap <id> <count>` / `ZP ilc <id> <count>`', value: 'Break a card\'s level cap beyond 100. Each level costs **1 Limit Breaker** + **100 Prestige Points** on that card.', inline: false },
-        { name: '`ZP kill <cardId> <shardId>:<count>` / `ZP ki ...`', value: 'Use a card to kill shards — earn **yen** and **prestige points** on the card used. 1 prestige point per shard.', inline: false },
-        { name: '`ZP use level_scroll <cardId>`',      value: 'Use a 📜 Level Scroll to instantly raise a card\'s level by 1 (up to its current level cap). Scrolls drop from fights, raids, and daily rewards.', inline: false },
+        { name: '`ZP collection` / `ZP col`',                                          value: 'Browse your card collection with Prev/Next buttons.', inline: false },
+        { name: '`ZP col [rarity or keyword]`',                                         value: 'Filter by rarity code (e.g. `LT`, `MY`) or a name/series keyword.', inline: false },
+        { name: '`ZP col @user [filter]`',                                              value: "Browse another player's collection.", inline: false },
+        { name: '`ZP all` / `ZP all [filter]`',                                        value: 'Browse every card in the game, sorted by rarity.', inline: false },
+        { name: '`ZP card <id>` / `ZP c <id>` / `ZP ca <id>`',                        value: 'Inspect a specific card — shows level, stats, shards.', inline: false },
+        { name: '`ZP mycard <id>` / `ZP mc <id>` / `ZP mci <id>`',                    value: 'Inspect your own card with prestige points.', inline: false },
+        { name: '`ZP cardinfo <id>` / `ZP ci <id>`',                                   value: 'View base game info for any card.', inline: false },
+        { name: '`ZP absorb shard:<id>:<count>` / `ZP ab ...`',                        value: 'Spend character shards to level up a card. **1 shard = 1 level**. Each level gives **+2% stats**.', inline: false },
+        { name: '`ZP increaselevelcap <id> <count>` / `ZP ilc <id> <count>`',          value: 'Break a card\'s level cap beyond 100. Each level costs **1 Limit Breaker** + **100 Prestige Points** on that card.', inline: false },
+        { name: '`ZP kill <cardId> <shardId>:<count>` / `ZP ki ...`',                  value: 'Use a card to kill shards — earn **yen** and **prestige points** on the card used. 1 prestige point per shard.', inline: false },
+        { name: '`ZP use level_scroll <cardId>`',                                       value: 'Use a 📜 Level Scroll to instantly raise a card\'s level by 1 (up to its current level cap). Scrolls drop from fights, raids, and daily rewards.', inline: false },
       )
-      .setFooter({ text: 'Page 2 of 8 • ZP help' }),
+      .setFooter({ text: `Page 2 of ${TOTAL} • ZP help` }),
 
     // Page 2: Economy & Profile
     new EmbedBuilder()
       .setColor(0xF1C40F)
-      .setTitle('📖 Help — 💰 Economy & Profile (3/8)')
+      .setTitle(`📖 Help — 💰 Economy & Profile (3/${TOTAL})`)
       .setDescription('Manage your currencies and player profile.')
       .addFields(
-        { name: '`ZP wallet` / `ZP balance` / `ZP bal`', value: 'Check your Yen, Stars, Candy Tokens, and Limit Breakers. Add `@user` to check someone else.', inline: false },
-        { name: '`ZP shop` / `ZP sh`',                    value: 'Browse the shop — see all buyable items and their costs.', inline: false },
-        { name: '`ZP buy candy stars <amount>` / `ZP bu ...`', value: 'Buy candy tokens with stars. **1,000 stars** per token.', inline: false },
-        { name: '`ZP buy candy yen <amount>`',             value: 'Buy candy tokens with yen. **¥10,000** per token.', inline: false },
-        { name: '`ZP inventory` / `ZP inv`',              value: 'View your platings.', inline: false },
-        { name: '`ZP shards [rarity or name]` / `ZP sd`', value: 'View your character shards. Filter by rarity or character name.', inline: false },
-        { name: '`ZP items` / `ZP it`',                   value: 'View your special items.', inline: false },
-        { name: '`ZP use <itemId>`',                      value: 'Use a special item to claim its Limited card.', inline: false },
-        { name: '`ZP profile` / `ZP pro`',                value: 'View your player profile — total cards, kills, pulls, wish progress, and more.', inline: false },
-        { name: '`ZP profile @user`',                     value: "View another player's profile (if they haven't set it to private).", inline: false },
-        { name: '`ZP vote` / `ZP vo`',                    value: 'Get the link to vote for the bot and earn extra pull charges!', inline: false },
-        { name: '`ZP privacy` / `ZP pv`',                 value: 'Toggle your profile and collection privacy on/off.', inline: false },
+        { name: '`ZP wallet` / `ZP balance` / `ZP bal`',       value: 'Check your Yen, Stars, Candy Tokens, and Limit Breakers. Add `@user` to check someone else.', inline: false },
+        { name: '`ZP shop` / `ZP sh`',                          value: 'Browse the shop — see all buyable items and their costs.', inline: false },
+        { name: '`ZP buy candy stars <amount>`',                 value: 'Buy candy tokens with stars. **1,000 stars** per token.', inline: false },
+        { name: '`ZP buy candy yen <amount>`',                   value: 'Buy candy tokens with yen. **¥10,000** per token.', inline: false },
+        { name: '`ZP inventory` / `ZP inv`',                    value: 'View your platings.', inline: false },
+        { name: '`ZP shards [rarity or name]` / `ZP sd`',       value: 'View your character shards. Filter by rarity or character name.', inline: false },
+        { name: '`ZP items` / `ZP it`',                         value: 'View your special items (raid tickets, scrolls, etc).', inline: false },
+        { name: '`ZP use <itemId>`',                             value: 'Use a special item to claim its Limited card.', inline: false },
+        { name: '`ZP profile` / `ZP pro`',                      value: 'View your player profile — total cards, kills, pulls, wish progress, and more.', inline: false },
+        { name: '`ZP profile @user`',                           value: "View another player's profile (if they haven't set it to private).", inline: false },
+        { name: '`ZP vote` / `ZP vo`',                          value: 'Get the link to vote for the bot and earn extra pull charges!', inline: false },
+        { name: '`ZP privacy` / `ZP pv`',                       value: 'Toggle your profile and collection privacy on/off.', inline: false },
         { name: '`ZP conquestsend <cardId>` / `ZP cs <cardId>`', value: 'Send a card on a conquest mission (2 hrs; 1 hr with ❤️ Time Warp Compass). With 💜 Conquest Expansion, send up to 2 cards at once.', inline: false },
-        { name: '`ZP conquestrecall` / `ZP cr`',          value: 'Recall your card to earn **1 Limit Breaker** + **1–10 Candy Tokens**. Use `ZP cr 2` for the second conquest slot.', inline: false },
+        { name: '`ZP conquestrecall` / `ZP cr`',                value: 'Recall your card to earn **1 Limit Breaker** + **1–10 Candy Tokens**. Use `ZP cr 2` for the second slot.', inline: false },
       )
-      .setFooter({ text: 'Page 3 of 8 • ZP help' }),
+      .setFooter({ text: `Page 3 of ${TOTAL} • ZP help` }),
 
-    // Page 3: Team & Battle
+    // Page 3: Team Management & Battles
     new EmbedBuilder()
       .setColor(0xFF4757)
-      .setTitle('📖 Help — ⚔️ Team & Battle (4/8)')
-      .setDescription(`Build a team of **${inv.TEAM_SIZE} cards** and fight other players!\n\n**Plating battle bonuses:**\n${platingList}`)
+      .setTitle(`📖 Help — ⚔️ Team & Battles (4/${TOTAL})`)
+      .setDescription(`Build a team of **${inv.TEAM_SIZE} cards** and battle!\n\n**Plating bonuses:**\n${platingList}`)
       .addFields(
-        { name: '`ZP team` / `ZP tm`',                   value: 'View your battle team with power scores.', inline: false },
-        { name: '`ZP team add <id>` / `ZP teamadd <id>` / `ZP add <id>`', value: `Add a card to your team (max ${inv.TEAM_SIZE}).`, inline: false },
-        { name: '`ZP team remove <id>` / `ZP teamremove <id>` / `ZP rm <id>`', value: 'Remove a card from your team.', inline: false },
-        { name: '`ZP swap <id1> <id2>` / `ZP sw ...`',  value: 'Swap the positions of two cards on your team.', inline: false },
-        { name: '`ZP team equip <id> <plating>` / `ZP teamequip ...`', value: 'Equip a plating onto a team card. Valid: `bronze` `silver` `gold` `diamond`', inline: false },
-        { name: '`ZP team unequip <id>` / `ZP teamunequip <id>`', value: 'Remove a plating from a team card.', inline: false },
-        { name: '`ZP fight @user` / `ZP fi @user`',      value: `Challenge a player to a turn-based team battle! ${config.FIGHT_COOLDOWN_SECONDS}s cooldown.`, inline: false },
-        { name: '`ZP botfight` / `ZP bf`',               value: `Fight a randomly generated bot team for ¥${config.BOT_FIGHT_YEN_MIN.toLocaleString()}–¥${config.BOT_FIGHT_YEN_MAX.toLocaleString()} Yen and ${config.BOT_FIGHT_STAR_MIN}–${config.BOT_FIGHT_STAR_MAX} Stars.`, inline: false },
-        { name: '`ZP duofight @user` / `ZP df @user`',   value: 'Fight alongside your duo partner — your combined teams take on the opponent!', inline: false },
-        { name: '`ZP raid` / `ZP raid mythical` / `ZP raid omega` / `ZP raid hellish`',
+        { name: '`ZP team` / `ZP tm`',                                                               value: 'View your battle team with power scores.', inline: false },
+        { name: '`ZP team add <id>` / `ZP teamadd <id>` / `ZP add <id>`',                            value: `Add a card to your team (max ${inv.TEAM_SIZE}).`, inline: false },
+        { name: '`ZP team remove <id>` / `ZP teamremove <id>` / `ZP rm <id>`',                       value: 'Remove a card from your team.', inline: false },
+        { name: '`ZP swap <id1> <id2>` / `ZP sw ...`',                                               value: 'Swap the positions of two cards on your team.', inline: false },
+        { name: '`ZP team equip <id> <plating>` / `ZP teamequip ...`',                               value: 'Equip a plating onto a team card. Valid: `bronze` `silver` `gold` `diamond`', inline: false },
+        { name: '`ZP team unequip <id>` / `ZP teamunequip <id>`',                                    value: 'Remove a plating from a team card.', inline: false },
+        { name: '`ZP fight @user` / `ZP fi @user`',                                                  value: `Challenge a player to a turn-based team battle! ${config.FIGHT_COOLDOWN_SECONDS}s cooldown. Rewards: ¥${config.FIGHT_YEN_MIN.toLocaleString()}–¥${config.FIGHT_YEN_MAX.toLocaleString()} Yen + ⭐ Stars.`, inline: false },
+        { name: '`ZP botfight` / `ZP bf`',                                                           value: `Fight a randomly generated bot team. Rewards: ¥${config.BOT_FIGHT_YEN_MIN.toLocaleString()}–¥${config.BOT_FIGHT_YEN_MAX.toLocaleString()} Yen + ${config.BOT_FIGHT_STAR_MIN}–${config.BOT_FIGHT_STAR_MAX} Stars.`, inline: false },
+        { name: '`ZP timeskip` / `ZP ts`',                                                           value: 'Spend **10,000 ⭐ Stars** to auto-simulate **100 botfights** instantly. Earn Yen and weapon prestige from all wins — no clicking required!', inline: false },
+        { name: '`ZP duofight @user` / `ZP df @user`',                                               value: 'Fight alongside your duo partner — your combined teams take on the opponent!', inline: false },
+      )
+      .setFooter({ text: `Page 4 of ${TOTAL} • ZP help` }),
+
+    // Page 4: Raids & Weapons
+    new EmbedBuilder()
+      .setColor(0xFF6B00)
+      .setTitle(`📖 Help — 🏴 Raids & Weapons (5/${TOTAL})`)
+      .setDescription('Fight powerful raid bosses and evolve your weapons!')
+      .addFields(
+        {
+          name: '`ZP raid` / `ZP raid mythical` / `ZP raid omega` / `ZP raid hellish`',
           value: [
-            'Spend a raid ticket to fight a random Boss. Supports **solo or collab** (up to 5 players total).',
-            '🎟️ **Raid** (0.15% drop) — Rare–Legendary boss → ¥10k–20k + ⭐25–50 Stars. **No Limit Breakers.**',
+            'Spend a raid ticket to fight a random Boss. Supports **solo or collab** (up to 5 players).',
+            '🎟️ **Raid** (0.15% drop) — Rare–Legendary boss → ¥10k–20k + ⭐25–50 Stars',
             '🌙 **Mythical** (0.075% drop) — Mythical boss → ¥40k–80k + ⭐100–200 Stars + 1–3 Limit Breakers',
             '⚡ **Omega** (0.05% drop) — Ultra Rare boss → ¥100k–200k + ⭐250–500 Stars + 2–4 Limit Breakers',
             '💀 **Hellish** (0.01% drop) — Limited boss → ¥200k–400k + ⭐500–1k Stars + 3–5 Limit Breakers',
-          ].join('\n'), inline: false },
-        { name: '`ZP allowraidjoins` / `ZP arj`', value: 'Enable others to join your active raid. Run after using a raid ticket.', inline: false },
+          ].join('\n'),
+          inline: false,
+        },
+        { name: '`ZP allowraidjoins` / `ZP arj`',       value: 'Enable others to join your active raid. Run after using a raid ticket.', inline: false },
         { name: '`ZP whitelist @user` / `ZP wh @user`', value: 'Whitelist a player (max 4) to join your collab raid. They click **Join Raid** on the raid card.', inline: false },
-        { name: '`ZP shareraid @user` / `ZP sr @user`', value: 'Share **20% of your raid rewards** with another player. No acceptance needed. Clan members are auto-whitelisted when you start a raid.', inline: false },
+        { name: '`ZP shareraid @user` / `ZP sr @user`', value: 'Share **20% of your raid rewards** with another player. Clan members are auto-whitelisted when you start a raid.', inline: false },
         { name: '\u200b', value: '**⚔️ Weapon System**', inline: false },
-        { name: '`ZP equip <card> <weaponId or plating>`', value: 'Unified equip command — equip a weapon card **or** a plating to a card. Handles both automatically.', inline: false },
-        { name: '`ZP equipweapon <cardId> <weaponId>` / `ZP ew`', value: 'Equip a weapon card to a card slot. The weapon boosts that card\'s HP and DMG in battle.', inline: false },
-        { name: '`ZP unequipweapon <cardId>` / `ZP uew`', value: 'Remove the equipped weapon from a card.', inline: false },
-        { name: '`ZP evolveweapon <weaponId>` / `ZP evw`', value: `Evolve a weapon to the next tier (max Tier ${config.WEAPON_EVOLUTION_TIERS.length}). Costs **${config.WEAPON_EVOLVE_SHARDS} weapon shards** + **${config.WEAPON_EVOLVE_PRESTIGE} weapon prestige** per tier. Tiers: Basic → Refined → Enhanced → Masterwork → Legendary.`, inline: false },
-        { name: '`ZP weaponinfo <weaponId>` / `ZP winfo`', value: 'View your weapon\'s evolution tier, prestige, and shard progress.', inline: false },
+        { name: '`ZP equip <card> <weaponId or plating>`',                  value: 'Unified equip command — equip a weapon card **or** a plating to a card. Handles both automatically.', inline: false },
+        { name: '`ZP equipweapon <cardId> <weaponId>` / `ZP ew`',          value: 'Equip a weapon card to a card slot. Boosts that card\'s HP, DMG, and Speed in battle.', inline: false },
+        { name: '`ZP unequipweapon <cardId>` / `ZP uew`',                  value: 'Remove the equipped weapon from a card.', inline: false },
+        { name: '`ZP evolveweapon <weaponId>` / `ZP evw`',                 value: `Evolve a weapon to the next tier (max Tier ${config.WEAPON_EVOLUTION_TIERS.length}). Costs **${config.WEAPON_EVOLVE_SHARDS} weapon shards** + **${config.WEAPON_EVOLVE_PRESTIGE} weapon prestige** per tier.\nTiers: Basic → Refined → Enhanced → Masterwork → Legendary`, inline: false },
+        { name: '`ZP weaponinfo <weaponId>` / `ZP winfo`',                 value: 'View your weapon\'s evolution tier, prestige, and shard progress.', inline: false },
       )
-      .setFooter({ text: 'Page 4 of 8 • ZP help' }),
+      .setFooter({ text: `Page 5 of ${TOTAL} • ZP help` }),
 
-    // Page 4: Trading
+    // Page 5: Trading
     new EmbedBuilder()
       .setColor(0x9B59B6)
-      .setTitle('📖 Help — 🤝 Trading (5/7)')
+      .setTitle(`📖 Help — 🤝 Trading (6/${TOTAL})`)
       .setDescription('Trade shards, platings, Yen, and Stars with other players.')
       .addFields(
         {
@@ -1879,52 +1934,52 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
           inline: false,
         },
         { name: '`ZP accept <tradeId>` / `ZP a <id>` / `ZP ac <id>`', value: 'Accept a pending trade offer.', inline: false },
-        { name: '`ZP decline <tradeId>` / `ZP dec <id>`', value: 'Decline or cancel a trade.', inline: false },
-        { name: '`ZP trades` / `ZP trs`',                 value: 'List all pending trade offers addressed to you.', inline: false },
+        { name: '`ZP decline <tradeId>` / `ZP dec <id>`',              value: 'Decline or cancel a trade.', inline: false },
+        { name: '`ZP trades` / `ZP trs`',                               value: 'List all pending trade offers addressed to you.', inline: false },
       )
-      .setFooter({ text: 'Page 5 of 8 • Trades expire after 5 minutes' }),
+      .setFooter({ text: `Page 6 of ${TOTAL} • Trades expire after 5 minutes` }),
 
-    // Page 5: Clans & Duos
+    // Page 6: Clans & Duos
     new EmbedBuilder()
       .setColor(0xFF6B35)
-      .setTitle('📖 Help — 🏛️ Clans & Duos (6/7)')
+      .setTitle(`📖 Help — 🏛️ Clans & Duos (7/${TOTAL})`)
       .setDescription('Form clans with other players and create duo partnerships for team battles!')
       .addFields(
         { name: '**Clan Commands**', value: '\u200b', inline: false },
-        { name: '`ZP clancreate <name>` / `ZP cc <name>`', value: 'Create a new clan. You become the owner.', inline: false },
-        { name: '`ZP clan`',              value: 'View your clan info, members, and fund.', inline: false },
-        { name: '`ZP clanadd @user` / `ZP cla @user`',  value: '(Owner) Invite a player to your clan.', inline: false },
-        { name: '`ZP clanremove @user` / `ZP cr @user`', value: '(Owner) Remove a player from your clan.', inline: false },
-        { name: '`ZP clanleave` / `ZP cl`',              value: 'Leave your current clan.', inline: false },
-        { name: '`ZP clandelete` / `ZP cd`',             value: '(Owner) Permanently delete your clan.', inline: false },
-        { name: '`ZP clanfundadd <yen>` / `ZP cfa <yen>`', value: 'Donate yen to the clan fund.', inline: false },
-        { name: '`ZP clanfundtake <yen>` / `ZP cft <yen>`', value: '(Owner) Withdraw yen from the clan fund.', inline: false },
+        { name: '`ZP clancreate <name>` / `ZP cc <name>`',      value: 'Create a new clan. You become the owner.', inline: false },
+        { name: '`ZP clan`',                                     value: 'View your clan info, members, and fund.', inline: false },
+        { name: '`ZP clanadd @user` / `ZP cla @user`',          value: '(Owner) Invite a player to your clan.', inline: false },
+        { name: '`ZP clanremove @user` / `ZP cr @user`',        value: '(Owner) Remove a player from your clan.', inline: false },
+        { name: '`ZP clanleave` / `ZP cl`',                     value: 'Leave your current clan.', inline: false },
+        { name: '`ZP clandelete` / `ZP cd`',                    value: '(Owner) Permanently delete your clan.', inline: false },
+        { name: '`ZP clanfundadd <yen>` / `ZP cfa <yen>`',      value: 'Donate yen to the clan fund.', inline: false },
+        { name: '`ZP clanfundtake <yen>` / `ZP cft <yen>`',     value: '(Owner) Withdraw yen from the clan fund.', inline: false },
         { name: '**Duo Commands**', value: '\u200b', inline: false },
-        { name: '`ZP duocreate @user` / `ZP dc @user`', value: 'Send a duo partnership request to a player.', inline: false },
-        { name: '`ZP duo`',               value: 'View your duo partnership.', inline: false },
-        { name: '`ZP duoremove` / `ZP dr`', value: 'Disband your current duo partnership.', inline: false },
+        { name: '`ZP duocreate @user` / `ZP dc @user`',         value: 'Send a duo partnership request to a player.', inline: false },
+        { name: '`ZP duo`',                                      value: 'View your duo partnership.', inline: false },
+        { name: '`ZP duoremove` / `ZP dr`',                     value: 'Disband your current duo partnership.', inline: false },
       )
-      .setFooter({ text: 'Page 6 of 8 • ZP help' }),
+      .setFooter({ text: `Page 7 of ${TOTAL} • ZP help` }),
 
-    // Page 6: Reference
+    // Page 7: Reference
     new EmbedBuilder()
       .setColor(0x00FFD1)
-      .setTitle('📖 Help — 📚 Reference (7/7)')
-      .setDescription('Quick reference for rarities, platings, and currencies.')
+      .setTitle(`📖 Help — 📚 Reference (8/${TOTAL})`)
+      .setDescription('Quick reference for rarities, platings, currencies, and card stats.')
       .addFields(
         { name: '✨ Rarities', value: rarityList, inline: false },
         {
-          name: 'Platings',
-          value: config.PLATING_TIERS.map(t => `**${t.label}** — 0.1% pull drop`).join('\n'),
+          name: '🛡️ Platings',
+          value: config.PLATING_TIERS.map(t => `${t.emoji} **${t.label}** — ×${t.statMult} stats (+${Math.round((t.statMult - 1) * 100)}%) • 0.1% pull drop`).join('\n'),
           inline: false,
         },
         {
-          name: 'Currencies & Resources',
+          name: '💵 Currencies & Resources',
           value: [
-            '**Yen** — earned from fights             & kills. Traded between                   players.',
-            '**Stars** — earned from                  fights. Traded between                    players.',
-            '**Candy Tokens** — bought in             shop or given by admins.                  Resets pull charges.',
-            '**Limit Breakers** — earned              from `ZP conquestsend`. Used              to break level cap past 100.',
+            '**Yen** — earned from fights & kills. Traded between players.',
+            '**Stars** — earned from fights. Traded between players. Used for Time Skip.',
+            '**Candy Tokens** — bought in shop or given by admins. Resets pull charges.',
+            '**Limit Breakers** — earned from `ZP conquestsend`. Used to break the level cap past 100.',
           ].join('\n'),
           inline: false,
         },
@@ -1940,7 +1995,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
           value: [
             '**❤️ Health** — base HP, scales with level',
             '**⚔️ Damage / 🔵 Technique** — base attack power',
-            '**💨 Speed** — determines who attacks first in battle (0.45–0.55× base HP)',
+            '**💨 Speed** — determines who attacks first (0.45–0.55× base HP)',
             '',
             '**Power Formula:** Power = (HP + DMG) × level bonus × plating multiplier',
             '**Level bonus:** ×(1 + 0.02 × (level − 1))',
@@ -1948,13 +2003,13 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
           inline: false,
         },
       )
-      .setFooter({ text: 'Page 7 of 8 • ZP help' }),
+      .setFooter({ text: `Page 8 of ${TOTAL} • ZP help` }),
 
-    // Page 7: Support Cards & Level Scrolls
+    // Page 8: Support Cards & Level Scrolls
     new EmbedBuilder()
       .setColor(0xAA00FF)
-      .setTitle('📖 Help — 🌟 Support Cards & Level Scrolls (8/8)')
-      .setDescription('Support cards grant **passive effects** while they are in your collection. They cannot be traded or used offensively — simply owning them unlocks their bonus.')
+      .setTitle(`📖 Help — 🌟 Support Cards & Scrolls (9/${TOTAL})`)
+      .setDescription('Support cards grant **passive effects** while they are in your collection. Simply owning them unlocks their bonus — they cannot be traded or used in battle.')
       .addFields(
         {
           name: '💙 Swift Pull Token (R) — `support_r`',
@@ -1983,11 +2038,11 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         },
         {
           name: '📜 Level Scroll — `ZP use level_scroll <cardId>`',
-          value: 'Instantly raises a card\'s level by 1 (up to its current level cap). Earned via fights/raids/daily when you own the Scroll Awakener support card. Daily rewards scale with your streak (max 10 scrolls at day 10+).',
+          value: 'Instantly raises a card\'s level by 1 (up to its current level cap). Earned via fights/raids/daily when you own the Scroll Awakener. Daily scrolls scale with your streak (max 10 at day 10+).',
           inline: false,
         },
       )
-      .setFooter({ text: 'Page 8 of 8 • ZP help' }),
+      .setFooter({ text: `Page 9 of ${TOTAL} • ZP help` }),
   ];
 
   if (showAdmin) {
@@ -3675,7 +3730,7 @@ client.on('messageCreate', async (message) => {
         return message.reply(`You don't have a 📜 **Level Scroll**. Earn one from fights, raids, or daily rewards (requires 🟡 Scroll Awakener support card).`);
       }
       const user   = inv.ensureUser(inventory, userId);
-      const slot   = user.cards.find(c => c.cardId === targetCard.id);
+      const slot   = user.cards.find(c => c.id === targetCard.id);
       const curLvl = slot?.level ?? 1;
       const cap    = inv.getPersonalLevelCap(inventory, userId, targetCard.id);
       if (curLvl >= cap) {
@@ -4873,6 +4928,96 @@ client.on('messageCreate', async (message) => {
     const embed      = buildBattleEmbed(state, dittoNote || null);
     const components = buildBattleComponents(state);
     return message.reply({ embeds: [embed], components });
+  }
+
+  // ── timeskip | ts ─────────────────────────────────────────
+  if (command === 'timeskip' || command === 'ts') {
+    const TIMESKIP_COST    = 10000;
+    const TIMESKIP_FIGHTS  = 100;
+
+    const inventory = await inv.loadInventory();
+    const userStars = inv.getStars(inventory, userId);
+    if (userStars < TIMESKIP_COST) {
+      return message.reply(`You need **${TIMESKIP_COST.toLocaleString()} ⭐ Stars** to use Time Skip! You only have **${userStars.toLocaleString()}**.`);
+    }
+
+    const teamSlots = inv.getTeam(inventory, userId);
+    if (teamSlots.length < inv.TEAM_SIZE) {
+      return message.reply(`You need a full team of **${inv.TEAM_SIZE}** cards to use Time Skip! Use \`ZP add <cardId>\` to fill your team.`);
+    }
+
+    inv.removeStars(inventory, userId, TIMESKIP_COST);
+
+    const attackerResolved = resolveTeamSlots(teamSlots, inventory, userId);
+    const baseAttackerCards = attackerResolved.map(buildBattleCard).filter(Boolean);
+
+    let wins = 0;
+    let losses = 0;
+    let totalYen = 0;
+    const totalWeaponKills = {};
+
+    for (let i = 0; i < TIMESKIP_FIGHTS; i++) {
+      const defenderCards = generateBotTeam();
+      const attackerCards = baseAttackerCards.map(c => ({ ...c }));
+      applyDittoTransform(attackerCards, defenderCards);
+
+      const { won, weaponKills } = simulateSingleBotFight(attackerCards, defenderCards);
+      if (won) {
+        wins++;
+        const yenEarned = Math.floor(config.BOT_FIGHT_YEN_MIN + Math.random() * (config.BOT_FIGHT_YEN_MAX - config.BOT_FIGHT_YEN_MIN + 1));
+        totalYen += yenEarned;
+        for (const [wId, kills] of Object.entries(weaponKills)) {
+          totalWeaponKills[wId] = (totalWeaponKills[wId] ?? 0) + kills;
+        }
+      } else {
+        losses++;
+      }
+    }
+
+    inv.addYen(inventory, userId, totalYen);
+
+    const weaponPrestigeLines = [];
+    for (const [weaponId, kills] of Object.entries(totalWeaponKills)) {
+      if (inv.hasCard(inventory, userId, weaponId)) {
+        inv.addWeaponPrestige(inventory, userId, weaponId, kills);
+        const wCard = lookupCard(weaponId);
+        weaponPrestigeLines.push(`⚔️ **${wCard?.name ?? weaponId}** — +${kills} weapon prestige`);
+      }
+    }
+
+    await inv.saveInventory(inventory);
+
+    const winRate = Math.round((wins / TIMESKIP_FIGHTS) * 100);
+    const embed = new EmbedBuilder()
+      .setColor(0x9B59B6)
+      .setTitle('⏩ Time Skip — 100 Botfights Simulated!')
+      .setDescription(
+        `**${message.author.username}** skipped through **${TIMESKIP_FIGHTS} botfights** in the blink of an eye!\n\n` +
+        `**Cost:** -${TIMESKIP_COST.toLocaleString()} ⭐ Stars`
+      )
+      .addFields(
+        {
+          name: '📊 Battle Results',
+          value: [
+            `✅ **Wins:** ${wins} / ${TIMESKIP_FIGHTS}`,
+            `❌ **Losses:** ${losses} / ${TIMESKIP_FIGHTS}`,
+            `📈 **Win Rate:** ${winRate}%`,
+          ].join('\n'),
+          inline: false,
+        },
+        {
+          name: '💰 Rewards Earned',
+          value: `+¥${totalYen.toLocaleString()} Yen`,
+          inline: false,
+        },
+        ...(weaponPrestigeLines.length > 0 ? [{
+          name: '🗡️ Weapon Prestige Gained',
+          value: weaponPrestigeLines.join('\n'),
+          inline: false,
+        }] : []),
+      )
+      .setFooter({ text: 'Time Skip simulates 100 botfights automatically — stars are spent, yen is earned' });
+    return message.reply({ embeds: [embed] });
   }
 
   // ── duofight | df ─────────────────────────────────────────
