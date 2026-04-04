@@ -44,7 +44,7 @@ module.exports = {
   BOT_FIGHT_YEN_MIN:   1000,
   BOT_FIGHT_YEN_MAX:  10000,
   BOT_FIGHT_STAR_MIN:   10,
-  BOT_FIGHT_STAR_MAX:  10000,
+  BOT_FIGHT_STAR_MAX:  1000,
 
   // ── Card Stats (scale by rarity) ─────────────────────────
   // Each card gets deterministic HP and DMG based on its card ID
@@ -63,10 +63,10 @@ module.exports = {
   // ── Raid ──────────────────────────────────────────────────
   // Drop chance per single pull for each ticket tier.
   RAID_TICKET_CHANCES: {
-    raid_ticket:          0.0015,   // 0.15%
-    mythical_raid_ticket: 0.00075,  // 0.075%
-    omega_raid_ticket:    0.0005,   // 0.05%
-    hellish_raid_ticket:  0.0001,   // 0.01%
+    raid_ticket:          0.015,   // 0.15%
+    mythical_raid_ticket: 0.0075,  // 0.075%
+    omega_raid_ticket:    0.005,   // 0.05%
+    hellish_raid_ticket:  0.001,   // 0.01%
   },
 
   // Tier definitions: boss pool, stat multiplier applied to Lv-100 card stats.
@@ -74,7 +74,7 @@ module.exports = {
     { id: 'raid_ticket',          label: 'Raid Ticket',          emoji: '🎟️', color: 0xFF6B6B, bossPools: ['R','E','L'], statMult: 10, useCmd: 'ZP raid'         },
     { id: 'mythical_raid_ticket', label: 'Mythical Raid Ticket', emoji: '🌙', color: 0xFF4757, bossPools: ['MY'],        statMult: 13, useCmd: 'ZP raid mythical' },
     { id: 'omega_raid_ticket',    label: 'Omega Raid Ticket',    emoji: '⚡', color: 0x00FFF0, bossPools: ['UR'],         statMult: 16, useCmd: 'ZP raid omega'   },
-    { id: 'hellish_raid_ticket',  label: 'Hellish Raid Ticket',  emoji: '💀', color: 0xFF0000, bossPools: ['LT'],         statMult: 19, useCmd: 'ZP raid hellish' },
+    { id: 'hellish_raid_ticket',  label: 'Hellish Raid Ticket',  emoji: '💀', color: 0xFF0000, bossPools: ['LT'],         statMult: 25, useCmd: 'ZP raid hellish' },
   ],
 
   // ── Items ─────────────────────────────────────────────────
