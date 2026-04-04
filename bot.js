@@ -111,6 +111,7 @@ const {
     ActionRowBuilder, ButtonBuilder, ButtonStyle,
     ModalBuilder, TextInputBuilder, TextInputStyle,
     REST, Routes, SlashCommandBuilder, PermissionsBitField,
+    ApplicationIntegrationType, InteractionContextType,
 } = require('discord.js');
 
 const express = require('express');
@@ -2405,6 +2406,15 @@ client.once('ready', async () => {
   const slashCommand = new SlashCommandBuilder()
     .setName('zp')
     .setDescription('Use any ZP bot command')
+    .setIntegrationTypes(
+      ApplicationIntegrationType.GuildInstall,
+      ApplicationIntegrationType.UserInstall,
+    )
+    .setContexts(
+      InteractionContextType.Guild,
+      InteractionContextType.BotDM,
+      InteractionContextType.PrivateChannel,
+    )
     .addStringOption(opt =>
       opt.setName('input')
         .setDescription('Command + args, e.g. "pull", "col legendary", "help", "wallet"')
@@ -2417,7 +2427,7 @@ client.once('ready', async () => {
     );
 
   rest.put(Routes.applicationCommands(client.user.id), { body: [slashCommand.toJSON()] })
-    .then(() => console.log('✅ Global slash command /zp registered'))
+    .then(() => console.log('✅ Global slash command /zp registered (guilds + DMs + group chats)'))
     .catch(err => console.error('Failed to register slash command:', err));
 
   // ── Create/fetch webhook for BOT_WEBHOOK_CHANNEL ────────
@@ -2445,28 +2455,41 @@ function createSlashContext(interaction) {
   const userOption = interaction.options.getUser('user');
   let replied = false;
 
+  // In DMs / group DMs, interaction.channel may be null (not cached).
+  // Build a minimal channel proxy that always works.
+  const channel = interaction.channel ?? {
+    id:          interaction.channelId,
+    isTextBased: () => true,
+    send:        async (opts) => interaction.followUp(opts),
+  };
+
+  const replyFn = async (opts) => {
+    if (!replied) {
+      replied = true;
+      return interaction.editReply(opts).catch(() => interaction.followUp(opts));
+    }
+    return interaction.followUp(opts);
+  };
+
   return {
     author: {
-      bot: false,
-      id: interaction.user.id,
+      bot:      false,
+      id:       interaction.user.id,
       username: interaction.user.username,
     },
-    content: `${config.PREFIX} ${interaction.options.getString('input') ?? ''}`,
-    guild: interaction.guild ?? null,
-    channel: interaction.channel,
+    content:   `${config.PREFIX} ${interaction.options.getString('input') ?? ''}`,
+    guild:     interaction.guild ?? null,
+    guildId:   interaction.guildId ?? null,
+    channel,
+    channelId: interaction.channelId,
+    member:    interaction.member ?? null,
     mentions: {
       users: {
         first: () => userOption ?? null,
         get:   (id) => (userOption?.id === id ? userOption : null),
       },
     },
-    reply: async (opts) => {
-      if (!replied) {
-        replied = true;
-        return interaction.editReply(opts).catch(() => interaction.followUp(opts));
-      }
-      return interaction.followUp(opts);
-    },
+    reply: replyFn,
   };
 }
 
