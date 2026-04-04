@@ -799,6 +799,61 @@ function buildBattleComponents(state) {
   return rows;
 }
 
+// ── World Boss interactive fight helpers ───────────────────
+
+function buildWorldBossEmbed(state, log = null) {
+  const boss = state.defenderCards[0];
+  const atkLines = state.attackerCards.map(cardBattleLine).join('\n\n');
+  const allAtkDead = state.attackerCards.every(b => !b.alive);
+
+  const globalHpBar = hpBar(state.wbCurrentHp, state.wbMaxHp);
+  const parts = [
+    `🌍 **World Boss HP:** ${globalHpBar} **${state.wbCurrentHp.toLocaleString()} / ${state.wbMaxHp.toLocaleString()}**`,
+    '',
+    `**═════ 🔴 ${state.defenderName} ═════**`,
+    cardBattleLine(boss),
+    '',
+    `**═════ ${state.attackerName}'s Team ═════**`,
+    atkLines,
+  ];
+  if (log) parts.push('', log);
+  if (!allAtkDead && boss.alive) parts.push('', '*Choose a card to attack with!*');
+
+  return new EmbedBuilder()
+    .setColor(state.wbCurrentHp <= 0 ? 0xFFD700 : 0xFF0000)
+    .setTitle(`🌍 World Boss — ${state.defenderName}`)
+    .setDescription(parts.join('\n'));
+}
+
+function buildWorldBossComponents(state) {
+  const rows = [];
+  const alive = state.attackerCards
+    .map((bc, i) => ({ bc, i }))
+    .filter(({ bc }) => bc.alive);
+
+  for (let r = 0; r < alive.length; r += 4) {
+    const row = new ActionRowBuilder().addComponents(
+      alive.slice(r, r + 4).map(({ bc, i }) =>
+        new ButtonBuilder()
+          .setCustomId(`wbattle|${state.battleId}|${i}`)
+          .setLabel(bc.name.length > 20 ? bc.name.slice(0, 18) + '…' : bc.name)
+          .setStyle(ButtonStyle.Success)
+      )
+    );
+    rows.push(row);
+  }
+
+  rows.push(
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`wbattle|${state.battleId}|run`)
+        .setLabel('Retreat')
+        .setStyle(ButtonStyle.Danger)
+    )
+  );
+  return rows;
+}
+
 // ── Raid helpers ──────────────────────────────────────────
 
 function buildRaidEmbed(state, log = null) {
@@ -2625,6 +2680,95 @@ client.on('interactionCreate', async (interaction) => {
 
     const embed      = state.isRaid ? buildRaidEmbed(state, log) : buildBattleEmbed(state, log);
     const components = buildBattleComponents(state);
+    return interaction.update({ embeds: [embed], components });
+  }
+
+  // ── World Boss interactive fight button handler ────────────
+  if (parts[0] === 'wbattle') {
+    const [, battleId, action] = parts;
+    const state = activeBattles.get(battleId);
+
+    if (!state) {
+      return interaction.update({ components: [], embeds: interaction.message.embeds });
+    }
+    if (interaction.user.id !== state.attackerId) {
+      return interaction.reply({ content: 'These buttons are not for you.', ephemeral: true });
+    }
+    if (Date.now() > state.expiry) {
+      activeBattles.delete(battleId);
+      return interaction.update({ components: [], embeds: interaction.message.embeds });
+    }
+
+    if (action === 'run') {
+      activeBattles.delete(battleId);
+      const embed = buildWorldBossEmbed(state, `**${state.attackerName}** retreated from the World Boss!`);
+      return interaction.update({ embeds: [embed], components: [] });
+    }
+
+    const atkIdx   = parseInt(action, 10);
+    const attacker = state.attackerCards[atkIdx];
+    if (!attacker?.alive) {
+      return interaction.reply({ content: 'That card is already defeated!', ephemeral: true });
+    }
+
+    const boss = state.defenderCards[0];
+    if (!boss.alive) {
+      activeBattles.delete(battleId);
+      return interaction.update({ components: [], embeds: interaction.message.embeds });
+    }
+
+    // Player card attacks the boss
+    const { dmg: rawDmg, crit: isCrit } = calcDamage(attacker, boss);
+    const actualDmg = Math.min(rawDmg, boss.hp);
+    boss.hp = Math.max(0, boss.hp - actualDmg);
+    if (boss.hp === 0) boss.alive = false;
+
+    let log = `⚔️ **${attacker.name}** attacked **${boss.name}** for **${actualDmg.toLocaleString()}** damage!${isCrit ? ' 👁️ **GOLDEN PUPILS CRIT — 5×!**' : ''}`;
+
+    // Persist damage to the shared world boss HP immediately
+    const inventory = await inv.loadInventory();
+    const wbData = inv.getWorldBoss(inventory);
+    if (wbData && wbData.currentHp > 0) {
+      inv.recordWorldBossDamage(inventory, state.attackerId, state.attackerName, actualDmg);
+      await inv.saveInventory(inventory);
+      const updated = inv.getWorldBoss(inventory);
+      // Sync state with the real global HP (other players may have also attacked)
+      state.wbCurrentHp = updated?.currentHp ?? Math.max(0, state.wbCurrentHp - actualDmg);
+      boss.hp    = state.wbCurrentHp;
+      boss.alive = boss.hp > 0;
+    } else {
+      state.wbCurrentHp = Math.max(0, state.wbCurrentHp - actualDmg);
+      boss.hp    = state.wbCurrentHp;
+      boss.alive = boss.hp > 0;
+    }
+
+    if (!boss.alive) {
+      activeBattles.delete(battleId);
+      state.wbCurrentHp = 0;
+      log += `\n\n💀 **${boss.name}** has been defeated! Admins will distribute the rewards shortly.`;
+      const embed = buildWorldBossEmbed(state, log);
+      return interaction.update({ embeds: [embed], components: [] });
+    }
+
+    // Boss retaliates against the first alive team card
+    const atkTarget = state.attackerCards.find(bc => bc.alive);
+    if (atkTarget) {
+      const retDmg = Math.round(state.wbBaseDmg * (0.8 + Math.random() * 0.4));
+      atkTarget.hp = Math.max(0, atkTarget.hp - retDmg);
+      if (atkTarget.hp === 0) atkTarget.alive = false;
+      log += `\n💥 **${boss.name}** retaliated against **${atkTarget.name}** for **${retDmg.toLocaleString()}** damage!`;
+      if (!atkTarget.alive) log += ` **${atkTarget.name}** was defeated!`;
+    }
+
+    if (state.attackerCards.every(bc => !bc.alive)) {
+      activeBattles.delete(battleId);
+      log += `\n\n💀 Your whole team was knocked out! The World Boss endures...`;
+      const embed = buildWorldBossEmbed(state, log);
+      return interaction.update({ embeds: [embed], components: [] });
+    }
+
+    const embed      = buildWorldBossEmbed(state, log);
+    const components = buildWorldBossComponents(state);
     return interaction.update({ embeds: [embed], components });
   }
 
@@ -6688,7 +6832,7 @@ client.on('messageCreate', async (message) => {
       if (!boss) return message.reply('No World Boss is currently active right now. Watch for an announcement!');
       if (boss.currentHp <= 0) return message.reply('The World Boss has already been defeated! Wait for the rewards to be distributed.');
 
-      // Attack cooldown: 5 minutes between full team fights
+      // Attack cooldown: 5 minutes between fights
       const WB_COOLDOWN = 5 * 60_000;
       const lastAtk = worldBossAttackCooldowns.get(userId) ?? 0;
       const remaining = WB_COOLDOWN - (Date.now() - lastAtk);
@@ -6699,7 +6843,7 @@ client.on('messageCreate', async (message) => {
         return message.reply(`Your team is still recovering! Wait **${waitStr}** before attacking the World Boss again.`);
       }
 
-      // Build full team battle cards
+      // Build team battle cards
       const team = inv.getTeam(inventory, userId);
       if (!team.length) return message.reply('You have no cards on your team! Use `ZP add <cardId>` to add cards first.');
 
@@ -6707,9 +6851,9 @@ client.on('messageCreate', async (message) => {
       const teamCards = resolvedSlots.map(buildBattleCard).filter(Boolean);
       if (!teamCards.length) return message.reply('No valid cards found on your team.');
 
-      // Build the world boss as a battle card opponent
-      // Boss HP starts at current HP so damage is tracked from where it is now
-      const bossState = {
+      // Build the boss as a battle card
+      const bossBattleCard = {
+        cardId:         boss.bossCardId,
         name:           boss.bossName,
         hp:             boss.currentHp,
         maxHp:          boss.maxHp,
@@ -6719,83 +6863,39 @@ client.on('messageCreate', async (message) => {
         technique:      false,
         specialAbility: null,
         alive:          true,
+        level:          100,
+        platings:       [],
+        platEmoji:      '',
+        rarEmoji:       '🔴',
+        speed:          0,
       };
 
-      // Simulate full team fight against the boss
-      const fightCards = teamCards.map(c => ({ ...c, hp: c.maxHp, alive: true }));
-      const fightLog   = [];
-      let totalDmgToBoss = 0;
-      let round = 0;
+      // Apply Ditto transform so Ditto copies the boss
+      applyDittoTransform(teamCards, [bossBattleCard]);
 
-      outer: while (bossState.hp > 0 && fightCards.some(c => c.alive)) {
-        round++;
-        if (round > 100) break; // safety cap
-
-        for (const card of fightCards) {
-          if (!card.alive) continue;
-          if (bossState.hp <= 0) break outer;
-
-          // Card attacks boss
-          const { dmg: atkDmg, crit } = calcDamage(card, bossState);
-          const dealt = Math.min(atkDmg, bossState.hp);
-          bossState.hp = Math.max(0, bossState.hp - dealt);
-          totalDmgToBoss += dealt;
-          fightLog.push(`⚔️ **${card.name}** hit for **${dealt.toLocaleString()}**${crit ? ' 💥 CRIT!' : ''}`);
-
-          if (bossState.hp <= 0) {
-            fightLog.push(`💀 **${boss.bossName}** has been defeated!`);
-            break outer;
-          }
-
-          // Boss retaliates against this card
-          const retDmg = Math.round(boss.bossDmg * (0.8 + Math.random() * 0.4));
-          card.hp = Math.max(0, card.hp - retDmg);
-          if (card.hp <= 0) {
-            card.alive = false;
-            fightLog.push(`💔 **${card.name}** was knocked out by ${boss.bossName}!`);
-          }
-        }
-      }
-
-      const allDead   = fightCards.every(c => !c.alive);
-      const bossSlain = bossState.hp <= 0;
-
-      // Cap damage at what the boss actually had left before this fight
-      const actualDmg = Math.min(totalDmgToBoss, boss.currentHp);
-
+      // Set cooldown now (fight is starting)
       worldBossAttackCooldowns.set(userId, Date.now());
-      inv.recordWorldBossDamage(inventory, userId, message.author.username, actualDmg);
-      await inv.saveInventory(inventory);
 
-      // Build result embed
-      const updatedBoss = inv.getWorldBoss(inventory);
-      const hpLeft   = updatedBoss?.currentHp ?? 0;
-      const hpBarStr = hpBar(hpLeft, boss.maxHp);
-      const totalDmgAll = Object.values(updatedBoss?.participants ?? {}).reduce((s, p) => s + (p.damage ?? 0), 0);
-      const myDmg    = updatedBoss?.participants?.[userId]?.damage ?? actualDmg;
-      const myPct    = totalDmgAll > 0 ? ((myDmg / totalDmgAll) * 100).toFixed(1) : '100.0';
+      // Create interactive battle state
+      const battleId = `wb_${userId}_${Date.now()}`;
+      const state = {
+        battleId,
+        attackerId:    userId,
+        attackerName:  message.author.username,
+        defenderName:  boss.bossName,
+        attackerCards: teamCards,
+        defenderCards: [bossBattleCard],
+        isWorldBoss:   true,
+        wbCurrentHp:   boss.currentHp,
+        wbMaxHp:       boss.maxHp,
+        wbBaseDmg:     boss.bossDmg,
+        expiry:        Date.now() + 10 * 60_000,
+      };
+      activeBattles.set(battleId, state);
 
-      const bossEmoji    = emojiCache.getEmoji(boss.bossCardId) ?? '👹';
-      const outcomeNote  = bossSlain
-        ? '\n\n💀 **The World Boss has been slain!** Admins will distribute the rewards shortly.'
-        : allDead
-          ? '\n\n💔 Your whole team was knocked out! Recover and try again later.'
-          : '';
-
-      // Trim log to last 12 lines so the embed stays within Discord's limit
-      const logLines = fightLog.slice(-12).join('\n');
-
-      const embed = new EmbedBuilder()
-        .setColor(bossSlain ? 0xFFD700 : allDead ? 0x888888 : 0xFF4757)
-        .setTitle(`${bossEmoji} World Boss — ${boss.bossName}`)
-        .setDescription(
-          `${hpBarStr} **${hpLeft.toLocaleString()} / ${boss.maxHp.toLocaleString()} HP**\n\n` +
-          `**${message.author.username}'s team fought ${boss.bossName}:**\n${logLines}\n\n` +
-          `⚔️ Damage this raid: **${actualDmg.toLocaleString()}**\n` +
-          `📊 Your total contribution: **${myDmg.toLocaleString()}** dmg (**${myPct}%** of total)\n` +
-          `> The more damage you deal, the higher your reward share!${outcomeNote}`
-        );
-      return message.reply({ embeds: [embed] });
+      const embed      = buildWorldBossEmbed(state);
+      const components = buildWorldBossComponents(state);
+      return message.reply({ embeds: [embed], components });
     }
 
     // ── status (default) ─────────────────────────────────
