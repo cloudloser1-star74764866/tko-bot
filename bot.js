@@ -2020,9 +2020,13 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
     // Page 4: Raids & Weapons
     new EmbedBuilder()
       .setColor(0xFF6B00)
-      .setTitle(`📖 Help — 🏴 Raids & Weapons (5/${TOTAL})`)
-      .setDescription('Fight powerful raid bosses and evolve your weapons!')
+      .setTitle(`📖 Help — 🏴 Raids, World Boss & Weapons (5/${TOTAL})`)
+      .setDescription('Fight powerful raid bosses, join World Boss events, and evolve your weapons!')
       .addFields(
+        { name: '🌍 World Boss Events', value: '\u200b', inline: false },
+        { name: '`ZP worldboss` / `ZP wb`',           value: 'View the current World Boss status and top damage leaderboard.', inline: false },
+        { name: '`ZP worldboss attack` / `ZP wb atk`', value: 'Attack the World Boss using your strongest team card (30s cooldown). Earn rewards based on your damage share!', inline: false },
+        { name: '\u200b', value: '**🏴 Raids**', inline: false },
         {
           name: '`ZP raid` / `ZP raid mythical` / `ZP raid omega` / `ZP raid hellish`',
           value: [
@@ -2194,6 +2198,14 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
               '`ZP giveyen [@user] <amount>` – Add Yen to a user',
               '`ZP givestars [@user] <amount>` – Add Stars to a user',
               '`ZP givecandytokens [@user] <amount>` – Give Candy Tokens to a user',
+            ].join('\n'),
+            inline: false,
+          },
+          {
+            name: '🌍 World Boss',
+            value: [
+              '`ZP worldboss spawn [channelId]` / `ZP wb spawn` – Spawn a random MD/LT World Boss. Optionally send announcement to a specific channel.',
+              '`ZP worldboss end` / `ZP wb end` – End the active World Boss and distribute Yen + Stars rewards proportional to each player\'s damage.',
             ].join('\n'),
             inline: false,
           },
@@ -6584,7 +6596,7 @@ client.on('messageCreate', async (message) => {
       inv.setWorldBoss(inventory, bossData);
       await inv.saveInventory(inventory);
 
-      const bossEmoji   = getEmoji(bossCard.id) ?? '';
+      const bossEmoji   = emojiCache.getEmoji(bossCard.id) ?? '';
       const bossMeta    = rarityMeta(bossCard.rarity);
       const targetCh    = client.channels.cache.get(channelId);
       const embed = new EmbedBuilder()
@@ -6669,18 +6681,21 @@ client.on('messageCreate', async (message) => {
       const team = inv.getTeam(inventory, userId);
       if (!team.length) return message.reply('You have no cards on your team! Build a team first with `ZP team add <card>`.');
 
-      const bestSlot = team.reduce((best, slot) => {
-        if (!slot.cardId) return best;
-        const card = lookupCard(slot.cardId);
-        if (!card) return best;
-        const power = inv.getSlotPower(inventory, userId, slot.cardId);
-        return power > (best.power ?? -1) ? { slot, card, power } : best;
-      }, { slot: null, card: null, power: -1 });
+      const resolvedSlots = resolveTeamSlots(team, inventory, userId);
+      let bestResolved = null;
+      let bestPower = -1;
+      for (const rslot of resolvedSlots) {
+        if (!rslot.cardId || !rslot.card) continue;
+        const bc = buildBattleCard(rslot);
+        if (!bc) continue;
+        const power = bc.hp + bc.dmg;
+        if (power > bestPower) { bestPower = power; bestResolved = { rslot, bc }; }
+      }
 
-      if (!bestSlot.card) return message.reply('No valid cards found on your team.');
+      if (!bestResolved) return message.reply('No valid cards found on your team.');
 
-      const { slot: atkSlot, card: atkCard } = bestSlot;
-      const atkBc = buildBattleCard({ card: atkCard, level: atkSlot.level ?? 1, plating: null }, atkSlot);
+      const { rslot: atkSlot, bc: atkBc } = bestResolved;
+      const atkCard = atkSlot.card;
       const fakeBoss = { maxHp: boss.maxHp, dmg: boss.bossDmg, hp: boss.currentHp, technique: false, specialAbility: null };
 
       const { dmg, crit } = calcDamage(atkBc, fakeBoss);
@@ -6693,12 +6708,12 @@ client.on('messageCreate', async (message) => {
       // Reload to get updated state
       const updatedBoss = inv.getWorldBoss(inventory);
       const hpLeft   = updatedBoss?.currentHp ?? 0;
-      const hpBar    = hpBar_fn(hpLeft, boss.maxHp);
+      const hpBarStr = hpBar(hpLeft, boss.maxHp);
       const totalDmg = Object.values(updatedBoss?.participants ?? {}).reduce((s, p) => s + (p.damage ?? 0), 0);
       const myDmg    = updatedBoss?.participants?.[userId]?.damage ?? actualDmg;
       const myPct    = totalDmg > 0 ? ((myDmg / totalDmg) * 100).toFixed(1) : '100.0';
 
-      const bossEmoji = getEmoji(boss.bossCardId) ?? '👹';
+      const bossEmoji = emojiCache.getEmoji(boss.bossCardId) ?? '👹';
       const critNote  = crit ? ' 👁️ **GOLDEN PUPILS CRIT — 5×!**' : '';
       const defeatedNote = hpLeft <= 0 ? '\n\n💀 **The World Boss has been slain!** Admins will distribute the rewards shortly.' : '';
 
@@ -6706,7 +6721,7 @@ client.on('messageCreate', async (message) => {
         .setColor(hpLeft <= 0 ? 0xFFD700 : 0xFF4757)
         .setTitle(`${bossEmoji} World Boss — ${boss.bossName}`)
         .setDescription(
-          `${hpBar} **${hpLeft.toLocaleString()} / ${boss.maxHp.toLocaleString()} HP**\n\n` +
+          `${hpBarStr} **${hpLeft.toLocaleString()} / ${boss.maxHp.toLocaleString()} HP**\n\n` +
           `⚔️ **${message.author.username}**'s **${atkCard.name}** dealt **${actualDmg.toLocaleString()}** damage!${critNote}\n` +
           `📊 Your total contribution: **${myDmg.toLocaleString()}** dmg (**${myPct}%** of total)\n` +
           `> The more damage you deal, the higher your reward share!${defeatedNote}`
@@ -6734,7 +6749,7 @@ client.on('messageCreate', async (message) => {
       }).join('\n') || '*No damage dealt yet.*';
 
       const hpLeft   = boss.currentHp;
-      const bossEmoji = getEmoji(boss.bossCardId) ?? '👹';
+      const bossEmoji = emojiCache.getEmoji(boss.bossCardId) ?? '👹';
       const bossMeta  = rarityMeta(boss.bossRarity ?? 'MD');
 
       const embed = new EmbedBuilder()
@@ -6742,7 +6757,7 @@ client.on('messageCreate', async (message) => {
         .setTitle(`${bossEmoji} World Boss — ${boss.bossName}`)
         .setDescription(
           `${bossMeta.emoji} *${boss.bossSeries ?? ''}*\n\n` +
-          `${hpBar_fn(hpLeft, boss.maxHp)} **${hpLeft.toLocaleString()} / ${boss.maxHp.toLocaleString()} HP**\n\n` +
+          `${hpBar(hpLeft, boss.maxHp)} **${hpLeft.toLocaleString()} / ${boss.maxHp.toLocaleString()} HP**\n\n` +
           `**Top Attackers:**\n${leaderboard}\n\n` +
           `Use \`ZP worldboss attack\` to join the fight!`
         );
