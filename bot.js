@@ -6331,7 +6331,7 @@ client.on('messageCreate', async (message) => {
   }
 
   // ── Bot Admin commands ─────────────────────────────────────
-  if (!isAdmin(userId)) return;
+  if (!isAdmin(userId) && command !== 'worldboss' && command !== 'wb') return;
 
   // ── setrarity ─────────────────────────────────────────────
   if (command === 'setrarity') {
