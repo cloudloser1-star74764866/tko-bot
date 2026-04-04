@@ -280,8 +280,10 @@ function confirmImage(cardId) {
 }
 
 // ── Webhook Log Channels ──────────────────────────────────
-const TRADE_LOG_CHANNEL = '1489593047799955538';
-const RAID_LOG_CHANNEL  = '1489593108663373916';
+const TRADE_LOG_CHANNEL   = '1489593047799955538';
+const RAID_LOG_CHANNEL    = '1489593108663373916';
+const BOT_WEBHOOK_CHANNEL = '1490001573533978714';
+let   botWebhook          = null;
 async function logToChannel(channelId, embed) {
   try {
     const ch = await client.channels.fetch(channelId);
@@ -2417,6 +2419,24 @@ client.once('ready', async () => {
   rest.put(Routes.applicationCommands(client.user.id), { body: [slashCommand.toJSON()] })
     .then(() => console.log('✅ Global slash command /zp registered'))
     .catch(err => console.error('Failed to register slash command:', err));
+
+  // ── Create/fetch webhook for BOT_WEBHOOK_CHANNEL ────────
+  try {
+    const wbCh = await client.channels.fetch(BOT_WEBHOOK_CHANNEL).catch(() => null);
+    if (wbCh?.isTextBased()) {
+      const hooks = await wbCh.fetchWebhooks().catch(() => null);
+      const existing = hooks?.find(h => h.owner?.id === client.user.id);
+      if (existing) {
+        botWebhook = existing;
+        console.log(`✅ Webhook found for channel ${BOT_WEBHOOK_CHANNEL}: ${existing.url}`);
+      } else {
+        botWebhook = await wbCh.createWebhook({ name: 'ZP Bot', avatar: client.user.displayAvatarURL() });
+        console.log(`✅ Webhook created for channel ${BOT_WEBHOOK_CHANNEL}: ${botWebhook.url}`);
+      }
+    }
+  } catch (err) {
+    console.error(`[webhook] Failed to create webhook in ${BOT_WEBHOOK_CHANNEL}:`, err.message);
+  }
 });
 
 // ── Slash command → message adapter ───────────────────────
@@ -7024,8 +7044,8 @@ client.on('messageCreate', async (message) => {
         speed:          0,
       };
 
-      // Apply Ditto transform so Ditto copies the boss
-      applyDittoTransform(teamCards, [bossBattleCard]);
+      // Apply Ditto transform — use copyAllies so Ditto cannot copy the world boss
+      applyDittoTransform(teamCards, [bossBattleCard], { copyAllies: true });
 
       // Set cooldown now (fight is starting)
       worldBossAttackCooldowns.set(userId, Date.now());
