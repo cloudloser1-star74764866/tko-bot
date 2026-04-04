@@ -3491,7 +3491,9 @@ client.on('messageCreate', async (message) => {
     try {
       const wbInv = await inv.loadInventory();
       const gs    = inv.getGuildSettings(wbInv, message.guild.id);
-      if (!gs.disallowedCommands?.includes('worldboss') && !inv.getWorldBoss(wbInv)) {
+      const wbServerDisabled  = gs.disallowedCommands?.includes('worldboss');
+      const wbChannelDisabled = gs.disallowedWorldBossChannels?.includes(message.channelId);
+      if (!wbServerDisabled && !wbChannelDisabled && !inv.getWorldBoss(wbInv)) {
         const bossPool = CARDS.filter(c => c.rarity === 'MD' && !c.weaponCard && !c.supportCard && !c.dittoCard);
         if (bossPool.length) {
           const bossCard  = bossPool[Math.floor(Math.random() * bossPool.length)];
@@ -6874,18 +6876,32 @@ client.on('messageCreate', async (message) => {
     const isServerAdmin = message.member?.permissions.has(PermissionsBitField.Flags.ManageGuild) || isAdmin(userId);
     if (!isServerAdmin) return message.reply('You need the **Manage Server** permission to use this command.');
     if (!guildId) return message.reply('This command can only be used in a server.');
-    const sub = args[0]?.toLowerCase();
-    const isWb = sub === 'worldboss' || sub === 'wb';
-    if (!isWb) return message.reply('Usage: `ZP disallow worldboss` / `ZP allow worldboss`');
+    const sub  = args[0]?.toLowerCase();
+    const sub2 = args[1]?.toLowerCase();
+    const isWb  = sub === 'worldboss' || sub === 'wb';
+    if (!isWb) return message.reply('Usage: `ZP disallow worldboss [all]` / `ZP allow worldboss [all]`');
+    const allChannels = sub2 === 'all';
     const inventory = await inv.loadInventory();
     if (command === 'disallow') {
-      inv.disallowCommand(inventory, guildId, 'worldboss');
-      await inv.saveInventory(inventory);
-      return message.reply('✅ World Boss auto-spawning is now **disabled** in this server.');
+      if (allChannels) {
+        inv.disallowCommand(inventory, guildId, 'worldboss');
+        await inv.saveInventory(inventory);
+        return message.reply('✅ World Boss auto-spawning is now **disabled in every channel** of this server.');
+      } else {
+        inv.disallowWorldBossChannel(inventory, guildId, message.channelId);
+        await inv.saveInventory(inventory);
+        return message.reply(`✅ World Boss auto-spawning is now **disabled in <#${message.channelId}>**. Use \`ZP disallow worldboss all\` to disable it server-wide.`);
+      }
     } else {
-      inv.allowCommand(inventory, guildId, 'worldboss');
-      await inv.saveInventory(inventory);
-      return message.reply('✅ World Boss auto-spawning is now **enabled** in this server.');
+      if (allChannels) {
+        inv.allowCommand(inventory, guildId, 'worldboss');
+        await inv.saveInventory(inventory);
+        return message.reply('✅ World Boss auto-spawning is now **re-enabled server-wide**.');
+      } else {
+        inv.allowWorldBossChannel(inventory, guildId, message.channelId);
+        await inv.saveInventory(inventory);
+        return message.reply(`✅ World Boss auto-spawning is now **re-enabled in <#${message.channelId}>**.`);
+      }
     }
   }
 

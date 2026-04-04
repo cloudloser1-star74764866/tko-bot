@@ -880,12 +880,23 @@ function markCodeRedeemed(inventory, userId, codeName) {
 
 function ensureGuild(inventory, guildId) {
   if (!inventory.guilds[guildId]) {
-    inventory.guilds[guildId] = { allowedChannels: [], disallowedCommands: [] };
+    inventory.guilds[guildId] = { allowedChannels: [], disallowedCommands: [], disallowedWorldBossChannels: [] };
   }
   const g = inventory.guilds[guildId];
-  if (!g.allowedChannels)      g.allowedChannels      = [];
-  if (!g.disallowedCommands)   g.disallowedCommands   = [];
+  if (!g.allowedChannels)              g.allowedChannels              = [];
+  if (!g.disallowedCommands)           g.disallowedCommands           = [];
+  if (!g.disallowedWorldBossChannels)  g.disallowedWorldBossChannels  = [];
   return g;
+}
+
+function disallowWorldBossChannel(inventory, guildId, channelId) {
+  const g = ensureGuild(inventory, guildId);
+  if (!g.disallowedWorldBossChannels.includes(channelId)) g.disallowedWorldBossChannels.push(channelId);
+}
+
+function allowWorldBossChannel(inventory, guildId, channelId) {
+  const g = ensureGuild(inventory, guildId);
+  g.disallowedWorldBossChannels = g.disallowedWorldBossChannels.filter(id => id !== channelId);
 }
 
 function getGuildSettings(inventory, guildId) {
@@ -982,6 +993,7 @@ module.exports = {
   getDuo, getUserDuo, createDuo, disbandDuo,
   getGuildSettings, addAllowedChannel, removeAllowedChannel, clearAllowedChannels,
   disallowCommand, allowCommand,
+  disallowWorldBossChannel, allowWorldBossChannel,
   createRedeemCode, updateRedeemCode, deleteRedeemCode, getRedeemCodes,
   findRedeemCodeByCode, hasRedeemedCode, markCodeRedeemed,
   MAX_PLATINGS_PER_CARD,
