@@ -110,7 +110,7 @@ const {
     Client, GatewayIntentBits, EmbedBuilder,
     ActionRowBuilder, ButtonBuilder, ButtonStyle,
     ModalBuilder, TextInputBuilder, TextInputStyle,
-    REST, Routes, SlashCommandBuilder,
+    REST, Routes, SlashCommandBuilder, PermissionsBitField,
 } = require('discord.js');
 
 const express = require('express');
@@ -260,6 +260,23 @@ try {
 } catch (_) {}
 function saveBannedUsers() {
   try { fs.writeFileSync(BANNED_FILE, JSON.stringify([...bannedUsers], null, 2)); } catch (_) {}
+}
+
+// ── Confirmed Images ──────────────────────────────────────
+const CONFIRMED_IMAGES_FILE = path.join(__dirname, 'data', 'confirmed_images.json');
+let confirmedImages = new Set();
+try {
+  if (fs.existsSync(CONFIRMED_IMAGES_FILE)) {
+    const raw = JSON.parse(fs.readFileSync(CONFIRMED_IMAGES_FILE, 'utf8'));
+    confirmedImages = new Set(Array.isArray(raw) ? raw : []);
+  }
+} catch (_) {}
+function saveConfirmedImages() {
+  try { fs.writeFileSync(CONFIRMED_IMAGES_FILE, JSON.stringify([...confirmedImages], null, 2)); } catch (_) {}
+}
+function confirmImage(cardId) {
+  confirmedImages.add(cardId);
+  saveConfirmedImages();
 }
 
 // ── Webhook Log Channels ──────────────────────────────────
@@ -852,6 +869,45 @@ function buildWorldBossComponents(state) {
     )
   );
   return rows;
+}
+
+// ── World Boss reward helper ───────────────────────────────
+async function distributeWorldBossRewards(boss, inventory, channel) {
+  const parts       = boss.participants ?? {};
+  const totalDamage = Object.values(parts).reduce((s, p) => s + (p.damage ?? 0), 0);
+
+  const totalYen   = 5_000_000;
+  const totalStars = 50_000;
+
+  const lines  = [];
+  const sorted = Object.entries(parts).sort((a, b) => (b[1].damage ?? 0) - (a[1].damage ?? 0));
+
+  for (const [uid, pdata] of sorted) {
+    const pct   = totalDamage > 0 ? (pdata.damage / totalDamage) : 0;
+    const yen   = Math.round(totalYen   * pct);
+    const stars = Math.round(totalStars * pct);
+    if (yen > 0)   inv.addYen(inventory,   uid, yen);
+    if (stars > 0) inv.addStars(inventory, uid, stars);
+    const pctStr = (pct * 100).toFixed(1);
+    lines.push(`<@${uid}> — **${(pdata.damage ?? 0).toLocaleString()}** dmg (${pctStr}%) → ¥${yen.toLocaleString()} / ⭐${stars.toLocaleString()}`);
+  }
+
+  inv.clearWorldBoss(inventory);
+  await inv.saveInventory(inventory);
+
+  const hpPct = boss.maxHp > 0 ? ((1 - boss.currentHp / boss.maxHp) * 100).toFixed(1) : '100';
+  const embed = new EmbedBuilder()
+    .setColor(0xFFD700)
+    .setTitle('🏆 World Boss Defeated — Rewards Distributed!')
+    .setDescription(
+      `**${boss.bossName}** has been vanquished!\n` +
+      `HP reduced by **${hpPct}%** — Total damage dealt: **${totalDamage.toLocaleString()}**\n\n` +
+      (lines.length ? lines.join('\n') : '*No participants dealt damage.*')
+    );
+
+  if (channel) {
+    await channel.send({ embeds: [embed] }).catch(() => {});
+  }
 }
 
 // ── Raid helpers ──────────────────────────────────────────
@@ -1725,12 +1781,23 @@ function buildAllCardsPage(authorId, allCards, page, filter, expiry) {
 
 // ── Image review (admin) ──────────────────────────────────
 function getImageReviewCards(filter) {
-  const allCards = getSortedAllCards();
+  const allCards = getSortedAllCards().filter(c => !confirmedImages.has(c.id));
   if (!filter || filter === '_') return allCards;
   if (filter === 'missing') {
     const ec = emojiCache.load();
     return allCards.filter(c => !ec[c.id]);
   }
+  const f = filter.toLowerCase();
+  return allCards.filter(c =>
+    c.name.toLowerCase().includes(f) ||
+    c.series.toLowerCase().includes(f) ||
+    c.id.toLowerCase().includes(f)
+  );
+}
+
+function getConfirmedCards(filter) {
+  const allCards = getSortedAllCards().filter(c => confirmedImages.has(c.id));
+  if (!filter || filter === '_') return allCards;
   const f = filter.toLowerCase();
   return allCards.filter(c =>
     c.name.toLowerCase().includes(f) ||
@@ -2745,9 +2812,18 @@ client.on('interactionCreate', async (interaction) => {
     if (!boss.alive) {
       activeBattles.delete(battleId);
       state.wbCurrentHp = 0;
-      log += `\n\n💀 **${boss.name}** has been defeated! Admins will distribute the rewards shortly.`;
+      log += `\n\n💀 **${boss.name}** has been defeated! Distributing rewards now...`;
       const embed = buildWorldBossEmbed(state, log);
-      return interaction.update({ embeds: [embed], components: [] });
+      await interaction.update({ embeds: [embed], components: [] });
+
+      // Auto-distribute rewards
+      const wbInventory = await inv.loadInventory();
+      const wbBoss = inv.getWorldBoss(wbInventory);
+      if (wbBoss) {
+        const rewardChannel = client.channels.cache.get(wbBoss.channelId) ?? interaction.channel;
+        await distributeWorldBossRewards(wbBoss, wbInventory, rewardChannel);
+      }
+      return;
     }
 
     // Boss retaliates against the first alive team card
@@ -3220,6 +3296,16 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     if (action === 'next' || action === 'skip') {
+      if (action === 'next') {
+        const card = filteredCards[index];
+        confirmImage(card.id);
+        const remaining = filteredCards.filter(c => !confirmedImages.has(c.id));
+        if (remaining.length === 0) {
+          return interaction.update({ content: '🎉 All cards reviewed and confirmed!', components: [], embeds: [] });
+        }
+        const { embed, components } = buildImageReviewEmbed(authorId, remaining, 0, filter, expiry);
+        return interaction.update({ embeds: [embed], components });
+      }
       const nextIndex = index + 1;
       if (nextIndex >= filteredCards.length) {
         return interaction.update({ content: '🎉 All cards reviewed!', components: [], embeds: [] });
@@ -3397,8 +3483,59 @@ const pendingDuoInvites = new Map();
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
-  const prefix = config.PREFIX.toLowerCase();
-  if (!message.content.toLowerCase().startsWith(prefix)) return;
+  const prefix   = config.PREFIX.toLowerCase();
+  const isCmd    = message.content.toLowerCase().startsWith(prefix);
+
+  // ── World Boss auto-spawn: 0.5% chance per message ──────
+  if (message.guild && Math.random() < 0.005) {
+    try {
+      const wbInv = await inv.loadInventory();
+      const gs    = inv.getGuildSettings(wbInv, message.guild.id);
+      if (!gs.disallowedCommands?.includes('worldboss') && !inv.getWorldBoss(wbInv)) {
+        const bossPool = CARDS.filter(c => c.rarity === 'MD' && !c.weaponCard && !c.supportCard && !c.dittoCard);
+        if (bossPool.length) {
+          const bossCard  = bossPool[Math.floor(Math.random() * bossPool.length)];
+          const bossStats = getCardStats(bossCard, 100);
+          const bossHp    = Math.round(bossStats.hp  * 30);
+          const bossDmg   = Math.round(bossStats.dmg * 30);
+          const bossData  = {
+            bossCardId:   bossCard.id,
+            bossName:     bossCard.name,
+            bossSeries:   bossCard.series,
+            bossRarity:   bossCard.rarity,
+            maxHp:        bossHp,
+            currentHp:    bossHp,
+            bossDmg,
+            channelId:    message.channelId,
+            spawnedAt:    Date.now(),
+            participants: {},
+          };
+          inv.setWorldBoss(wbInv, bossData);
+          await inv.saveInventory(wbInv);
+
+          const bossEmoji = emojiCache.getEmoji(bossCard.id) ?? '';
+          const bossMeta  = rarityMeta(bossCard.rarity);
+          const embed = new EmbedBuilder()
+            .setColor(0xFF0000)
+            .setTitle('🌍 A WORLD BOSS HAS APPEARED!')
+            .setDescription(
+              `${bossEmoji} **${bossCard.name}** from *${bossCard.series}* ${bossMeta.emoji}\n\n` +
+              `❤️ **HP:** ${bossHp.toLocaleString()}\n` +
+              `⚔️ **DMG:** ${bossDmg.toLocaleString()}\n\n` +
+              `**The more damage you deal, the bigger your share of the rewards!**\n` +
+              `Use \`ZP worldboss attack\` to attack!\n\n` +
+              `> Rewards will be distributed automatically when the boss is defeated.`
+            )
+            .setFooter({ text: 'World Boss spawned randomly in this channel' });
+          await message.channel.send({ embeds: [embed] }).catch(() => {});
+        }
+      }
+    } catch (e) {
+      console.error('[auto-spawn worldboss]', e);
+    }
+  }
+
+  if (!isCmd) return;
 
   const args    = message.content.slice(config.PREFIX.length).trim().split(/\s+/);
   let command   = args.shift()?.toLowerCase();
@@ -6331,7 +6468,7 @@ client.on('messageCreate', async (message) => {
   }
 
   // ── Bot Admin commands ─────────────────────────────────────
-  if (!isAdmin(userId) && command !== 'worldboss' && command !== 'wb') return;
+  if (!isAdmin(userId) && command !== 'worldboss' && command !== 'wb' && command !== 'disallow' && command !== 'allow') return;
 
   // ── setrarity ─────────────────────────────────────────────
   if (command === 'setrarity') {
@@ -6406,10 +6543,23 @@ client.on('messageCreate', async (message) => {
     const filter = args.join(' ').trim() || '';
     const filteredCards = getImageReviewCards(filter);
     if (filteredCards.length === 0) {
-      return message.reply(`No cards found${filter ? ` matching "${filter}"` : ''}.`);
+      return message.reply(`No cards found${filter ? ` matching "${filter}"` : ''}. (All matching cards may already be confirmed — use \`ZP imgverified\` to review them.)`);
     }
     const expiry = Date.now() + 30 * 60_000;
     const { embed, components } = buildImageReviewEmbed(userId, filteredCards, 0, filter || '_', expiry);
+    return message.reply({ embeds: [embed], components });
+  }
+
+  // ── imgverified (ivd) — review already-confirmed cards ───
+  if (command === 'imgverified' || command === 'ivd') {
+    if (!isAdmin(userId)) return;
+    const filter = args.join(' ').trim() || '';
+    const confirmedCards = getConfirmedCards(filter);
+    if (confirmedCards.length === 0) {
+      return message.reply(`No confirmed cards found${filter ? ` matching "${filter}"` : ''}.`);
+    }
+    const expiry = Date.now() + 30 * 60_000;
+    const { embed, components } = buildImageReviewEmbed(userId, confirmedCards, 0, filter || '_', expiry);
     return message.reply({ embeds: [embed], components });
   }
 
@@ -6719,6 +6869,26 @@ client.on('messageCreate', async (message) => {
     return message.reply(`✅ Account \`${targetId}\` has been **unbanned** and can use the bot again.`);
   }
 
+  // ── disallow / allow (server admin) ──────────────────────
+  if (command === 'disallow' || command === 'allow') {
+    const isServerAdmin = message.member?.permissions.has(PermissionsBitField.Flags.ManageGuild) || isAdmin(userId);
+    if (!isServerAdmin) return message.reply('You need the **Manage Server** permission to use this command.');
+    if (!guildId) return message.reply('This command can only be used in a server.');
+    const sub = args[0]?.toLowerCase();
+    const isWb = sub === 'worldboss' || sub === 'wb';
+    if (!isWb) return message.reply('Usage: `ZP disallow worldboss` / `ZP allow worldboss`');
+    const inventory = await inv.loadInventory();
+    if (command === 'disallow') {
+      inv.disallowCommand(inventory, guildId, 'worldboss');
+      await inv.saveInventory(inventory);
+      return message.reply('✅ World Boss auto-spawning is now **disabled** in this server.');
+    } else {
+      inv.allowCommand(inventory, guildId, 'worldboss');
+      await inv.saveInventory(inventory);
+      return message.reply('✅ World Boss auto-spawning is now **enabled** in this server.');
+    }
+  }
+
   // ── worldboss ─────────────────────────────────────────────
   // ZP worldboss              — view current world boss status
   // ZP worldboss spawn [channelId]  — (admin) spawn a world boss
@@ -6788,41 +6958,9 @@ client.on('messageCreate', async (message) => {
       const inventory = await inv.loadInventory();
       const boss = inv.getWorldBoss(inventory);
       if (!boss) return message.reply('No World Boss is currently active.');
-
-      const parts = boss.participants ?? {};
-      const totalDamage = Object.values(parts).reduce((s, p) => s + (p.damage ?? 0), 0);
-
-      // Reward pool
-      const totalYen   = 5_000_000;
-      const totalStars = 50_000;
-
-      const lines = [];
-      const sorted = Object.entries(parts).sort((a, b) => (b[1].damage ?? 0) - (a[1].damage ?? 0));
-
-      for (const [uid, pdata] of sorted) {
-        const pct   = totalDamage > 0 ? (pdata.damage / totalDamage) : 0;
-        const yen   = Math.round(totalYen   * pct);
-        const stars = Math.round(totalStars * pct);
-        if (yen > 0)   inv.addYen(inventory,   uid, yen);
-        if (stars > 0) inv.addStars(inventory, uid, stars);
-        const pctStr = (pct * 100).toFixed(1);
-        lines.push(`<@${uid}> — **${pdata.damage?.toLocaleString() ?? 0}** dmg (${pctStr}%) → ¥${yen.toLocaleString()} / ⭐${stars.toLocaleString()}`);
-      }
-
-      inv.clearWorldBoss(inventory);
-      await inv.saveInventory(inventory);
-
-      const hpLeft = boss.currentHp;
-      const hpPct  = boss.maxHp > 0 ? ((1 - hpLeft / boss.maxHp) * 100).toFixed(1) : '100';
-      const embed = new EmbedBuilder()
-        .setColor(0xFFD700)
-        .setTitle('🏆 World Boss Ended — Rewards Distributed!')
-        .setDescription(
-          `**${boss.bossName}** has been vanquished!\n` +
-          `HP reduced by **${hpPct}%** — Total damage dealt: **${totalDamage.toLocaleString()}**\n\n` +
-          (lines.length ? lines.join('\n') : '*No participants dealt damage.*')
-        );
-      return message.reply({ embeds: [embed] });
+      await message.reply('✅ Distributing rewards now...');
+      await distributeWorldBossRewards(boss, inventory, message.channel);
+      return;
     }
 
     // ── attack ────────────────────────────────────────────

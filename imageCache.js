@@ -15,7 +15,24 @@
 const fs   = require('fs');
 const path = require('path');
 
-const CACHE_FILE = path.join(__dirname, 'data', 'image_cache.json');
+const CACHE_FILE    = path.join(__dirname, 'data', 'image_cache.json');
+const OVERRIDE_FILE = path.join(__dirname, 'data', 'image_overrides.json');
+
+let manualOverrides = {};
+
+function loadOverrides() {
+  try {
+    if (fs.existsSync(OVERRIDE_FILE)) {
+      manualOverrides = JSON.parse(fs.readFileSync(OVERRIDE_FILE, 'utf8'));
+    }
+  } catch (_) {}
+}
+
+function saveOverrides() {
+  try {
+    fs.writeFileSync(OVERRIDE_FILE, JSON.stringify(manualOverrides, null, 2));
+  } catch (_) {}
+}
 
 // ── Seed: confirmed working image URLs ───────────────────────
 const SEED = {
@@ -562,12 +579,12 @@ function loadCache() {
   try {
     if (fs.existsSync(CACHE_FILE)) {
       const saved = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
-      // SEED always wins — it contains verified official URLs
-      cache = { ...saved, ...SEED };
+      // SEED wins over auto-fetched; manualOverrides win over everything
+      cache = { ...saved, ...SEED, ...manualOverrides };
     } else {
-      cache = { ...SEED };
+      cache = { ...SEED, ...manualOverrides };
     }
-    // Persist SEED entries to disk immediately so restarts don't start from scratch
+    // Persist entries to disk immediately so restarts don't start from scratch
     saveCache();
   } catch (_) {}
 }
@@ -706,7 +723,9 @@ async function fetchJikanUrl(cardId, cardName) {
  * Saves to disk immediately.
  */
 function setImage(cardId, url) {
+  manualOverrides[cardId] = url;
   cache[cardId] = url;
+  saveOverrides();
   saveCache();
 }
 
@@ -744,6 +763,7 @@ async function refreshMissing() {
   console.log(`🖼️  Image cache: fetched ${fetched}/${missing.length} images. Cache saved.`);
 }
 
+loadOverrides();
 loadCache();
 
 module.exports = { getImage, setImage, refreshMissing, fetchFallbackImage, fetchFreshUrl, fetchJikanUrl };
