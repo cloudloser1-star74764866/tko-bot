@@ -490,6 +490,8 @@ function getSlotPlatings(slot) {
  * A card can have multiple platings but each tier can only be equipped once per card.
  * Returns 'equipped', 'not_on_team', 'no_plating', or 'already_equipped'.
  */
+const MAX_PLATINGS_PER_CARD = 2;
+
 function equipPlatingToTeam(inventory, userId, cardId, platingTier) {
   ensureUser(inventory, userId);
   const team = inventory.users[userId].team;
@@ -497,6 +499,7 @@ function equipPlatingToTeam(inventory, userId, cardId, platingTier) {
   if (!slot) return 'not_on_team';
   const current = getSlotPlatings(slot);
   if (current.includes(platingTier)) return 'already_equipped';
+  if (current.length >= MAX_PLATINGS_PER_CARD) return 'max_platings';
   const p = inventory.users[userId].platings;
   if ((p[platingTier] ?? 0) < 1) return 'no_plating';
   p[platingTier]--;
@@ -914,6 +917,41 @@ function allowCommand(inventory, guildId, cmd) {
   g.disallowedCommands = g.disallowedCommands.filter(c => c !== cmd);
 }
 
+// ── World Boss ────────────────────────────────────────────
+// World boss state is stored globally in inventory.worldBoss
+// Structure:
+// {
+//   bossCardId: string,
+//   bossName: string,
+//   maxHp: number,
+//   currentHp: number,
+//   channelId: string,
+//   spawnedAt: number (ms timestamp),
+//   participants: { [userId]: { username, damage } }
+// }
+
+function getWorldBoss(inventory) {
+  return inventory.worldBoss ?? null;
+}
+
+function setWorldBoss(inventory, bossData) {
+  inventory.worldBoss = bossData;
+}
+
+function clearWorldBoss(inventory) {
+  delete inventory.worldBoss;
+}
+
+function recordWorldBossDamage(inventory, userId, username, damage) {
+  if (!inventory.worldBoss) return;
+  if (!inventory.worldBoss.participants) inventory.worldBoss.participants = {};
+  const p = inventory.worldBoss.participants;
+  if (!p[userId]) p[userId] = { username, damage: 0 };
+  p[userId].username = username;
+  p[userId].damage = (p[userId].damage ?? 0) + damage;
+  inventory.worldBoss.currentHp = Math.max(0, inventory.worldBoss.currentHp - damage);
+}
+
 module.exports = {
   loadInventory, saveInventory,
   loadPullCharges, savePullCharges,
@@ -946,4 +984,6 @@ module.exports = {
   disallowCommand, allowCommand,
   createRedeemCode, updateRedeemCode, deleteRedeemCode, getRedeemCodes,
   findRedeemCodeByCode, hasRedeemedCode, markCodeRedeemed,
+  MAX_PLATINGS_PER_CARD,
+  getWorldBoss, setWorldBoss, clearWorldBoss, recordWorldBossDamage,
 };

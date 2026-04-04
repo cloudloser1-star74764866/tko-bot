@@ -264,8 +264,334 @@ const CARDS = [
   // ── Pokémon ───────────────────────────────────────────────
   { id: 'ditto_lt', name: 'Ditto', series: 'Pokémon', rarity: 'LT', desc: 'The Transform Pokémon. Rearranges its cell structure to become an exact copy of whatever it faces — then becomes even stronger than the original.', dittoCard: true },
 
+  // ── Additional Rare (R) ───────────────────────────────────
+  // Naruto
+  { id: 'rock_lee',        name: 'Rock Lee',                series: 'Naruto',                            rarity: 'R',  desc: 'A ninja with no talent for ninjutsu who mastered taijutsu through sheer effort.' },
+  { id: 'hinata',          name: 'Hinata Hyuga',            series: 'Naruto',                            rarity: 'R',  desc: 'A gentle-fisted kunoichi who found strength through love and determination.' },
+  { id: 'kakashi',         name: 'Kakashi Hatake',          series: 'Naruto',                            rarity: 'R',  desc: 'The Copy Ninja — behind that mask lies a thousand copied techniques.' },
+  { id: 'shikamaru',       name: 'Shikamaru Nara',          series: 'Naruto',                            rarity: 'R',  desc: 'A lazy genius with an IQ over 200 and the Shadow Possession jutsu.' },
+  { id: 'gaara',           name: 'Gaara',                   series: 'Naruto',                            rarity: 'R',  desc: 'Once a monster of sand, now the Kazekage — redeemed through Naruto\'s fists.' },
+  { id: 'neji',            name: 'Neji Hyuga',              series: 'Naruto',                            rarity: 'R',  desc: 'A genius of the Hyuga clan who believed fate was absolute — until he didn\'t.' },
+  { id: 'kiba',            name: 'Kiba Inuzuka',            series: 'Naruto',                            rarity: 'R',  desc: 'A wild ninja who fights alongside his partner Akamaru as one force.' },
+  { id: 'tenten',          name: 'Tenten',                  series: 'Naruto',                            rarity: 'R',  desc: 'A weapons specialist who can pull any tool from her scroll in an instant.' },
+  { id: 'ino',             name: 'Ino Yamanaka',            series: 'Naruto',                            rarity: 'R',  desc: 'A kunoichi who controls minds with her clan\'s psychic jutsu.' },
+  // Dragon Ball
+  { id: 'krillin',         name: 'Krillin',                 series: 'Dragon Ball Z',                     rarity: 'R',  desc: 'Humanity\'s strongest fighter and Goku\'s best friend — Destructo Disc never misses.' },
+  { id: 'android18',       name: 'Android 18',              series: 'Dragon Ball Z',                     rarity: 'R',  desc: 'A cyborg whose power exceeds any human — and she knows it.' },
+  { id: 'gohan_dbz',       name: 'Gohan',                   series: 'Dragon Ball Z',                     rarity: 'R',  desc: 'A half-Saiyan prodigy whose hidden power once surpassed his father.' },
+  { id: 'trunks_dbz',      name: 'Trunks',                  series: 'Dragon Ball Z',                     rarity: 'R',  desc: 'A time-traveling Saiyan prince carrying the weight of a ruined future.' },
+  { id: 'piccolo_dbz',     name: 'Piccolo',                 series: 'Dragon Ball Z',                     rarity: 'R',  desc: 'Namekian warrior, mentor, and proud father figure to Gohan.' },
+  // One Piece
+  { id: 'franky',          name: 'Franky',                  series: 'One Piece',                         rarity: 'R',  desc: 'A cyborg shipwright who built the Thousand Sunny. SUPER!' },
+  { id: 'brook',           name: 'Brook',                   series: 'One Piece',                         rarity: 'R',  desc: 'A skeleton musician sailing the seas. Yohohoho — may I see your panties?' },
+  { id: 'jinbe',           name: 'Jinbe',                   series: 'One Piece',                         rarity: 'R',  desc: 'Knight of the Sea and Fish-Man Karate master — the Straw Hats\' helmsman.' },
+  { id: 'vivi',            name: 'Nefertari Vivi',          series: 'One Piece',                         rarity: 'R',  desc: 'A princess who sailed with pirates to save her kingdom.' },
+  // Bleach
+  { id: 'toshiro',         name: 'Toshiro Hitsugaya',       series: 'Bleach',                            rarity: 'R',  desc: 'The youngest captain in Soul Society history — ice dragon in the palm of his hand.' },
+  { id: 'rangiku',         name: 'Rangiku Matsumoto',       series: 'Bleach',                            rarity: 'R',  desc: 'Ash-type Zanpakuto and unshakeable loyalty beneath a carefree facade.' },
+  { id: 'shunsui',         name: 'Shunsui Kyoraku',         series: 'Bleach',                            rarity: 'R',  desc: 'The most laid-back captain — whose games always end in death.' },
+  { id: 'kenpachi',        name: 'Kenpachi Zaraki',         series: 'Bleach',                            rarity: 'R',  desc: 'The Captain who never learned his Zanpakuto\'s name — pure bloodlust made flesh.' },
+  { id: 'shinji_bl',       name: 'Shinji Hirako',           series: 'Bleach',                            rarity: 'R',  desc: 'A Visored whose inverted Shikai turns the whole world upside down.' },
+  // My Hero Academia
+  { id: 'todoroki',        name: 'Shoto Todoroki',          series: 'My Hero Academia',                  rarity: 'R',  desc: 'A hero who wields both ice and flame — split by a painful past.' },
+  { id: 'uraraka',         name: 'Ochaco Uraraka',          series: 'My Hero Academia',                  rarity: 'R',  desc: 'Zero Gravity quirk — she makes things weightless with a touch.' },
+  { id: 'kirishima',       name: 'Eijiro Kirishima',        series: 'My Hero Academia',                  rarity: 'R',  desc: 'Hardening quirk — an unbreakable hero who lives by the code of manliness.' },
+  { id: 'tokoyami',        name: 'Fumikage Tokoyami',       series: 'My Hero Academia',                  rarity: 'R',  desc: 'Dark Shadow — a bird-headed hero whose quirk grows stronger in darkness.' },
+  { id: 'yaoyorozu',       name: 'Momo Yaoyorozu',          series: 'My Hero Academia',                  rarity: 'R',  desc: 'She can create anything from her body using Creation — a tactical genius.' },
+  { id: 'tenya_iida',      name: 'Tenya Iida',              series: 'My Hero Academia',                  rarity: 'R',  desc: 'Engine quirk — class president with jet boosters in his calves.' },
+  // Demon Slayer
+  { id: 'shinobu',         name: 'Shinobu Kocho',           series: 'Demon Slayer',                      rarity: 'R',  desc: 'The Insect Hashira — a blade too thin to decapitate, so she poisons instead.' },
+  { id: 'kanao',           name: 'Kanao Tsuyuri',           series: 'Demon Slayer',                      rarity: 'R',  desc: 'A girl who once left every choice to a coin — now she chooses for herself.' },
+  { id: 'genya',           name: 'Genya Shinazugawa',       series: 'Demon Slayer',                      rarity: 'R',  desc: 'No breath form — he eats demons to steal their regeneration and power.' },
+  // Jujutsu Kaisen
+  { id: 'megumi',          name: 'Megumi Fushiguro',        series: 'Jujutsu Kaisen',                    rarity: 'R',  desc: 'Ten Shadows — he summons divine shikigami through a shaded domain.' },
+  { id: 'maki',            name: 'Maki Zenin',              series: 'Jujutsu Kaisen',                    rarity: 'R',  desc: 'Born without cursed energy — she makes up for it with weapons and raw fury.' },
+  { id: 'inumaki',         name: 'Toge Inumaki',            series: 'Jujutsu Kaisen',                    rarity: 'R',  desc: 'Cursed Speech — his words carry power that forces reality to obey.' },
+  // Attack on Titan
+  { id: 'mikasa',          name: 'Mikasa Ackerman',         series: 'Attack on Titan',                   rarity: 'R',  desc: 'The greatest soldier of her generation — and she fights for one person.' },
+  { id: 'armin',           name: 'Armin Arlert',            series: 'Attack on Titan',                   rarity: 'R',  desc: 'A strategic genius who inherited the Colossal Titan — his mind wins wars.' },
+  { id: 'hange',           name: 'Hange Zoe',               series: 'Attack on Titan',                   rarity: 'R',  desc: 'Titan-obsessed scientist and Survey Corps commander who dove into danger.' },
+  { id: 'jean',            name: 'Jean Kirstein',           series: 'Attack on Titan',                   rarity: 'R',  desc: 'The realist who wanted a safe life — became a soldier worth fighting beside.' },
+  // Hunter x Hunter
+  { id: 'leorio',          name: 'Leorio Paradinight',      series: 'Hunter x Hunter',                   rarity: 'R',  desc: 'A loudmouth who wants to be a doctor — and punched a god-king on live TV.' },
+  // Fairy Tail
+  { id: 'wendy',           name: 'Wendy Marvell',           series: 'Fairy Tail',                        rarity: 'R',  desc: 'Sky Dragon Slayer — gentle healer who can also level cities with wind.' },
+  { id: 'cana',            name: 'Cana Alberona',           series: 'Fairy Tail',                        rarity: 'R',  desc: 'Card magic and an iron liver — one of Fairy Tail\'s oldest members.' },
+  { id: 'mirajane',        name: 'Mirajane Strauss',        series: 'Fairy Tail',                        rarity: 'R',  desc: 'The sweetest barmaid who becomes a demon when the bar fight starts.' },
+  // FMA
+  { id: 'riza_hawkeye',    name: 'Riza Hawkeye',            series: 'Fullmetal Alchemist: Brotherhood',  rarity: 'R',  desc: 'Mustang\'s loyal adjutant — a sharpshooter who would die for her colonel.' },
+  { id: 'maes_hughes',     name: 'Maes Hughes',             series: 'Fullmetal Alchemist: Brotherhood',  rarity: 'R',  desc: 'A family man who got too close to the truth — beloved by all who knew him.' },
+  // Seven Deadly Sins
+  { id: 'diane_sins',      name: 'Diane',                   series: 'The Seven Deadly Sins',             rarity: 'R',  desc: 'Giant of the Sins — her earth magic and pure heart shake the battlefield.' },
+  { id: 'king_sins',       name: 'King',                    series: 'The Seven Deadly Sins',             rarity: 'R',  desc: 'The Fairy King whose Sacred Treasure Chastiefol protects the forest.' },
+  { id: 'gowther_sins',    name: 'Gowther',                 series: 'The Seven Deadly Sins',             rarity: 'R',  desc: 'A doll who can rewrite memories — the Goat\'s Sin of Lust with no heart.' },
+  { id: 'merlin_sins',     name: 'Merlin',                  series: 'The Seven Deadly Sins',             rarity: 'R',  desc: 'The greatest mage in Britannia — her true power was sealed by the gods.' },
+  // Black Clover
+  { id: 'charmy',          name: 'Charmy Pappitson',        series: 'Black Clover',                      rarity: 'R',  desc: 'Cotton magic and an infinite appetite — her wolf spirit devours spells whole.' },
+  // Overlord
+  { id: 'shalltear',       name: 'Shalltear Bloodfallen',   series: 'Overlord',                          rarity: 'R',  desc: 'A Floor Guardian vampire — one of Nazarick\'s most terrifying and loyal servants.' },
+  { id: 'cocytus_ov',      name: 'Cocytus',                 series: 'Overlord',                          rarity: 'R',  desc: 'Insectoid Floor Guardian — a warrior of absolute honor and devastating ice power.' },
+  { id: 'demiurge_ov',     name: 'Demiurge',                series: 'Overlord',                          rarity: 'R',  desc: 'Nazarick\'s most intelligent Floor Guardian — every scheme is fourteen steps ahead.' },
+  { id: 'mare_ov',         name: 'Mare Bello Fiore',        series: 'Overlord',                          rarity: 'R',  desc: 'A shy dark elf Floor Guardian who can collapse the earth with earth magic.' },
+  // Re:Zero
+  { id: 'beatrice_rzr',    name: 'Beatrice',                series: 'Re:Zero',                           rarity: 'R',  desc: 'A spirit who waited centuries in a library — now she fights for Subaru.' },
+  // Chainsaw Man
+  { id: 'beam_csm',        name: 'Beam',                    series: 'Chainsaw Man',                      rarity: 'R',  desc: 'Shark Fiend — a loyal and enthusiastic devil who adores Chainsaw Man.' },
+  // Vinland Saga
+  { id: 'canute_vs',       name: 'Canute',                  series: 'Vinland Saga',                      rarity: 'R',  desc: 'A prince who became a king by learning what it costs to protect people.' },
+  // Spy x Family
+  { id: 'damian_sxf',      name: 'Damian Desmond',          series: 'Spy x Family',                      rarity: 'R',  desc: 'A proud student at Eden who pretends to hate Anya — and fools no one.' },
+  // Gintama
+  { id: 'shinpachi_gin',   name: 'Shinpachi Shimura',       series: 'Gintama',                           rarity: 'R',  desc: 'The straight man of Odd Jobs Gin — his retorts are his greatest weapon.' },
+  { id: 'kagura_gin',      name: 'Kagura',                  series: 'Gintama',                           rarity: 'R',  desc: 'A Yato alien with superhuman strength who holds an umbrella and eats constantly.' },
+  // Yu Yu Hakusho
+  { id: 'kuwabara',        name: 'Kazuma Kuwabara',         series: 'Yu Yu Hakusho',                     rarity: 'R',  desc: 'The hothead with the Spirit Sword — his loyalty never wavers.' },
+  // One Punch Man
+  { id: 'sonic_opm',       name: 'Speed-o\'-Sound Sonic',   series: 'One Punch Man',                     rarity: 'R',  desc: 'A ninja assassin obsessed with defeating Saitama — faster than the eye can follow.' },
+  // Pokémon
+  { id: 'charizard',       name: 'Charizard',               series: 'Pokémon',                           rarity: 'R',  desc: 'The Flame Pokémon — a dragon in all but typing, blazing with fiery pride.' },
+  { id: 'gengar',          name: 'Gengar',                  series: 'Pokémon',                           rarity: 'R',  desc: 'Shadow Pokémon — hides in darkness, steals warmth, and grins all the while.' },
+  { id: 'eevee',           name: 'Eevee',                   series: 'Pokémon',                           rarity: 'R',  desc: 'An Evolution Pokémon of infinite potential — which path will it choose?' },
+  // Haikyuu
+  { id: 'shoyo_hinata',    name: 'Shoyo Hinata',            series: 'Haikyuu!!',                         rarity: 'R',  desc: 'A short middle blocker whose jump reaches the sky — the Little Giant reborn.' },
+  { id: 'tobio_kageyama',  name: 'Tobio Kageyama',          series: 'Haikyuu!!',                         rarity: 'R',  desc: 'The King of the Court — a setter whose genius sets up the impossible.' },
+  // Dr. Stone
+  { id: 'senku',           name: 'Senku Ishigami',          series: 'Dr. Stone',                         rarity: 'R',  desc: 'Ten billion percent! A science genius who will rebuild civilization alone if he has to.' },
+  { id: 'kohaku_stone',    name: 'Kohaku',                  series: 'Dr. Stone',                         rarity: 'R',  desc: 'A warrior from the stone world — fierce, fast, and fiercely protective of her village.' },
+  // Solo Leveling
+  { id: 'jinwoo_r',        name: 'Sung Jinwoo',             series: 'Solo Leveling',                     rarity: 'R',  desc: 'Once the weakest hunter in Korea — now something far, far greater.' },
+  // God of High School
+  { id: 'han_daewi',       name: 'Han Daewi',               series: 'The God of High School',            rarity: 'R',  desc: 'A street fighter who entered the tournament to save a dying friend.' },
+  // Tower of God
+  { id: 'bam_tog',         name: 'Bam',                     series: 'Tower of God',                      rarity: 'R',  desc: 'A boy who climbed the Tower for the one who was his whole world.' },
+  { id: 'khun_aguero',     name: 'Khun Aguero Agnis',       series: 'Tower of God',                      rarity: 'R',  desc: 'A strategist whose ice spear and tactical genius open impossible paths.' },
+  // Mushoku Tensei
+  { id: 'rudeus',          name: 'Rudeus Greyrat',          series: 'Mushoku Tensei',                    rarity: 'R',  desc: 'A reborn prodigy mage — he got a second life and chose to live it fully.' },
+  { id: 'eris_mt',         name: 'Eris Boreas Greyrat',     series: 'Mushoku Tensei',                    rarity: 'R',  desc: 'A fierce noble who became a swordswoman of terrifying talent.' },
+  { id: 'sylphiette',      name: 'Sylphiette',              series: 'Mushoku Tensei',                    rarity: 'R',  desc: 'A half-elf mage with a gentle heart and magic power far beyond her age.' },
+  // Konosuba
+  { id: 'kazuma_ksb',      name: 'Kazuma Sato',             series: 'KonoSuba',                          rarity: 'R',  desc: 'An ordinary guy dragged to another world — whose luck is both blessing and curse.' },
+  { id: 'aqua_ksb',        name: 'Aqua',                    series: 'KonoSuba',                          rarity: 'R',  desc: 'A useless goddess with God Blow and maximum arrogance — surprisingly divine sometimes.' },
+  { id: 'megumin_ksb',     name: 'Megumin',                 series: 'KonoSuba',                          rarity: 'R',  desc: 'Explosion mage! One spell, one explosion, and then she collapses. Worth it.' },
+  // Shield Hero
+  { id: 'naofumi',         name: 'Naofumi Iwatani',         series: 'The Rising of the Shield Hero',     rarity: 'R',  desc: 'The Shield Hero — betrayed, hardened, and strong enough to carry everything.' },
+  { id: 'raphtalia',       name: 'Raphtalia',               series: 'The Rising of the Shield Hero',     rarity: 'R',  desc: 'A demi-human who became a swordwoman of legend beside her Shield Hero.' },
+  // Tensura
+  { id: 'shion_slime',     name: 'Shion',                   series: 'That Time I Got Reincarnated as a Slime', rarity: 'R', desc: 'Rimuru\'s fearsome secretary — her cooking is deadly but her sword is worse.' },
+  { id: 'shuna_slime',     name: 'Shuna',                   series: 'That Time I Got Reincarnated as a Slime', rarity: 'R', desc: 'An Ogre princess whose barrier magic and inner strength protect her nation.' },
+  // Danmachi
+  { id: 'bell_cranel',     name: 'Bell Cranel',             series: 'Is It Wrong to Try to Pick Up Girls in a Dungeon?', rarity: 'R', desc: 'A small-town boy whose Argonaut skill grows fastest when hope is all he has.' },
+  { id: 'aiz_wallenstein', name: 'Aiz Wallenstein',         series: 'Is It Wrong to Try to Pick Up Girls in a Dungeon?', rarity: 'R', desc: 'The Sword Princess — Level 6 adventurer whose Airiel wind cuts through floors.' },
+  // Frieren
+  { id: 'fern_frieren',    name: 'Fern',                    series: 'Frieren: Beyond Journey\'s End',     rarity: 'R',  desc: 'A mage who fires a thousand spells a minute — efficiency elevated to art.' },
+  // Neon Genesis Evangelion
+  { id: 'shinji_nge',      name: 'Shinji Ikari',            series: 'Neon Genesis Evangelion',           rarity: 'R',  desc: 'A reluctant pilot who climbs into the Eva when no one else can — and hates himself for it.' },
+  { id: 'rei_nge',         name: 'Rei Ayanami',             series: 'Neon Genesis Evangelion',           rarity: 'R',  desc: 'First Child — a quiet girl of mystery whose true nature is more than human.' },
+  { id: 'asuka_nge',       name: 'Asuka Langley Soryu',     series: 'Neon Genesis Evangelion',           rarity: 'R',  desc: 'Second Child — pride, pain, and Unit-02 painted brilliant red.' },
+  // Kakegurui
+  { id: 'yumeko',          name: 'Jabami Yumeko',           series: 'Kakegurui',                         rarity: 'R',  desc: 'A compulsive gambler who finds ecstasy in pure risk — she plays to feel alive.' },
+  // Assassination Classroom
+  { id: 'karma_akabane',   name: 'Karma Akabane',           series: 'Assassination Classroom',           rarity: 'R',  desc: 'The sharpest student in class 3-E — his intellect and cruelty are perfectly paired.' },
+  // Berserk
+  { id: 'griffith_berserk',name: 'Griffith',                series: 'Berserk',                           rarity: 'R',  desc: 'The White Falcon — a beautiful dreamer who sacrificed everything and everyone for it.' },
+
+  // ── Additional Epic (E) ───────────────────────────────────
+  // Naruto
+  { id: 'minato',          name: 'Minato Namikaze',         series: 'Naruto',                            rarity: 'E',  desc: 'The Yellow Flash — fastest ninja who ever lived, and Naruto\'s father.' },
+  { id: 'tsunade',         name: 'Tsunade',                 series: 'Naruto',                            rarity: 'E',  desc: 'Fifth Hokage — legendary medic with monstrous strength and Creation Rebirth.' },
+  { id: 'jiraiya',         name: 'Jiraiya',                 series: 'Naruto',                            rarity: 'E',  desc: 'The Toad Sage — a legend of Konoha who trained the boy who changed the world.' },
+  { id: 'orochimaru',      name: 'Orochimaru',              series: 'Naruto',                            rarity: 'E',  desc: 'A Sannin who discarded humanity in pursuit of immortality and all jutsu.' },
+  { id: 'pain_nbr',        name: 'Pain (Nagato)',           series: 'Naruto',                            rarity: 'E',  desc: 'Six Paths of Pain — Rinne Rebirth brought the world to its knees.' },
+  // Dragon Ball
+  { id: 'cell_dbz',        name: 'Cell',                    series: 'Dragon Ball Z',                     rarity: 'E',  desc: 'Perfect Cell — a bio-android who absorbed all of humanity\'s cruelty.' },
+  { id: 'frieza_dbz',      name: 'Frieza',                  series: 'Dragon Ball Z',                     rarity: 'E',  desc: 'Emperor of the Universe — his power level sent Goku Super Saiyan for the first time.' },
+  { id: 'broly_dbz',       name: 'Broly',                   series: 'Dragon Ball Super',                 rarity: 'E',  desc: 'The Legendary Super Saiyan — a gentle giant turned unstoppable force of nature.' },
+  { id: 'vegito',          name: 'Vegito',                  series: 'Dragon Ball Z',                     rarity: 'E',  desc: 'The fusion of Goku and Vegeta — a warrior who combines their best and worst.' },
+  // One Piece
+  { id: 'doflamingo',      name: 'Donquixote Doflamingo',   series: 'One Piece',                         rarity: 'E',  desc: 'The Heavenly Demon — a Warlord who pulls strings like a puppeteer of chaos.' },
+  { id: 'katakuri',        name: 'Charlotte Katakuri',      series: 'One Piece',                         rarity: 'E',  desc: 'Big Mom\'s strongest son — a future-seer whose mochi surpasses rubber.' },
+  { id: 'boa_hancock',     name: 'Boa Hancock',             series: 'One Piece',                         rarity: 'E',  desc: 'The Pirate Empress — her love-love beam turns hearts to stone, literally.' },
+  // Bleach
+  { id: 'unohana',         name: 'Retsu Unohana',           series: 'Bleach',                            rarity: 'E',  desc: 'The first Kenpachi — her healing and combat are equally terrifying.' },
+  { id: 'mayuri_bl',       name: 'Mayuri Kurotsuchi',       series: 'Bleach',                            rarity: 'E',  desc: 'Captain of the 12th Division — a mad scientist who always has a drug ready.' },
+  { id: 'kisuke',          name: 'Kisuke Urahara',          series: 'Bleach',                            rarity: 'E',  desc: 'Former Captain, shopkeeper, genius — the man who prepared every possible outcome.' },
+  // My Hero Academia
+  { id: 'hawks_mha',       name: 'Hawks',                   series: 'My Hero Academia',                  rarity: 'E',  desc: 'The Wing Hero — fastest Pro Hero, with feathers sharp enough to end a battle.' },
+  { id: 'endeavor_mha',    name: 'Endeavor',                series: 'My Hero Academia',                  rarity: 'E',  desc: 'Flame Pillar — the No. 1 hero whose obsession forged both a career and family pain.' },
+  { id: 'twice_mha',       name: 'Twice',                   series: 'My Hero Academia',                  rarity: 'E',  desc: 'Double — a man who can duplicate anything, including an army of himself.' },
+  { id: 'toga_mha',        name: 'Toga Himiko',             series: 'My Hero Academia',                  rarity: 'E',  desc: 'Transform — she drinks blood to become anyone, fighting for the right to love.' },
+  // Demon Slayer
+  { id: 'gyomei',          name: 'Gyomei Himejima',         series: 'Demon Slayer',                      rarity: 'E',  desc: 'Stone Hashira — the strongest Hashira, an immovable giant who weeps in battle.' },
+  { id: 'muichiro',        name: 'Muichiro Tokito',         series: 'Demon Slayer',                      rarity: 'E',  desc: 'Mist Hashira — two months into training, already a master of seventh form.' },
+  { id: 'sanemi',          name: 'Sanemi Shinazugawa',      series: 'Demon Slayer',                      rarity: 'E',  desc: 'Wind Hashira — his rare blood type can intoxicate demons mid-battle.' },
+  { id: 'mitsuri',         name: 'Mitsuri Kanroji',         series: 'Demon Slayer',                      rarity: 'E',  desc: 'Love Hashira — her flexible sword and unique muscles hide a terrifying force.' },
+  // Jujutsu Kaisen
+  { id: 'nanami',          name: 'Kento Nanami',            series: 'Jujutsu Kaisen',                    rarity: 'E',  desc: 'A salaryman who became a sorcerer — his Ratio technique guarantees the weak point.' },
+  { id: 'choso',           name: 'Choso',                   series: 'Jujutsu Kaisen',                    rarity: 'E',  desc: 'Oldest of the Death Paintings — his blood manipulation is precise and lethal.' },
+  { id: 'mahito',          name: 'Mahito',                  series: 'Jujutsu Kaisen',                    rarity: 'E',  desc: 'Idle Transfiguration — a Cursed Spirit who reshapes souls like clay.' },
+  // Attack on Titan
+  { id: 'reiner',          name: 'Reiner Braun',            series: 'Attack on Titan',                   rarity: 'E',  desc: 'The Armored Titan — a fractured warrior who carries two identities in one body.' },
+  { id: 'annie',           name: 'Annie Leonhart',          series: 'Attack on Titan',                   rarity: 'E',  desc: 'Female Titan — a combatant of crystalline resolve who encased herself to survive.' },
+  { id: 'zeke',            name: 'Zeke Yeager',             series: 'Attack on Titan',                   rarity: 'E',  desc: 'Beast Titan — Eldian royalty with a throwing arm that hurls boulders like baseballs.' },
+  { id: 'pieck',           name: 'Pieck Finger',            series: 'Attack on Titan',                   rarity: 'E',  desc: 'Cart Titan — a low-to-the-ground titan of endless endurance and sharp strategy.' },
+  // Hunter x Hunter
+  { id: 'chrollo',         name: 'Chrollo Lucilfer',        series: 'Hunter x Hunter',                   rarity: 'E',  desc: 'Leader of the Phantom Troupe — he steals Nen abilities and arranges them like art.' },
+  { id: 'illumi',          name: 'Illumi Zoldyck',          series: 'Hunter x Hunter',                   rarity: 'E',  desc: 'Killua\'s brother — a killer whose needles reshape minds and wills without mercy.' },
+  { id: 'neferpitou',      name: 'Neferpitou',              series: 'Hunter x Hunter',                   rarity: 'E',  desc: 'Royal Guard of the Chimera Ant King — a cat-humanoid whose Nen terrified a Chairman.' },
+  { id: 'feitan',          name: 'Feitan Portor',           series: 'Hunter x Hunter',                   rarity: 'E',  desc: 'Phantom Troupe\'s fastest — his Rising Sun technique turns suffering into power.' },
+  // Fairy Tail
+  { id: 'jellal',          name: 'Jellal Fernandes',        series: 'Fairy Tail',                        rarity: 'E',  desc: 'A celestial wizard who carries the weight of crimes committed under dark control.' },
+  { id: 'irene',           name: 'Irene Belserion',         series: 'Fairy Tail',                        rarity: 'E',  desc: 'Scarlet Despair — the most powerful woman in the Spriggan 12, mother of Erza.' },
+  // FMA
+  { id: 'lust_fma',        name: 'Lust',                    series: 'Fullmetal Alchemist: Brotherhood',  rarity: 'E',  desc: 'Ultimate Spear — her fingers extend to pierce through anything, including hearts.' },
+  { id: 'wrath_fma',       name: 'King Bradley',            series: 'Fullmetal Alchemist: Brotherhood',  rarity: 'E',  desc: 'Fuhrer President — Wrath\'s Ultimate Eye predicts every sword stroke perfectly.' },
+  { id: 'envy_fma',        name: 'Envy',                    series: 'Fullmetal Alchemist: Brotherhood',  rarity: 'E',  desc: 'A shapeshifter who can become anyone — and hates humans more than anything.' },
+  { id: 'greed_fma',       name: 'Greed',                   series: 'Fullmetal Alchemist: Brotherhood',  rarity: 'E',  desc: 'Ultimate Shield — carbon-hardened skin and the most honest of Father\'s sins.' },
+  // Seven Deadly Sins
+  { id: 'zeldris',         name: 'Zeldris',                 series: 'The Seven Deadly Sins',             rarity: 'E',  desc: 'The Demon King\'s executioner — his Ominous Nebula drains all who face him.' },
+  { id: 'meliodas_e',      name: 'Meliodas',                series: 'The Seven Deadly Sins',             rarity: 'E',  desc: 'Dragon\'s Sin of Wrath — the Sins\' captain whose Full Counter reflects magic at full power.' },
+  { id: 'estarossa',       name: 'Estarossa',               series: 'The Seven Deadly Sins',             rarity: 'E',  desc: 'Love commandment — his power seals all who have love in their heart.' },
+  // Black Clover
+  { id: 'zenon',           name: 'Zenon Zogratis',          series: 'Black Clover',                      rarity: 'E',  desc: 'Bone Magic — a Dark Triad member who can pierce anything with spatial skewers.' },
+  { id: 'dante_bc',        name: 'Dante Zogratis',          series: 'Black Clover',                      rarity: 'E',  desc: 'Body Magic — the most powerful Dark Triad member who covets Dante\'s perfection.' },
+  { id: 'vanica',          name: 'Vanica Zogratis',         series: 'Black Clover',                      rarity: 'E',  desc: 'Blood Magic — the Dark Triad\'s wildcard who fights for the thrill of battle.' },
+  // Overlord
+  { id: 'ainz_ooal',       name: 'Ainz Ooal Gown',         series: 'Overlord',                          rarity: 'E',  desc: 'The Sorcerer King — a skeleton god who bluffs his way to world domination.' },
+  // Re:Zero
+  { id: 'priscilla_rzr',   name: 'Priscilla Barielle',      series: 'Re:Zero',                           rarity: 'E',  desc: 'A candidate whose divine protection bends fortune itself to her whims.' },
+  { id: 'wilhelm_rzr',     name: 'Wilhelm van Astrea',      series: 'Re:Zero',                           rarity: 'E',  desc: 'The Sword Demon — a swordsman whose love gave him a reason to become legend.' },
+  // Chainsaw Man
+  { id: 'aki_hayakawa',    name: 'Aki Hayakawa',            series: 'Chainsaw Man',                      rarity: 'E',  desc: 'A devil hunter who made contracts with three devils for vengeance and duty.' },
+  { id: 'himeno_csm',      name: 'Himeno',                  series: 'Chainsaw Man',                      rarity: 'E',  desc: 'Ghost Devil contract — she gave an eye for power and her full body to save a friend.' },
+  { id: 'violence_fiend',  name: 'Violence Fiend (Galgali)',series: 'Chainsaw Man',                      rarity: 'E',  desc: 'One of humanity\'s strongest fiends — he wears a mask to protect others from his nature.' },
+  // Code Geass
+  { id: 'suzaku_cg',       name: 'Suzaku Kururugi',         series: 'Code Geass',                        rarity: 'E',  desc: 'The Knight of Zero — a warrior torn between duty and the friend who destroyed everything.' },
+  { id: 'cc_cg',           name: 'C.C.',                    series: 'Code Geass',                        rarity: 'E',  desc: 'The immortal witch who gave Lelouch his Geass — and bears a wish of her own.' },
+  // Gurren Lagann
+  { id: 'yoko_gl',         name: 'Yoko Littner',            series: 'Gurren Lagann',                     rarity: 'E',  desc: 'A sharpshooter from the underground — her rifle never misses what matters most.' },
+  // Vinland Saga
+  { id: 'bjorn_vs',        name: 'Bjorn',                   series: 'Vinland Saga',                      rarity: 'E',  desc: 'Askeladd\'s berserker — in the fury of battle, he becomes something beyond human.' },
+  // Gintama
+  { id: 'takasugi_gin',    name: 'Shinsuke Takasugi',       series: 'Gintama',                           rarity: 'E',  desc: 'The rebel who wants to destroy the world he was forced to endure — pure, burning fury.' },
+  // Yu Yu Hakusho
+  { id: 'younger_toguro',  name: 'Younger Toguro',          series: 'Yu Yu Hakusho',                     rarity: 'E',  desc: 'A former hero who chose to become a demon — his 100% power rewrites the fight.' },
+  // One Punch Man
+  { id: 'bang_opm',        name: 'Bang',                    series: 'One Punch Man',                     rarity: 'E',  desc: 'Silver Fang — an S-Class martial arts master with Water Stream Rock Smashing Fist.' },
+  { id: 'tatsumaki',       name: 'Tatsumaki',               series: 'One Punch Man',                     rarity: 'E',  desc: 'Tornado of Terror — the second strongest hero, whose psychokinesis bends armies.' },
+  // Pokémon
+  { id: 'lucario',         name: 'Lucario',                 series: 'Pokémon',                           rarity: 'E',  desc: 'Aura Pokémon — it reads souls and fires aura spheres that never miss.' },
+  { id: 'rayquaza',        name: 'Rayquaza',                series: 'Pokémon',                           rarity: 'E',  desc: 'Sky High Pokémon — ruler of the stratosphere who stops wars between two legendaries.' },
+  // Haikyuu
+  { id: 'kuroo_hq',        name: 'Tetsuro Kuroo',           series: 'Haikyuu!!',                         rarity: 'E',  desc: 'Nekoma\'s captain — a blocking specialist whose read-blocking stops the unstoppable.' },
+  { id: 'ushijima_hq',     name: 'Wakatoshi Ushijima',      series: 'Haikyuu!!',                         rarity: 'E',  desc: 'Shiratorizawa\'s ace — left-handed spikes that crash through any block.' },
+  // Dr. Stone
+  { id: 'tsukasa_stone',   name: 'Tsukasa Shishio',         series: 'Dr. Stone',                         rarity: 'E',  desc: 'The strongest high schooler alive — and the idealist who stood against science itself.' },
+  // Solo Leveling
+  { id: 'jinwoo_e',        name: 'Sung Jinwoo (Shadow Monarch)', series: 'Solo Leveling',               rarity: 'E',  desc: 'The Shadow Monarch — he commands an army of the dead that grows with every kill.' },
+  // Tower of God
+  { id: 'rak_tog',         name: 'Rak Wraithraiser',        series: 'Tower of God',                      rarity: 'E',  desc: 'A giant crocodile warrior obsessed with turtles — and terrifyingly powerful in battle.' },
+  // Assassination Classroom
+  { id: 'korosensei',      name: 'Koro-sensei',             series: 'Assassination Classroom',           rarity: 'E',  desc: 'Mach 20 speed, infinite patience, and a firm belief his students will kill him right.' },
+  // Kakegurui
+  { id: 'kirari',          name: 'Kirari Momobami',         series: 'Kakegurui',                         rarity: 'E',  desc: 'Student council president who runs the school as a high-stakes aquarium of risk.' },
+  // Berserk
+  { id: 'guts_berserk',    name: 'Guts (Black Swordsman)',  series: 'Berserk',                           rarity: 'E',  desc: 'A one-eyed warrior carrying a sword too large to be called a sword — and still swinging.' },
+
+  // ── Additional Legendary (L) ───────────────────────────────
+  // Naruto
+  { id: 'hashirama',       name: 'Hashirama Senju',         series: 'Naruto',                            rarity: 'L',  desc: 'The First Hokage — God of Shinobi, whose wood-style could bind a tailed beast.' },
+  // Dragon Ball
+  { id: 'broly_legendary', name: 'Broly (Legendary SS)',    series: 'Dragon Ball Super',                 rarity: 'L',  desc: 'The Legendary Super Saiyan at full power — a force of nature that grows without end.' },
+  // One Piece
+  { id: 'gol_d_roger',     name: 'Gol D. Roger',            series: 'One Piece',                         rarity: 'L',  desc: 'The King of Pirates — the only man to conquer the Grand Line, laughing to the last.' },
+  { id: 'silvers_rayleigh',name: 'Silvers Rayleigh',        series: 'One Piece',                         rarity: 'L',  desc: 'The Dark King — Roger\'s first mate, whose Haki can stop a giant in its tracks.' },
+  { id: 'monkey_d_garp',   name: 'Monkey D. Garp',          series: 'One Piece',                         rarity: 'L',  desc: 'The Hero of the Marines — fists strong enough to shatter mountains, no Devil Fruit needed.' },
+  // Bleach
+  { id: 'yamamoto',        name: 'Genryusai Yamamoto',      series: 'Bleach',                            rarity: 'L',  desc: 'The oldest and strongest captain — his Ryujin Jakka could incinerate all of Soul Society.' },
+  { id: 'barragan',        name: 'Barragan Louisenbairn',   series: 'Bleach',                            rarity: 'L',  desc: 'God of Hueco Mundo — his Respira rots everything it touches into ash.' },
+  // My Hero Academia
+  { id: 'shigaraki',       name: 'Tomura Shigaraki',        series: 'My Hero Academia',                  rarity: 'L',  desc: 'Decay — his touch crumbles everything to dust, and his reach grows without limit.' },
+  { id: 'dabi',            name: 'Dabi',                    series: 'My Hero Academia',                  rarity: 'L',  desc: 'Blueflame — a villain whose fire burns hotter than his father ever could.' },
+  // Demon Slayer
+  { id: 'yoriichi',        name: 'Yoriichi Tsugikuni',      series: 'Demon Slayer',                      rarity: 'L',  desc: 'The first Breath user — a swordsman so far beyond all others that demons feared his name.' },
+  // JJK
+  { id: 'kenjaku',         name: 'Kenjaku',                 series: 'Jujutsu Kaisen',                    rarity: 'L',  desc: 'An ancient sorcerer who switches bodies across centuries, gathering cursed techniques.' },
+  // AoT
+  { id: 'ymir_fritz',      name: 'Ymir Fritz',              series: 'Attack on Titan',                   rarity: 'L',  desc: 'The first Titan — her power created an entire race and shaped fifteen centuries of history.' },
+  // HxH
+  { id: 'meruem',          name: 'Meruem',                  series: 'Hunter x Hunter',                   rarity: 'L',  desc: 'The Chimera Ant King — born perfect, then surpassed perfection in his final hours.' },
+  // Fairy Tail
+  { id: 'august_ft',       name: 'August',                  series: 'Fairy Tail',                        rarity: 'L',  desc: 'The King of Magic — strongest of the Spriggan 12, he can copy and nullify any spell.' },
+  // FMA
+  { id: 'van_hohenheim',   name: 'Van Hohenheim',           series: 'Fullmetal Alchemist: Brotherhood',  rarity: 'L',  desc: 'A man who carries half a nation\'s souls — and refused to let their deaths be in vain.' },
+  // SDS
+  { id: 'demon_king_sins', name: 'Demon King',              series: 'The Seven Deadly Sins',             rarity: 'L',  desc: 'The ruler of the Demon Clan — his Ruler commandment reflects attacks back tenfold.' },
+  // Black Clover
+  { id: 'megicula',        name: 'Megicula',                series: 'Black Clover',                      rarity: 'L',  desc: 'Curse-Warding Magic — the Queen of Curses whose mere name can kill magic knights.' },
+  // Re:Zero
+  { id: 'roswaal',         name: 'Roswaal L Mathers',       series: 'Re:Zero',                           rarity: 'L',  desc: 'The Court Mage who follows a gospel — every action calculated across infinite loops.' },
+  // Chainsaw Man
+  { id: 'quanxi_csm',      name: 'Quanxi',                  series: 'Chainsaw Man',                      rarity: 'L',  desc: 'The first crossbow devil — China\'s strongest, whose speed is beyond human perception.' },
+  { id: 'reze_csm',        name: 'Reze',                    series: 'Chainsaw Man',                      rarity: 'L',  desc: 'Bomb Girl — a hybrid whose detonations rewrite the rules of the battlefield.' },
+  // Gurren Lagann
+  { id: 'lordgenome_gl',   name: 'Lordgenome',              series: 'Gurren Lagann',                     rarity: 'L',  desc: 'The Spiral King — a man who once pierced the heavens, then gave up on humanity.' },
+  // YYH
+  { id: 'raizen',          name: 'Raizen',                  series: 'Yu Yu Hakusho',                     rarity: 'L',  desc: 'One of the Three Kings — Yusuke\'s ancestor, the most powerful demon to ever live.' },
+  // OPM
+  { id: 'boros_opm',       name: 'Boros',                   series: 'One Punch Man',                     rarity: 'L',  desc: 'Dominator of the Universe — the only enemy who made Saitama use a serious punch.' },
+  // Solo Leveling
+  { id: 'thomas_andre',    name: 'Thomas Andre',            series: 'Solo Leveling',                     rarity: 'L',  desc: 'Ruler — the world\'s strongest S-Rank hunter before Jinwoo proved otherwise.' },
+  // Tower of God
+  { id: 'king_zahard',     name: 'King Zahard',             series: 'Tower of God',                      rarity: 'L',  desc: 'The immortal king who rules the Tower — his absolute power has never been seen in full.' },
+  // Slime
+  { id: 'veldora_slime',   name: 'Veldora Tempest',         series: 'That Time I Got Reincarnated as a Slime', rarity: 'L', desc: 'A True Dragon who swore friendship to a slime — storm-level power sealed for centuries.' },
+  // Frieren
+  { id: 'flamme_frieren',  name: 'Flamme',                  series: 'Frieren: Beyond Journey\'s End',     rarity: 'L',  desc: 'The greatest mage in history — she taught Frieren everything, including how to hide power.' },
+  // Berserk
+  { id: 'femto_griffith',  name: 'Femto',                   series: 'Berserk',                           rarity: 'L',  desc: 'The fifth God Hand — Griffith reborn as an angel of darkness, beyond human reach.' },
+
+  // ── Additional Mythical (MY) ───────────────────────────────
+  // Dragon Ball
+  { id: 'jiren',           name: 'Jiren',                   series: 'Dragon Ball Super',                 rarity: 'MY', desc: 'The Pride Trooper — a mortal who surpassed the gods through will alone.' },
+  // One Piece
+  { id: 'monkey_d_dragon', name: 'Monkey D. Dragon',        series: 'One Piece',                         rarity: 'MY', desc: 'The world\'s most wanted man — leader of the Revolutionary Army, Luffy\'s father.' },
+  // MHA
+  { id: 'all_for_one',     name: 'All For One',             series: 'My Hero Academia',                  rarity: 'MY', desc: 'The ultimate villain — steals quirks and has ruled from the shadows for centuries.' },
+  // Demon Slayer
+  { id: 'kokushibo',       name: 'Kokushibo',               series: 'Demon Slayer',                      rarity: 'MY', desc: 'Upper Moon One — Yoriichi\'s twin, who chose demonic power over his brother\'s path.' },
+  // SDS
+  { id: 'supreme_deity',   name: 'Supreme Deity',           series: 'The Seven Deadly Sins',             rarity: 'MY', desc: 'Goddess ruler — her commandment Repose makes demons helpless before her will.' },
+  // Black Clover
+  { id: 'lucifero_bc',     name: 'Lucifero',                series: 'Black Clover',                      rarity: 'MY', desc: 'The King of Devils — even a fragment of his power warps gravity and reality itself.' },
+  // Solo Leveling
+  { id: 'jinwoo_monarch',  name: 'Sung Jinwoo (Monarch)',   series: 'Solo Leveling',                     rarity: 'MY', desc: 'The Monarch of Shadows — commanding a shadow army that conquered the world\'s strongest.' },
+
+  // ── Additional Ultra-Rare (UR) ────────────────────────────
+  { id: 'whis',            name: 'Whis',                    series: 'Dragon Ball Super',                 rarity: 'UR', desc: 'Beerus\'s attendant and a Guide Angel — casually millions of years ahead of any warrior.' },
+  { id: 'hagoromo',        name: 'Hagoromo Otsutsuki',      series: 'Naruto',                            rarity: 'UR', desc: 'The Sage of Six Paths — he split the Ten-Tails and gave ninjas the gift of chakra.' },
+  { id: 'lucario_mega',    name: 'Lucario (Mega)',          series: 'Pokémon',                           rarity: 'UR', desc: 'Mega-Evolved — aura spikes erupt from every joint, and the power is beyond measure.' },
+
+  // ── Additional Limited (LT) ───────────────────────────────
+  { id: 'meruem_awakened', name: 'Meruem (Post-Rose)',      series: 'Hunter x Hunter',                   rarity: 'LT', desc: 'After the Miniature Rose — the King returned stronger than any being had ever been.' },
+  { id: 'yoriichi_lt',     name: 'Yoriichi (Demon Slayer)', series: 'Demon Slayer',                      rarity: 'LT', desc: 'The pinnacle of the Breath of the Sun — a technique that nearly killed Muzan in one battle.' },
+  { id: 'roger_conqueror', name: 'Roger (Conqueror)',       series: 'One Piece',                         rarity: 'LT', desc: 'The Pirate King at the peak of his power — Conqueror\'s Haki that shook the world entire.' },
+
+  // ── Additional Danmachi ───────────────────────────────────
+  { id: 'hestia_dn',       name: 'Hestia',                  series: 'Is It Wrong to Try to Pick Up Girls in a Dungeon?', rarity: 'E', desc: 'A minor goddess with a major attitude — Bell\'s Familia goddess who fights for her child.' },
+
+  // ── Additional Slime cards ────────────────────────────────
+  { id: 'diablo_slime',    name: 'Diablo',                  series: 'That Time I Got Reincarnated as a Slime', rarity: 'E', desc: 'Rimuru\'s most powerful secretary — an ancient demon who chose to serve for the thrill of it.' },
+  { id: 'milim_slime',     name: 'Milim Nava',              series: 'That Time I Got Reincarnated as a Slime', rarity: 'E', desc: 'A Demon Lord of overwhelming power — Dragon Nova can erase a country.' },
+
+  // ── Frieren additions ─────────────────────────────────────
+  { id: 'frieren_e',       name: 'Frieren',                 series: 'Frieren: Beyond Journey\'s End',     rarity: 'E',  desc: 'An elf mage who outlived the hero\'s party — a thousand years of magic refinement.' },
+
+  // ── Jogo addition ─────────────────────────────────────────
+  { id: 'jogo_jjk',        name: 'Jogo',                    series: 'Jujutsu Kaisen',                    rarity: 'L',  desc: 'A Special Grade Cursed Spirit of maximum heat — he nearly killed Gojo once, almost.' },
+
   // ── Madness (MD) ─────────────────────────────────────────
   { id: 'scarlet_king', name: 'The Scarlet King', series: 'SCP Foundation', rarity: 'MD', image: process.env.BASE_URL ? `${process.env.BASE_URL}/images/scarlet_king_md.png` : null, desc: 'An entity of infinite destruction imprisoned at the foundation of reality itself. Seven scarlet crowns. The end of all things.' },
+  { id: 'jin_mori', name: 'Jin Mori', series: 'The God of High School', rarity: 'MD', specialAbility: 'golden_pupils', desc: 'The Monkey King reborn — his Renewal Taekwondo reaches divine speed. Golden pupils awaken and reality bends to his will.' },
 
   // ── Support Cards ─────────────────────────────────────────
   { id: 'support_r',  name: 'Swift Pull Token',       series: 'Support', rarity: 'R',  supportCard: true, supportEffect: 'pull_speed',      desc: 'A shimmering token that speeds up pull charge regeneration by 5 seconds. Passive effect while owned.' },

@@ -535,10 +535,11 @@ function addAllItems(inventory, userId, items) {
 
 // ── Fight cooldown ────────────────────────────────────────
 
-const fightCooldowns    = new Map();
+const fightCooldowns       = new Map();
 const activeBattles        = new Map();
 const pendingConfirmations = new Map();
-const activeCollabRaids = new Map(); // ownerId → battleId
+const activeCollabRaids    = new Map(); // ownerId → battleId
+const worldBossAttackCooldowns = new Map(); // userId → last attack timestamp (ms)
 
 function getFightCooldownSecs(userId) {
   const last      = fightCooldowns.get(userId) ?? 0;
@@ -600,8 +601,9 @@ function buildBattleCard(slot) {
     dmgMax:    Math.round(dmg * 1.2),
     dmg,
     speed,
-    technique: card.technique ?? false,
-    alive:     true,
+    technique:      card.technique ?? false,
+    specialAbility: card.specialAbility ?? null,
+    alive:          true,
     equippedWeaponId,
     equippedWeaponName,
   };
@@ -674,9 +676,22 @@ function generateBotTeam() {
 }
 
 /**
- * Simulate a single botfight without user interaction.
- * Returns { won, weaponKills } where weaponKills is a map of weaponId → kill count.
+ * Calculate damage dealt by attacker to target.
+ * Applies Golden Pupils (20% chance for 5× crit) if attacker has the ability.
+ * Returns { dmg, crit }
  */
+function calcDamage(attacker, target) {
+  let dmg = attacker.technique
+    ? Math.round(target.maxHp * (attacker.dmg / 10000) * (0.9 + Math.random() * 0.2))
+    : Math.round(attacker.dmg * (0.8 + Math.random() * 0.4));
+  let crit = false;
+  if (attacker.specialAbility === 'golden_pupils' && Math.random() < 0.20) {
+    dmg  = Math.round(dmg * 5);
+    crit = true;
+  }
+  return { dmg, crit };
+}
+
 function simulateSingleBotFight(attackerCards, defenderCards) {
   const atk = attackerCards.map(c => ({ ...c, hp: c.maxHp, alive: true }));
   const def = defenderCards.map(c => ({ ...c, hp: c.maxHp, alive: true }));
@@ -687,9 +702,7 @@ function simulateSingleBotFight(attackerCards, defenderCards) {
     const target   = def.find(c => c.alive);
     if (!attacker || !target) break;
 
-    const dmg = attacker.technique
-      ? Math.round(target.maxHp * (attacker.dmg / 10000) * (0.9 + Math.random() * 0.2))
-      : Math.round(attacker.dmg * (0.8 + Math.random() * 0.4));
+    const { dmg } = calcDamage(attacker, target);
     target.hp = Math.max(0, target.hp - dmg);
     if (target.hp === 0) {
       target.alive = false;
@@ -2496,9 +2509,7 @@ client.on('interactionCreate', async (interaction) => {
       return interaction.update({ components: [], embeds: interaction.message.embeds });
     }
 
-    const dmgDealt  = attacker.technique
-      ? Math.round(target.maxHp * (attacker.dmg / 10000) * (0.9 + Math.random() * 0.2))
-      : Math.round(attacker.dmg * (0.8 + Math.random() * 0.4));
+    const { dmg: dmgDealt, crit: isCrit } = calcDamage(attacker, target);
     target.hp       = Math.max(0, target.hp - dmgDealt);
     if (target.hp === 0) target.alive = false;
 
@@ -2508,7 +2519,7 @@ client.on('interactionCreate', async (interaction) => {
       state.weaponKills[attacker.equippedWeaponId] = (state.weaponKills[attacker.equippedWeaponId] ?? 0) + 1;
     }
 
-    let log = `⚔️ **${attacker.name}** attacked **${target.name}** for **${dmgDealt.toLocaleString()}** damage!`;
+    let log = `⚔️ **${attacker.name}** attacked **${target.name}** for **${dmgDealt.toLocaleString()}** damage!${isCrit ? ' 👁️ **GOLDEN PUPILS CRIT — 5×!**' : ''}`;
     if (!target.alive) log += ` **${target.name}** was defeated!`;
 
     if (state.defenderCards.every(bc => !bc.alive)) {
@@ -2836,13 +2847,11 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.update({ components: [], embeds: interaction.message.embeds });
       }
 
-      const dmgDealt = attacker.technique
-        ? Math.round(boss.maxHp * (attacker.dmg / 10000) * (0.9 + Math.random() * 0.2))
-        : Math.round(attacker.dmg * (0.8 + Math.random() * 0.4));
+      const { dmg: dmgDealt, crit: raidCrit } = calcDamage(attacker, boss);
       boss.hp = Math.max(0, boss.hp - dmgDealt);
       if (boss.hp === 0) boss.alive = false;
 
-      let log = `⚔️ ${attackerLabel} attacked **${boss.name}** for **${dmgDealt.toLocaleString()}** damage!`;
+      let log = `⚔️ ${attackerLabel} attacked **${boss.name}** for **${dmgDealt.toLocaleString()}** damage!${raidCrit ? ' 👁️ **GOLDEN PUPILS CRIT — 5×!**' : ''}`;
       if (!boss.alive) log += ` **${boss.name}** was defeated!`;
 
       if (!boss.alive) {
@@ -4909,6 +4918,7 @@ client.on('messageCreate', async (message) => {
       if (result === 'not_on_team')     return message.reply(`**${card.name}** is not on your team.`);
       if (result === 'no_plating')      return message.reply(`You don't have a **${tier.label} Plating** in your inventory.`);
       if (result === 'already_equipped') return message.reply(`**${card.name}** already has a **${tier.label} Plating** equipped.`);
+      if (result === 'max_platings')    return message.reply(`**${card.name}** already has the maximum of **2 platings** equipped. Unequip one first.`);
     }
 
     // ── ZP team unequip ───────────────────────────────────
@@ -5848,6 +5858,7 @@ client.on('messageCreate', async (message) => {
       if (result === 'no_plating')      return message.reply(`You don't have a **${platingTr.label} Plating** in your inventory.`);
       if (result === 'not_in_team')     return message.reply(`**${card.name}** is not on your team.`);
       if (result === 'already_equipped') return message.reply(`**${card.name}** already has a **${platingTr.label} Plating** equipped.`);
+      if (result === 'max_platings')    return message.reply(`**${card.name}** already has the maximum of **2 platings** equipped. Unequip one first.`);
       return message.reply(`Plating equipped!`);
     }
 
@@ -6531,6 +6542,212 @@ client.on('messageCreate', async (message) => {
     bannedUsers.delete(targetId);
     saveBannedUsers();
     return message.reply(`✅ Account \`${targetId}\` has been **unbanned** and can use the bot again.`);
+  }
+
+  // ── worldboss ─────────────────────────────────────────────
+  // ZP worldboss              — view current world boss status
+  // ZP worldboss spawn [channelId]  — (admin) spawn a world boss
+  // ZP worldboss attack             — attack the world boss with your best team card
+  // ZP worldboss end                — (admin) end the world boss and distribute rewards
+  if (command === 'worldboss' || command === 'wb') {
+    const sub = args[0]?.toLowerCase();
+
+    // ── spawn (admin only) ────────────────────────────────
+    if (sub === 'spawn') {
+      if (!isAdmin(userId)) return message.reply('Only admins can spawn a World Boss.');
+      const inventory = await inv.loadInventory();
+      if (inv.getWorldBoss(inventory)) return message.reply('A World Boss is already active! Use `ZP worldboss end` to end it first.');
+
+      const channelId = args[1] ?? message.channelId;
+
+      // Pick a random MD or LT boss card
+      const bossPool = CARDS.filter(c => (c.rarity === 'MD' || c.rarity === 'LT') && !c.weaponCard && !c.supportCard && !c.dittoCard);
+      if (!bossPool.length) return message.reply('No boss-eligible cards found.');
+      const bossCard = bossPool[Math.floor(Math.random() * bossPool.length)];
+      const bossStats = getCardStats(bossCard, 100);
+
+      const bossHp  = Math.round(bossStats.hp  * 50);  // 50× scaled for world boss
+      const bossDmg = Math.round(bossStats.dmg * 50);
+
+      const bossData = {
+        bossCardId:   bossCard.id,
+        bossName:     bossCard.name,
+        bossSeries:   bossCard.series,
+        bossRarity:   bossCard.rarity,
+        maxHp:        bossHp,
+        currentHp:    bossHp,
+        bossDmg:      bossDmg,
+        channelId,
+        spawnedAt:    Date.now(),
+        participants: {},
+      };
+      inv.setWorldBoss(inventory, bossData);
+      await inv.saveInventory(inventory);
+
+      const bossEmoji   = getEmoji(bossCard.id) ?? '';
+      const bossMeta    = rarityMeta(bossCard.rarity);
+      const targetCh    = client.channels.cache.get(channelId);
+      const embed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('🌍 WORLD BOSS HAS APPEARED!')
+        .setDescription(
+          `${bossEmoji} **${bossCard.name}** from *${bossCard.series}* ${bossMeta.emoji}\n\n` +
+          `❤️ **HP:** ${bossHp.toLocaleString()}\n` +
+          `⚔️ **DMG:** ${bossDmg.toLocaleString()}\n\n` +
+          `**The more damage you deal, the bigger your share of the rewards!**\n` +
+          `Use \`ZP worldboss attack\` to attack!\n\n` +
+          `> Admins can end the boss with \`ZP worldboss end\` to distribute rewards.`
+        )
+        .setFooter({ text: `World Boss spawned in this channel` });
+
+      if (targetCh && targetCh.id !== message.channelId) {
+        await targetCh.send({ embeds: [embed] }).catch(() => {});
+        return message.reply(`✅ World Boss **${bossCard.name}** spawned in <#${channelId}>!`);
+      }
+      return message.reply({ embeds: [embed] });
+    }
+
+    // ── end (admin only) ─────────────────────────────────
+    if (sub === 'end') {
+      if (!isAdmin(userId)) return message.reply('Only admins can end the World Boss.');
+      const inventory = await inv.loadInventory();
+      const boss = inv.getWorldBoss(inventory);
+      if (!boss) return message.reply('No World Boss is currently active.');
+
+      const parts = boss.participants ?? {};
+      const totalDamage = Object.values(parts).reduce((s, p) => s + (p.damage ?? 0), 0);
+
+      // Reward pool
+      const totalYen   = 5_000_000;
+      const totalStars = 50_000;
+
+      const lines = [];
+      const sorted = Object.entries(parts).sort((a, b) => (b[1].damage ?? 0) - (a[1].damage ?? 0));
+
+      for (const [uid, pdata] of sorted) {
+        const pct   = totalDamage > 0 ? (pdata.damage / totalDamage) : 0;
+        const yen   = Math.round(totalYen   * pct);
+        const stars = Math.round(totalStars * pct);
+        if (yen > 0)   inv.addYen(inventory,   uid, yen);
+        if (stars > 0) inv.addStars(inventory, uid, stars);
+        const pctStr = (pct * 100).toFixed(1);
+        lines.push(`<@${uid}> — **${pdata.damage?.toLocaleString() ?? 0}** dmg (${pctStr}%) → ¥${yen.toLocaleString()} / ⭐${stars.toLocaleString()}`);
+      }
+
+      inv.clearWorldBoss(inventory);
+      await inv.saveInventory(inventory);
+
+      const hpLeft = boss.currentHp;
+      const hpPct  = boss.maxHp > 0 ? ((1 - hpLeft / boss.maxHp) * 100).toFixed(1) : '100';
+      const embed = new EmbedBuilder()
+        .setColor(0xFFD700)
+        .setTitle('🏆 World Boss Ended — Rewards Distributed!')
+        .setDescription(
+          `**${boss.bossName}** has been vanquished!\n` +
+          `HP reduced by **${hpPct}%** — Total damage dealt: **${totalDamage.toLocaleString()}**\n\n` +
+          (lines.length ? lines.join('\n') : '*No participants dealt damage.*')
+        );
+      return message.reply({ embeds: [embed] });
+    }
+
+    // ── attack ────────────────────────────────────────────
+    if (sub === 'attack' || sub === 'atk') {
+      const inventory = await inv.loadInventory();
+      const boss = inv.getWorldBoss(inventory);
+      if (!boss) return message.reply('No World Boss is currently active right now. Watch for an announcement!');
+      if (boss.currentHp <= 0) return message.reply('The World Boss has already been defeated! Wait for the rewards to be distributed.');
+
+      // Attack cooldown: 30 seconds
+      const WB_COOLDOWN = 30_000;
+      const lastAtk = worldBossAttackCooldowns.get(userId) ?? 0;
+      const remaining = WB_COOLDOWN - (Date.now() - lastAtk);
+      if (remaining > 0) {
+        return message.reply(`You're attacking too fast! Wait **${Math.ceil(remaining / 1000)}s** before attacking the World Boss again.`);
+      }
+
+      // Get strongest alive team card
+      const team = inv.getTeam(inventory, userId);
+      if (!team.length) return message.reply('You have no cards on your team! Build a team first with `ZP team add <card>`.');
+
+      const bestSlot = team.reduce((best, slot) => {
+        if (!slot.cardId) return best;
+        const card = lookupCard(slot.cardId);
+        if (!card) return best;
+        const power = inv.getSlotPower(inventory, userId, slot.cardId);
+        return power > (best.power ?? -1) ? { slot, card, power } : best;
+      }, { slot: null, card: null, power: -1 });
+
+      if (!bestSlot.card) return message.reply('No valid cards found on your team.');
+
+      const { slot: atkSlot, card: atkCard } = bestSlot;
+      const atkBc = buildBattleCard({ card: atkCard, level: atkSlot.level ?? 1, plating: null }, atkSlot);
+      const fakeBoss = { maxHp: boss.maxHp, dmg: boss.bossDmg, hp: boss.currentHp, technique: false, specialAbility: null };
+
+      const { dmg, crit } = calcDamage(atkBc, fakeBoss);
+      const actualDmg = Math.min(dmg, boss.currentHp);
+
+      worldBossAttackCooldowns.set(userId, Date.now());
+      inv.recordWorldBossDamage(inventory, userId, message.author.username, actualDmg);
+      await inv.saveInventory(inventory);
+
+      // Reload to get updated state
+      const updatedBoss = inv.getWorldBoss(inventory);
+      const hpLeft   = updatedBoss?.currentHp ?? 0;
+      const hpBar    = hpBar_fn(hpLeft, boss.maxHp);
+      const totalDmg = Object.values(updatedBoss?.participants ?? {}).reduce((s, p) => s + (p.damage ?? 0), 0);
+      const myDmg    = updatedBoss?.participants?.[userId]?.damage ?? actualDmg;
+      const myPct    = totalDmg > 0 ? ((myDmg / totalDmg) * 100).toFixed(1) : '100.0';
+
+      const bossEmoji = getEmoji(boss.bossCardId) ?? '👹';
+      const critNote  = crit ? ' 👁️ **GOLDEN PUPILS CRIT — 5×!**' : '';
+      const defeatedNote = hpLeft <= 0 ? '\n\n💀 **The World Boss has been slain!** Admins will distribute the rewards shortly.' : '';
+
+      const embed = new EmbedBuilder()
+        .setColor(hpLeft <= 0 ? 0xFFD700 : 0xFF4757)
+        .setTitle(`${bossEmoji} World Boss — ${boss.bossName}`)
+        .setDescription(
+          `${hpBar} **${hpLeft.toLocaleString()} / ${boss.maxHp.toLocaleString()} HP**\n\n` +
+          `⚔️ **${message.author.username}**'s **${atkCard.name}** dealt **${actualDmg.toLocaleString()}** damage!${critNote}\n` +
+          `📊 Your total contribution: **${myDmg.toLocaleString()}** dmg (**${myPct}%** of total)\n` +
+          `> The more damage you deal, the higher your reward share!${defeatedNote}`
+        );
+      return message.reply({ embeds: [embed] });
+    }
+
+    // ── status (default) ─────────────────────────────────
+    {
+      const inventory = await inv.loadInventory();
+      const boss = inv.getWorldBoss(inventory);
+      if (!boss) {
+        return message.reply('No World Boss is currently active. Watch for admin announcements!');
+      }
+
+      const parts = boss.participants ?? {};
+      const totalDmg = Object.values(parts).reduce((s, p) => s + (p.damage ?? 0), 0);
+      const sorted   = Object.entries(parts)
+        .sort((a, b) => (b[1].damage ?? 0) - (a[1].damage ?? 0))
+        .slice(0, 10);
+
+      const leaderboard = sorted.map(([uid, p], i) => {
+        const pct = totalDmg > 0 ? ((p.damage / totalDmg) * 100).toFixed(1) : '0.0';
+        return `**${i + 1}.** ${p.username} — ${(p.damage ?? 0).toLocaleString()} dmg (${pct}%)`;
+      }).join('\n') || '*No damage dealt yet.*';
+
+      const hpLeft   = boss.currentHp;
+      const bossEmoji = getEmoji(boss.bossCardId) ?? '👹';
+      const bossMeta  = rarityMeta(boss.bossRarity ?? 'MD');
+
+      const embed = new EmbedBuilder()
+        .setColor(0xFF4757)
+        .setTitle(`${bossEmoji} World Boss — ${boss.bossName}`)
+        .setDescription(
+          `${bossMeta.emoji} *${boss.bossSeries ?? ''}*\n\n` +
+          `${hpBar_fn(hpLeft, boss.maxHp)} **${hpLeft.toLocaleString()} / ${boss.maxHp.toLocaleString()} HP**\n\n` +
+          `**Top Attackers:**\n${leaderboard}\n\n` +
+          `Use \`ZP worldboss attack\` to join the fight!`
+        );
+      return message.reply({ embeds: [embed] });
+    }
   }
 
   // ── listbanned ────────────────────────────────────────────
