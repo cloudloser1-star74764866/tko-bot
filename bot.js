@@ -6572,14 +6572,14 @@ client.on('messageCreate', async (message) => {
 
       const channelId = args[1] ?? message.channelId;
 
-      // Pick a random MD or LT boss card
-      const bossPool = CARDS.filter(c => (c.rarity === 'MD' || c.rarity === 'LT') && !c.weaponCard && !c.supportCard && !c.dittoCard);
+      // Pick a random MD boss card
+      const bossPool = CARDS.filter(c => c.rarity === 'MD' && !c.weaponCard && !c.supportCard && !c.dittoCard);
       if (!bossPool.length) return message.reply('No boss-eligible cards found.');
       const bossCard = bossPool[Math.floor(Math.random() * bossPool.length)];
       const bossStats = getCardStats(bossCard, 100);
 
-      const bossHp  = Math.round(bossStats.hp  * 50);  // 50× scaled for world boss
-      const bossDmg = Math.round(bossStats.dmg * 50);
+      const bossHp  = Math.round(bossStats.hp  * 30);  // 30× scaled for world boss
+      const bossDmg = Math.round(bossStats.dmg * 30);
 
       const bossData = {
         bossCardId:   bossCard.id,
