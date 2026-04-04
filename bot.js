@@ -2108,8 +2108,8 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
       .addFields(
         { name: '`ZP wallet` / `ZP balance` / `ZP bal`',       value: 'Check your Yen, Stars, Candy Tokens, and Limit Breakers. Add `@user` to check someone else.', inline: false },
         { name: '`ZP shop` / `ZP sh`',                          value: 'Browse the shop — see all buyable items and their costs.', inline: false },
-        { name: '`ZP buy candy stars <amount>`',                 value: 'Buy candy tokens with stars. **1,000 stars** per token.', inline: false },
-        { name: '`ZP buy candy yen <amount>`',                   value: 'Buy candy tokens with yen. **¥10,000** per token.', inline: false },
+        { name: '`ZP buy candy stars <amount>`',                 value: 'Buy candy tokens with stars. **100,000 stars** per token.', inline: false },
+        { name: '`ZP buy candy yen <amount>`',                   value: 'Buy candy tokens with yen. **¥1,000,000** per token.', inline: false },
         { name: '`ZP inventory` / `ZP inv`',                    value: 'View your platings.', inline: false },
         { name: '`ZP shards [rarity or name]` / `ZP sd`',       value: 'View your character shards. Filter by rarity or character name.', inline: false },
         { name: '`ZP items` / `ZP it`',                         value: 'View your special items (raid tickets, scrolls, etc).', inline: false },
@@ -3537,12 +3537,12 @@ client.on('messageCreate', async (message) => {
       const wbServerDisabled  = gs.disallowedCommands?.includes('worldboss');
       const wbChannelDisabled = gs.disallowedWorldBossChannels?.includes(message.channelId);
       if (!wbServerDisabled && !wbChannelDisabled && !inv.getWorldBoss(wbInv)) {
-        const bossPool = CARDS.filter(c => c.rarity === 'MD' && !c.weaponCard && !c.supportCard && !c.dittoCard);
+        const bossPool = CARDS.filter(c => (c.rarity === 'MD' || c.rarity === 'LT') && !c.weaponCard && !c.supportCard && !c.dittoCard);
         if (bossPool.length) {
           const bossCard  = bossPool[Math.floor(Math.random() * bossPool.length)];
           const bossStats = getCardStats(bossCard, 100);
-          const bossHp    = Math.round(bossStats.hp  * 30);
-          const bossDmg   = Math.round(bossStats.dmg * 30);
+          const bossHp    = Math.round(bossStats.hp  * 100);
+          const bossDmg   = Math.round(bossStats.dmg * 100);
           const bossData  = {
             bossCardId:   bossCard.id,
             bossName:     bossCard.name,
@@ -3654,7 +3654,7 @@ client.on('messageCreate', async (message) => {
     }
 
     const { isDupe } = inv.addCardToInventory(inventory, uid, wishCard);
-    inv.clearWish(inventory, uid);
+    inv.setWish(inventory, uid, wishCard.id);
     return { card: wishCard, isDupe };
   }
 
@@ -3698,7 +3698,7 @@ client.on('messageCreate', async (message) => {
           `${wMeta.emoji} **${wMeta.label}** — ${wishGrant.card.series}\n` +
           (wishGrant.isDupe ? `You already owned this card — **+1 Shard** added instead.` : `**${wishGrant.card.name}** added to your collection!`)
         )
-        .setFooter({ text: 'Your wish has been cleared. Use ZP wish to set a new one!' });
+        .setFooter({ text: 'Your wish has been reset! Pull 200 more times to receive it again.' });
       if (wImg) wEmbed.setImage(wImg);
       await message.reply({ embeds: [wEmbed] });
     }
@@ -3757,7 +3757,7 @@ client.on('messageCreate', async (message) => {
           `${wMeta.emoji} **${wMeta.label}** — ${wishGrant.card.series}\n` +
           (wishGrant.isDupe ? `You already owned this card — **+1 Shard** added instead.` : `**${wishGrant.card.name}** added to your collection!`)
         )
-        .setFooter({ text: 'Your wish has been cleared. Use ZP wish to set a new one!' });
+        .setFooter({ text: 'Your wish has been reset! Pull 200 more times to receive it again.' });
       if (wImg) wEmbed.setImage(wImg);
       await message.reply({ embeds: [wEmbed] });
     }
@@ -3991,8 +3991,8 @@ client.on('messageCreate', async (message) => {
 
   // ── buy ───────────────────────────────────────────────────
   if (command === 'buy' || command === 'bu') {
-    const STARS_PER_TOKEN = 1000;
-    const YEN_PER_TOKEN   = 10000;
+    const STARS_PER_TOKEN = 100_000;
+    const YEN_PER_TOKEN   = 1_000_000;
 
     // ZP buy candy stars [amount]
     // ZP buy candy yen [amount]
@@ -4067,8 +4067,8 @@ client.on('messageCreate', async (message) => {
 
   // ── shop ──────────────────────────────────────────────────
   if (command === 'shop' || command === 'sh') {
-    const STARS_PER_TOKEN = 1000;
-    const YEN_PER_TOKEN   = 10000;
+    const STARS_PER_TOKEN = 100_000;
+    const YEN_PER_TOKEN   = 1_000_000;
 
     const inventory = await inv.loadInventory();
     const yen       = inv.getYen(inventory, userId);
@@ -6965,13 +6965,13 @@ client.on('messageCreate', async (message) => {
       const channelId = args[1] ?? message.channelId;
 
       // Pick a random MD boss card
-      const bossPool = CARDS.filter(c => c.rarity === 'MD' && !c.weaponCard && !c.supportCard && !c.dittoCard);
+      const bossPool = CARDS.filter(c => (c.rarity === 'MD' || c.rarity === 'LT') && !c.weaponCard && !c.supportCard && !c.dittoCard);
       if (!bossPool.length) return message.reply('No boss-eligible cards found.');
       const bossCard = bossPool[Math.floor(Math.random() * bossPool.length)];
       const bossStats = getCardStats(bossCard, 100);
 
-      const bossHp  = Math.round(bossStats.hp  * 30);  // 30× scaled for world boss
-      const bossDmg = Math.round(bossStats.dmg * 30);
+      const bossHp  = Math.round(bossStats.hp  * 100);  // 100× scaled for world boss
+      const bossDmg = Math.round(bossStats.dmg * 100);
 
       const bossData = {
         bossCardId:   bossCard.id,

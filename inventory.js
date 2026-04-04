@@ -54,6 +54,7 @@ function ensureUser(inventory, userId) {
       wish: null, levelCaps: {}, prestigePoints: {},
       privacy: false, clanId: null, duoId: null,
       totalPulls: 0, totalKills: 0, items: {},
+      xp: 0, profileLevel: 0,
     };
   }
   const u = inventory.users[userId];
@@ -73,6 +74,8 @@ function ensureUser(inventory, userId) {
   if (u.duoId === undefined)            u.duoId          = null;
   if (typeof u.totalPulls   !== 'number') u.totalPulls  = 0;
   if (typeof u.totalKills   !== 'number') u.totalKills  = 0;
+  if (typeof u.xp           !== 'number') u.xp          = 0;
+  if (typeof u.profileLevel !== 'number') u.profileLevel = 0;
   if (u.conquest === undefined)              u.conquest           = null;
   if (u.conquest2 === undefined)             u.conquest2          = null;
   if (typeof u.dailyStreak  !== 'number')    u.dailyStreak        = 0;
@@ -410,6 +413,40 @@ function getTotalPulls(inventory, userId) {
 function incrementTotalPulls(inventory, userId, amount = 1) {
   ensureUser(inventory, userId);
   inventory.users[userId].totalPulls = (inventory.users[userId].totalPulls ?? 0) + amount;
+}
+
+// ── Profile XP & Levels ───────────────────────────────────
+
+function getXPThreshold(level) {
+  return Math.floor(100 * Math.pow(1.1, level));
+}
+
+function getUserLevel(inventory, userId) {
+  ensureUser(inventory, userId);
+  const u = inventory.users[userId];
+  return {
+    level: u.profileLevel ?? 0,
+    xp: u.xp ?? 0,
+    nextLevelXP: getXPThreshold(u.profileLevel ?? 0),
+  };
+}
+
+function addXP(inventory, userId, amount) {
+  ensureUser(inventory, userId);
+  const u = inventory.users[userId];
+  u.xp += amount;
+  let leveled = false;
+  while (true) {
+    const threshold = getXPThreshold(u.profileLevel);
+    if (u.xp >= threshold) {
+      u.xp -= threshold;
+      u.profileLevel += 1;
+      leveled = true;
+    } else {
+      break;
+    }
+  }
+  return { level: u.profileLevel, xp: u.xp, leveled };
 }
 
 // ── Kill Stats ────────────────────────────────────────────
@@ -979,6 +1016,7 @@ module.exports = {
   getDailyInfo, claimDaily, DAILY_SCROLL_CAP,
   getWish, setWish, clearWish, incrementWishPulls, WISH_THRESHOLD,
   getTotalPulls, incrementTotalPulls, incrementTotalKills,
+  getXPThreshold, getUserLevel, addXP,
   getPrivacy, setPrivacy,
   TEAM_SIZE, getTeam, addToTeam, removeFromTeam, swapTeamPositions,
   getSlotPlatings, equipPlatingToTeam, unequipPlatingFromTeam,
