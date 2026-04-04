@@ -259,6 +259,69 @@ async function syncEmojis(client, cards, imgCache) {
 }
 
 /**
+ * Delete the existing emoji for a card (if any) then re-upload it using the
+ * current image from imgCache.  Always overwrites — use this when the image
+ * has just changed and the emoji needs to reflect it.
+ * Returns true on success, false on failure.
+ */
+async function forceUploadEmoji(client, card, imgCache) {
+  const cache = load();
+
+  // Delete old emoji from whichever server it lives on
+  if (cache[card.id]) {
+    const oldId = cache[card.id].id;
+    for (const serverId of EMOJI_SERVERS) {
+      try {
+        const guild = await client.guilds.fetch(serverId);
+        const emojis = await guild.emojis.fetch();
+        const match = emojis.find(e => e.id === oldId);
+        if (match) {
+          await guild.emojis.delete(match.id).catch(() => {});
+          break;
+        }
+      } catch { /* skip */ }
+    }
+    delete cache[card.id];
+    save(cache);
+  }
+
+  // Get image URL
+  const imageUrl = imgCache.getImage(card.id) ?? card.image ?? null;
+  if (!imageUrl) return false;
+
+  // Download image
+  let imageBuffer;
+  try {
+    imageBuffer = await fetchBuffer(imageUrl);
+  } catch (err) {
+    console.error(`forceUploadEmoji: image download failed for ${card.id}: ${err.message}`);
+    return false;
+  }
+
+  const emojiName = card.id.replace(/[^a-zA-Z0-9_]/g, '_').padEnd(2, '_');
+
+  // Upload to the first server with space
+  for (const serverId of EMOJI_SERVERS) {
+    try {
+      const guild  = await client.guilds.fetch(serverId);
+      const emojis = await guild.emojis.fetch();
+      if (emojis.size >= 50) continue;
+      const emoji = await uploadEmoji(guild, emojiName, imageBuffer);
+      cache[card.id] = { name: emoji.name, id: emoji.id };
+      save(cache);
+      return true;
+    } catch (err) {
+      if (err.message && err.message.toLowerCase().includes('maximum number of emojis')) continue;
+      console.error(`forceUploadEmoji: upload failed for ${card.id}: ${err.message}`);
+      return false;
+    }
+  }
+
+  console.error(`forceUploadEmoji: no server had space for ${card.id}`);
+  return false;
+}
+
+/**
  * Delete every custom emoji from all EMOJI_SERVERS and wipe the local cache.
  * WARNING: Only call this when explicitly instructed to rebuild from scratch.
  */
@@ -293,4 +356,4 @@ async function deleteAllEmojis(client) {
   console.log(`🗑️  Emoji wipe done: ${deleted} deleted, ${errors} errors.`);
 }
 
-module.exports = { load, save, getEmoji, setEmoji, removeEmoji, logCacheStatus, discoverFromDiscord, syncEmojis, deleteAllEmojis, EMOJI_SERVERS };
+module.exports = { load, save, getEmoji, setEmoji, removeEmoji, logCacheStatus, discoverFromDiscord, syncEmojis, forceUploadEmoji, deleteAllEmojis, EMOJI_SERVERS };

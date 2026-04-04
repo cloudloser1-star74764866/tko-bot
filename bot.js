@@ -1737,11 +1737,11 @@ function buildImageReviewEmbed(authorId, filteredCards, index, filter, expiry) {
 
   const components = [row1];
 
-  if (!hasEmoji && imageUrl) {
+  if (imageUrl) {
     const row2 = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`${base}|upload`)
-        .setLabel('📤 Upload Emoji')
+        .setLabel(hasEmoji ? '🔄 Re-upload Emoji' : '📤 Upload Emoji')
         .setStyle(ButtonStyle.Secondary),
     );
     components.push(row2);
@@ -2389,10 +2389,20 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.reply({ content: '❌ That doesn\'t look like a valid URL.', ephemeral: true });
       }
 
+      await interaction.deferUpdate();
       imgCache.setImage(card.id, url);
+
+      // Auto-update the Discord emoji to match the new image
+      const emojiOk = await emojiCache.forceUploadEmoji(client, card, imgCache).catch(() => false);
+
       const newExpiry = Date.now() + 30 * 60_000;
       const { embed, components } = buildImageReviewEmbed(authorId, filteredCards, index, filter, newExpiry);
-      return interaction.update({ embeds: [embed], components });
+      if (!emojiOk) {
+        embed.setDescription('🔍 **Admin Image Review** — ⚠️ Image saved but emoji upload failed. Try the Upload Emoji button.');
+      } else {
+        embed.setDescription('🔍 **Admin Image Review** — ✅ Image & emoji updated!');
+      }
+      return interaction.editReply({ embeds: [embed], components });
     }
 
     return;
@@ -3076,13 +3086,21 @@ client.on('interactionCreate', async (interaction) => {
 
     if (action === 'find') {
       await interaction.deferUpdate();
-      const card      = filteredCards[index];
-      const freshUrl  = await imgCache.fetchJikanUrl(card.id, card.name).catch(() => null);
+      const card     = filteredCards[index];
+      const freshUrl = await imgCache.fetchJikanUrl(card.id, card.name).catch(() => null);
       const newExpiry = Date.now() + 30 * 60_000;
       const { embed, components } = buildImageReviewEmbed(authorId, filteredCards, index, filter, newExpiry);
+
       if (!freshUrl) {
         embed.setDescription('🔍 **Admin Image Review** — ⚠️ No image found on MyAnimeList. Use ✏️ Enter URL to paste one manually.');
+      } else {
+        // New image was fetched — auto-update the emoji too
+        const emojiOk = await emojiCache.forceUploadEmoji(client, card, imgCache).catch(() => false);
+        embed.setDescription(emojiOk
+          ? '🔍 **Admin Image Review** — ✅ Image & emoji updated!'
+          : '🔍 **Admin Image Review** — ⚠️ Image saved but emoji upload failed. Try the Upload Emoji button.');
       }
+
       return interaction.editReply({ embeds: [embed], components });
     }
 
@@ -3103,14 +3121,15 @@ client.on('interactionCreate', async (interaction) => {
 
     if (action === 'upload') {
       await interaction.deferUpdate();
-      const card = filteredCards[index];
-      try {
-        await emojiCache.syncEmojis(client, [card], imgCache);
-      } catch (err) {
+      const card   = filteredCards[index];
+      const emojiOk = await emojiCache.forceUploadEmoji(client, card, imgCache).catch(err => {
         console.error('imgrev upload error:', err);
-      }
+        return false;
+      });
       const newExpiry = Date.now() + 30 * 60_000;
       const { embed, components } = buildImageReviewEmbed(authorId, filteredCards, index, filter, newExpiry);
+      if (!emojiOk) embed.setDescription('🔍 **Admin Image Review** — ⚠️ Emoji upload failed (no image or no server space).');
+      else embed.setDescription('🔍 **Admin Image Review** — ✅ Emoji updated!');
       return interaction.editReply({ embeds: [embed], components });
     }
 
