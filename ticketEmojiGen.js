@@ -1,106 +1,192 @@
 /**
- * Generates simple gradient PNG images for raid ticket emojis.
- * Uses only Node.js built-in modules (no external dependencies).
+ * Generates ticket-shaped PNG emoji images for each raid ticket tier.
+ * Uses the `canvas` npm package for proper 2D drawing.
  */
-const zlib = require('zlib');
-
-function buildCrcTable() {
-  const table = [];
-  for (let n = 0; n < 256; n++) {
-    let c = n;
-    for (let k = 0; k < 8; k++) {
-      c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
-    }
-    table[n] = c;
-  }
-  return table;
-}
-const CRC_TABLE = buildCrcTable();
-
-function crc32(buf) {
-  let crc = 0xFFFFFFFF;
-  for (let i = 0; i < buf.length; i++) {
-    crc = CRC_TABLE[(crc ^ buf[i]) & 0xFF] ^ (crc >>> 8);
-  }
-  return (crc ^ 0xFFFFFFFF) >>> 0;
-}
-
-function pngChunk(type, data) {
-  const lenBuf  = Buffer.alloc(4);
-  lenBuf.writeUInt32BE(data.length);
-  const typeBuf = Buffer.from(type);
-  const crcData = Buffer.concat([typeBuf, data]);
-  const crcBuf  = Buffer.alloc(4);
-  crcBuf.writeUInt32BE(crc32(crcData));
-  return Buffer.concat([lenBuf, typeBuf, data, crcBuf]);
-}
-
-/**
- * Generates a 128×128 gradient PNG from color1 (top) to color2 (bottom).
- * @param {[number,number,number]} color1  RGB top color
- * @param {[number,number,number]} color2  RGB bottom color
- * @param {number} width
- * @param {number} height
- * @returns {Buffer} PNG file bytes
- */
-function generateGradientPNG(color1, color2, width = 128, height = 128) {
-  const rows = [];
-  for (let y = 0; y < height; y++) {
-    const t = height > 1 ? y / (height - 1) : 0;
-    const r = Math.round(color1[0] * (1 - t) + color2[0] * t);
-    const g = Math.round(color1[1] * (1 - t) + color2[1] * t);
-    const b = Math.round(color1[2] * (1 - t) + color2[2] * t);
-    const row = Buffer.alloc(1 + width * 3);
-    row[0] = 0;
-    for (let x = 0; x < width; x++) {
-      row[1 + x * 3]     = r;
-      row[1 + x * 3 + 1] = g;
-      row[1 + x * 3 + 2] = b;
-    }
-    rows.push(row);
-  }
-
-  const rawData    = Buffer.concat(rows);
-  const compressed = zlib.deflateSync(rawData);
-
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(width,  0);
-  ihdr.writeUInt32BE(height, 4);
-  ihdr[8]  = 8; // bit depth
-  ihdr[9]  = 2; // color type: RGB truecolor
-  ihdr[10] = 0; // compression: deflate
-  ihdr[11] = 0; // filter method
-  ihdr[12] = 0; // interlace: none
-
-  const PNG_SIG = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
-  return Buffer.concat([
-    PNG_SIG,
-    pngChunk('IHDR', ihdr),
-    pngChunk('IDAT', compressed),
-    pngChunk('IEND', Buffer.alloc(0)),
-  ]);
-}
+const { createCanvas } = require('canvas');
 
 /**
  * Color schemes for each raid ticket tier.
- * color1 = top color (RGB), color2 = bottom color (RGB).
+ * primary = main body color (top→bottom gradient)
+ * accent  = stub section tint
+ * label   = short text shown on the stub
  */
 const TICKET_COLORS = {
-  normal_raid_ticket:   { color1: [230, 230, 230], color2: [160, 160, 160], name: 'Normal Raid Ticket'   },
-  mythical_raid_ticket: { color1: [220,  60,  60], color2: [120,  10,  10], name: 'Mythical Raid Ticket' },
-  omega_raid_ticket:    { color1: [130, 220, 240], color2: [30,  160, 200], name: 'Omega Raid Ticket'    },
-  hellish_raid_ticket:  { color1: [255, 180, 200], color2: [220,  80, 130], name: 'Hellish Raid Ticket'  },
+  normal_raid_ticket: {
+    primary1: [220, 220, 220],
+    primary2: [160, 160, 165],
+    accent:   [185, 185, 190],
+    label:    'NORMAL',
+    name:     'Normal Raid Ticket',
+  },
+  mythical_raid_ticket: {
+    primary1: [215,  50,  50],
+    primary2: [120,  10,  10],
+    accent:   [160,  20,  20],
+    label:    'MYTHIC',
+    name:     'Mythical Raid Ticket',
+  },
+  omega_raid_ticket: {
+    primary1: [100, 210, 240],
+    primary2: [20,  130, 200],
+    accent:   [40,  160, 210],
+    label:    'OMEGA',
+    name:     'Omega Raid Ticket',
+  },
+  hellish_raid_ticket: {
+    primary1: [255, 170, 200],
+    primary2: [210,  70, 130],
+    accent:   [230, 100, 155],
+    label:    'HELL',
+    name:     'Hellish Raid Ticket',
+  },
 };
 
+function rgb(r, g, b) { return `rgb(${r},${g},${b})`; }
+function rgba(r, g, b, a) { return `rgba(${r},${g},${b},${a})`; }
+function mix(c1, c2, t) {
+  return c1.map((v, i) => Math.round(v * (1 - t) + c2[i] * t));
+}
+
+/** Draws a 5-pointed star centred at (cx, cy) with outer radius R and inner radius r. */
+function drawStar(ctx, cx, cy, R, r, points = 5) {
+  ctx.beginPath();
+  for (let i = 0; i < points * 2; i++) {
+    const angle = (Math.PI / points) * i - Math.PI / 2;
+    const radius = i % 2 === 0 ? R : r;
+    const x = cx + radius * Math.cos(angle);
+    const y = cy + radius * Math.sin(angle);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+}
+
 /**
- * Generates a PNG buffer for a given ticket ID.
+ * Generates a 128×128 PNG styled like a 🎟️ ticket emoji,
+ * coloured according to the given ticket tier.
+ *
  * @param {string} ticketId
- * @returns {Buffer|null}
+ * @returns {Buffer|null}  PNG buffer, or null if ticketId is unknown
  */
 function generateTicketPNG(ticketId) {
   const scheme = TICKET_COLORS[ticketId];
   if (!scheme) return null;
-  return generateGradientPNG(scheme.color1, scheme.color2);
+
+  const W = 128, H = 128;
+  const canvas = createCanvas(W, H);
+  const ctx = canvas.getContext('2d');
+
+  const { primary1: p1, primary2: p2, accent: ac, label } = scheme;
+
+  // Derived colours
+  const shadow = mix(p2, [0, 0, 0], 0.35);
+  const stubC1  = mix(ac, [255, 255, 255], 0.12);
+  const stubC2  = mix(ac, [0, 0, 0],       0.20);
+
+  // Layout constants
+  const PAD    = 6;     // outer padding / corner radius
+  const NOTCH_R = 10;   // radius of the side semicircle cut-outs
+  const SPLIT  = 88;    // x-coordinate of the tear line (left of stub)
+  const CY     = H / 2; // vertical centre (where notches sit)
+
+  // ─── 1. Build the full ticket outline as a clip path ──────────────────────
+  function drawTicketPath() {
+    ctx.beginPath();
+    ctx.moveTo(PAD + PAD, PAD);                        // top-left corner start
+    ctx.lineTo(W - PAD - PAD, PAD);                    // top edge
+    ctx.quadraticCurveTo(W - PAD, PAD, W - PAD, PAD + PAD); // top-right corner
+    // right edge: top half → right notch (inward arc) → bottom half
+    ctx.lineTo(W - PAD, CY - NOTCH_R);
+    ctx.arc(W - PAD, CY, NOTCH_R, -Math.PI / 2, Math.PI / 2, false); // outward
+    ctx.lineTo(W - PAD, H - PAD - PAD);
+    ctx.quadraticCurveTo(W - PAD, H - PAD, W - PAD - PAD, H - PAD); // btm-right
+    ctx.lineTo(PAD + PAD, H - PAD);                    // bottom edge
+    ctx.quadraticCurveTo(PAD, H - PAD, PAD, H - PAD - PAD); // btm-left
+    // left edge: bottom half → left notch (outward arc) → top half
+    ctx.lineTo(PAD, CY + NOTCH_R);
+    ctx.arc(PAD, CY, NOTCH_R, Math.PI / 2, -Math.PI / 2, false);    // outward
+    ctx.lineTo(PAD, PAD + PAD);
+    ctx.quadraticCurveTo(PAD, PAD, PAD + PAD, PAD);   // top-left corner
+    ctx.closePath();
+  }
+
+  // ─── 2. Background shadow ─────────────────────────────────────────────────
+  ctx.fillStyle = rgba(...shadow, 0.55);
+  ctx.fillRect(0, 0, W, H);
+
+  // ─── 3. Main ticket body with gradient ───────────────────────────────────
+  ctx.save();
+  drawTicketPath();
+  const bodyGrad = ctx.createLinearGradient(PAD, PAD, W - PAD, H - PAD);
+  bodyGrad.addColorStop(0, rgb(...p1));
+  bodyGrad.addColorStop(1, rgb(...p2));
+  ctx.fillStyle = bodyGrad;
+  ctx.fill();
+  ctx.clip(); // now everything below is clipped to the ticket outline
+
+  // ─── 4. Stub section (darker overlay on the right strip) ─────────────────
+  const stubGrad = ctx.createLinearGradient(SPLIT, 0, W, 0);
+  stubGrad.addColorStop(0, rgb(...stubC1));
+  stubGrad.addColorStop(1, rgb(...stubC2));
+  ctx.fillStyle = stubGrad;
+  ctx.fillRect(SPLIT, PAD, W - SPLIT, H - PAD * 2);
+
+  // ─── 5. Dashed perforation line ───────────────────────────────────────────
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+  ctx.lineWidth   = 1.5;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.moveTo(SPLIT, PAD + 2);
+  ctx.lineTo(SPLIT, CY - NOTCH_R - 2);
+  ctx.moveTo(SPLIT, CY + NOTCH_R + 2);
+  ctx.lineTo(SPLIT, H - PAD - 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ─── 6. Subtle inner glow/highlight at the top of the main body ──────────
+  const highlight = ctx.createLinearGradient(0, PAD, 0, PAD + 28);
+  highlight.addColorStop(0, 'rgba(255,255,255,0.30)');
+  highlight.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = highlight;
+  ctx.fillRect(PAD, PAD, SPLIT - PAD, 28);
+
+  // ─── 7. Stars on the stub ────────────────────────────────────────────────
+  const stubCX = (SPLIT + W - PAD) / 2;
+  ctx.fillStyle = 'rgba(255,255,255,0.80)';
+  drawStar(ctx, stubCX, CY - 18, 7, 3);
+  ctx.fill();
+  drawStar(ctx, stubCX, CY + 18, 7, 3);
+  ctx.fill();
+
+  // ─── 8. Decorative small dots row on main body (top & bottom) ────────────
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  const dotCount = 5;
+  for (let i = 0; i < dotCount; i++) {
+    const dx = (PAD + 10) + ((SPLIT - PAD - 20) * i) / (dotCount - 1);
+    ctx.beginPath(); ctx.arc(dx, PAD + 10, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(dx, H - PAD - 10, 2, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // ─── 9. "RAID" label on main body ─────────────────────────────────────────
+  const bodyCX = (PAD + SPLIT) / 2;
+  ctx.fillStyle  = 'rgba(255,255,255,0.92)';
+  ctx.textAlign  = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = 'bold 18px sans-serif';
+  ctx.fillText('RAID', bodyCX, CY - 7);
+
+  // ─── 10. Tier label on main body (smaller, below) ─────────────────────────
+  ctx.font = 'bold 10px sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.72)';
+  ctx.fillText(label, bodyCX, CY + 11);
+
+  // ─── 11. Outline stroke ───────────────────────────────────────────────────
+  ctx.restore();
+  drawTicketPath();
+  ctx.strokeStyle = rgba(...mix(p2, [0, 0, 0], 0.4), 0.8);
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  return canvas.toBuffer('image/png');
 }
 
 module.exports = { generateTicketPNG, TICKET_COLORS };
