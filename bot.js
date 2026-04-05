@@ -6954,26 +6954,32 @@ client.on('messageCreate', async (message) => {
     const results = {};
     const ticketIds = Object.keys(TICKET_IMAGES);
 
+    const withTimeout = (promise, ms) => Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms)),
+    ]);
+
     for (const ticketId of ticketIds) {
       const { name: emojiName, label, file: imgPath } = TICKET_IMAGES[ticketId];
       try {
         if (!fs.existsSync(imgPath)) { results[ticketId] = `❌ Image file not found: ${imgPath}`; continue; }
         const pngBuffer = fs.readFileSync(imgPath);
         let uploaded = null;
+        const serverErrors = [];
 
         for (const serverId of emojiServers) {
           try {
             const guild = client.guilds.cache.get(serverId);
-            if (!guild) continue;
+            if (!guild) { serverErrors.push(`${serverId}: not in guild`); continue; }
             const existingEmoji = guild.emojis.cache.find(e => e.name === emojiName);
             if (existingEmoji) { uploaded = existingEmoji; break; }
-            const newEmoji = await guild.emojis.create({
-              attachment: pngBuffer,
-              name: emojiName,
-            });
+            const newEmoji = await withTimeout(
+              guild.emojis.create({ attachment: pngBuffer, name: emojiName }),
+              10000
+            );
             uploaded = newEmoji;
             break;
-          } catch (_) {}
+          } catch (err) { serverErrors.push(`${serverId}: ${err.message}`); }
         }
 
         if (uploaded) {
@@ -6982,7 +6988,9 @@ client.on('messageCreate', async (message) => {
           current[ticketId] = { id: uploaded.id, name: uploaded.name };
           saveTicketEmojis(current);
         } else {
-          results[ticketId] = '❌ Upload failed (all servers full or inaccessible)';
+          const errSample = serverErrors.slice(0, 3).join(' | ');
+          const extra = serverErrors.length > 3 ? ` (+${serverErrors.length - 3} more)` : '';
+          results[ticketId] = `❌ Upload failed — ${errSample}${extra}`;
         }
       } catch (err) {
         results[ticketId] = `❌ Error: ${err.message}`;
