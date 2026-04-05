@@ -10,7 +10,7 @@
 //    ZP all [filter]                        – filter all cards by rarity or name
 //    ZP wallet                              – view your currencies
 //    ZP shop                                – view the shop and all buyable items
-//    ZP inventory  (inv)                    – view platings
+//    ZP inventory  (inv)                    – view platings, tickets, level scrolls
 //    ZP shards [filter]                     – view character shards
 //    ZP wish <cardId>                       – set a wish card (guaranteed after 200 pulls)
 //    ZP card <id>  (c <id>)                 – inspect a card
@@ -56,6 +56,7 @@
 //    ZP giveitem @user <itemId>
 //    ZP giveshards @user <cardId> <amount>
 //    ZP givecard @user <cardId>
+//    ZP genraidemojis                       – generate & upload custom raid ticket emojis
 //    ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]
 //    ZP editcode <name> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]
 //    ZP deletecode <name>
@@ -122,6 +123,35 @@ const inv         = require('./inventory');
 const trades      = require('./trades');
 const imgCache    = require('./imageCache');
 const emojiCache  = require('./emojiCache');
+const { generateTicketPNG } = require('./ticketEmojiGen');
+
+// ── Raid Ticket Custom Emojis ─────────────────────────────────────────────────
+const TICKET_EMOJI_FILE = path.join(__dirname, 'data', 'raidTicketEmojis.json');
+let _raidTicketEmojiCache = null;
+
+function loadTicketEmojis() {
+  if (_raidTicketEmojiCache) return _raidTicketEmojiCache;
+  try {
+    const raw = fs.readFileSync(TICKET_EMOJI_FILE, 'utf8');
+    _raidTicketEmojiCache = JSON.parse(raw);
+  } catch (_) {
+    _raidTicketEmojiCache = {};
+  }
+  return _raidTicketEmojiCache;
+}
+
+function saveTicketEmojis(data) {
+  _raidTicketEmojiCache = data;
+  fs.writeFileSync(TICKET_EMOJI_FILE, JSON.stringify(data, null, 2));
+}
+
+/** Returns the custom Discord emoji string for a ticket ID, or falls back to config emoji. */
+function getTicketEmoji(ticketId) {
+  const custom = loadTicketEmojis()[ticketId];
+  if (custom) return `<:${custom.name}:${custom.id}>`;
+  const tier = config.RAID_TICKET_TIERS.find(t => t.id === ticketId);
+  return tier?.emoji ?? '🎟️';
+}
 
 // ── Static image server ───────────────────────────────────
 {
@@ -1167,7 +1197,9 @@ function generateCollabRaidReward(state, inventory) {
   const allies = state.participants.filter(p => p.selectedCard);
   const rewardShares = state.rewardShares ?? [];
   const shareDeduction = Math.min(rewardShares.length * 0.20, 0.5); // owner loses up to 50% of their share
-  const ownerShare = 0.5 * (1 - shareDeduction);
+  // If no allies, owner gets 100% of the pot (minus reward shares); otherwise owner gets 50%
+  const baseOwnerShare = 0.5 * (1 - shareDeduction);
+  const ownerShare = allies.length === 0 ? baseOwnerShare + 0.5 : baseOwnerShare;
   const sharedUsers = rewardShares.map(s => ({
     userId: s.userId, username: s.username,
     share: 0.5 * 0.20, // 20% of owner's base 50%
@@ -1561,7 +1593,7 @@ function singlePullEmbed(card, isDupe, plating, chargeInfo, authorUsername, drop
   if (plating) descLines.push(`**${plating.label} Plating** dropped!`);
   for (const ticketId of droppedTickets) {
     const rTier = config.RAID_TICKET_TIERS.find(t => t.id === ticketId);
-    if (rTier) descLines.push(`${rTier.emoji} **${rTier.label}** dropped! Use \`${rTier.useCmd}\` to fight a boss!`);
+    if (rTier) descLines.push(`${getTicketEmoji(ticketId)} **${rTier.label}** dropped! Use \`${rTier.useCmd}\` to fight a boss!`);
   }
   if (card.supportCard) descLines.push(`✨ *Passive support card — check \`ZP cardinfo ${card.id}\` for its effect.*`);
   if (card.weaponCard)  descLines.push(`⚔️ *Weapon card — equip it to a card with \`ZP equip <card> ${card.id}\`.*`);
@@ -1588,9 +1620,9 @@ function singlePullEmbed(card, isDupe, plating, chargeInfo, authorUsername, drop
   } else if (!card.supportCard) {
     const stats = getCardStats(card, 1);
     embed.addFields(
-      { name: '❤️ Health', value: `${stats.hp.toLocaleString()}`,  inline: true },
-      { name: card.technique ? '🔵 Technique' : '⚔️ Damage', value: `${stats.dmg.toLocaleString()}`, inline: true },
-      { name: '💨 Speed', value: `${stats.speed.toLocaleString()}`, inline: true },
+      { name: card.dittoCard ? '❤️ Copied HP' : '❤️ Health', value: card.dittoCard ? '[COPIED IN BATTLE]' : `${stats.hp.toLocaleString()}`,  inline: true },
+      { name: card.dittoCard ? '⚔️ Copied DMG' : (card.technique ? '🔵 Technique' : '⚔️ Damage'), value: card.dittoCard ? '[COPIED IN BATTLE]' : `${stats.dmg.toLocaleString()}`, inline: true },
+      { name: card.dittoCard ? '💨 Copied SPD' : '💨 Speed', value: card.dittoCard ? '[COPIED IN BATTLE]' : `${stats.speed.toLocaleString()}`, inline: true },
     );
   }
 
@@ -1640,7 +1672,7 @@ function allPullEmbed(results, charges, withReset, authorUsername, overrideNote)
   for (const t of allDropped) ticketTotals[t] = (ticketTotals[t] || 0) + 1;
   const ticketFooterParts = Object.entries(ticketTotals).map(([id, n]) => {
     const rTier = config.RAID_TICKET_TIERS.find(t => t.id === id);
-    return rTier ? `${rTier.emoji} ${n}x ${rTier.label}` : null;
+    return rTier ? `${getTicketEmoji(id)} ${n}x ${rTier.label}` : null;
   }).filter(Boolean);
   const footerParts = [
     `Total Pulls: ${charges}/${charges}`,
@@ -1751,9 +1783,9 @@ function buildAllCardsPage(authorId, allCards, page, filter, expiry) {
       { name: 'Series',      value: card.series,                    inline: true },
       { name: 'Rarity',      value: `${meta.emoji} ${meta.label}`, inline: true },
       { name: 'Stars',       value: meta.stars || '—',              inline: true },
-      { name: '❤️ Health',   value: `${stats.hp.toLocaleString()}`,  inline: true },
-      { name: card.technique ? '🔵 Technique' : '⚔️ Damage', value: `${stats.dmg.toLocaleString()}`, inline: true },
-      { name: '💨 Speed',   value: `${stats.speed.toLocaleString()}`, inline: true },
+      { name: card.dittoCard ? '❤️ Copied HP' : '❤️ Base HP',   value: card.dittoCard ? '[COPIED IN BATTLE]' : `${stats.hp.toLocaleString()}`,  inline: true },
+      { name: card.dittoCard ? '⚔️ Copied DMG' : (card.technique ? '🔵 Base TEC' : '⚔️ Base DMG'), value: card.dittoCard ? '[COPIED IN BATTLE]' : `${stats.dmg.toLocaleString()}`, inline: true },
+      { name: card.dittoCard ? '💨 Copied SPD' : '💨 Base SPD', value: card.dittoCard ? '[COPIED IN BATTLE]' : `${stats.speed.toLocaleString()}`, inline: true },
       { name: '🪪 Card ID',  value: `\`${card.id}\``,              inline: true },
     )
     .setFooter({ text: `Card ${page + 1} of ${filtered.length}${filterTag}` });
@@ -1917,9 +1949,9 @@ function buildCollectionPage(authorId, targetUser, cards, page, filter, inventor
       { name: 'Rarity',      value: `${meta.emoji} ${meta.label}`, inline: true },
       { name: 'Stars',       value: meta.stars || '—',              inline: true },
       { name: '📊 Level',    value: levelLabel,                       inline: true },
-      { name: '❤️ Health',   value: `${stats.hp.toLocaleString()}`,  inline: true },
-      { name: card.technique ? '🔵 Technique' : '⚔️ Damage', value: `${stats.dmg.toLocaleString()}`, inline: true },
-      { name: '💨 Speed',    value: `${stats.speed.toLocaleString()}`, inline: true },
+      { name: card.dittoCard ? '❤️ Copied HP' : '❤️ Health',   value: card.dittoCard ? '[COPIED IN BATTLE]' : `${stats.hp.toLocaleString()}`,  inline: true },
+      { name: card.dittoCard ? '⚔️ Copied DMG' : (card.technique ? '🔵 Technique' : '⚔️ Damage'), value: card.dittoCard ? '[COPIED IN BATTLE]' : `${stats.dmg.toLocaleString()}`, inline: true },
+      { name: card.dittoCard ? '💨 Copied SPD' : '💨 Speed',    value: card.dittoCard ? '[COPIED IN BATTLE]' : `${stats.speed.toLocaleString()}`, inline: true },
       { name: '🪪 Card ID',  value: `\`${card.id}\``,                inline: true },
     )
     .setFooter({ text: `Card ${page + 1} of ${filtered.length}${filterTag}${shardTag}` });
@@ -2171,7 +2203,8 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         { name: '`ZP equipweapon <cardId> <weaponId>` / `ZP ew`',          value: 'Equip a weapon card to a card slot. Boosts that card\'s HP, DMG, and Speed in battle.', inline: false },
         { name: '`ZP unequipweapon <cardId>` / `ZP uew`',                  value: 'Remove the equipped weapon from a card.', inline: false },
         { name: '`ZP evolveweapon <weaponId>` / `ZP evw`',                 value: `Evolve a weapon to the next tier (max Tier ${config.WEAPON_EVOLUTION_TIERS.length}). Costs **${config.WEAPON_EVOLVE_SHARDS} weapon shards** + **${config.WEAPON_EVOLVE_PRESTIGE} weapon prestige** per tier.\nTiers: Basic → Refined → Enhanced → Masterwork → Legendary`, inline: false },
-        { name: '`ZP weaponinfo <weaponId>` / `ZP winfo`',                 value: 'View your weapon\'s evolution tier, prestige, and shard progress.', inline: false },
+        { name: '`ZP weaponinfo <weaponId>` / `ZP winfo`',                 value: 'View a weapon\'s stats (actual battle values shown for owned weapons).', inline: false },
+        { name: '`ZP wmci <weaponId>`',                                     value: 'View your owned weapon\'s actual battle stats with tier/level multipliers.', inline: false },
       )
       .setFooter({ text: `Page 5 of ${TOTAL} • ZP help` }),
 
@@ -2343,6 +2376,7 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
               '`ZP giveraidticket @user <tier> [amount]` – Give raid tickets (tiers: `normal` `mythical` `omega` `hellish`)',
               '`ZP giveshards @user <cardId> <amount>` – Give character shards to a player',
               '`ZP givecard @user <cardId>` – Give a card directly to a player (gives shard if they own it)',
+              '`ZP genraidemojis` – Generate & upload custom gradient emojis for each raid ticket tier',
               '`ZP givelimitbreaker [@user] <amount>` – Give Limit Breakers to a player',
               '`ZP givelevelscrolls [@user] <amount>` – Give Level Scrolls 📜 to a player',
               '`ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]` – Create a redeemable code',
@@ -3635,6 +3669,11 @@ client.on('messageCreate', async (message) => {
       }
     }
 
+    // Award XP based on rarity
+    const XP_PER_RARITY = { R: 10, E: 25, L: 50, MY: 75, UR: 100, LT: 150, MD: 250 };
+    const xpGain = XP_PER_RARITY[card.rarity] ?? 10;
+    inv.addXP(inventory, uid, xpGain);
+
     return { card, isDupe, plating, wishCount, droppedTickets };
   }
 
@@ -3698,7 +3737,7 @@ client.on('messageCreate', async (message) => {
           `${wMeta.emoji} **${wMeta.label}** — ${wishGrant.card.series}\n` +
           (wishGrant.isDupe ? `You already owned this card — **+1 Shard** added instead.` : `**${wishGrant.card.name}** added to your collection!`)
         )
-        .setFooter({ text: 'Your wish has been reset! Pull 200 more times to receive it again.' });
+        .setFooter({ text: `Your wish pull count has been reset to 0 — your wish for ${wishGrant.card.name} is still active! Pull ${inv.WISH_THRESHOLD} more times to receive it again.` });
       if (wImg) wEmbed.setImage(wImg);
       await message.reply({ embeds: [wEmbed] });
     }
@@ -3757,7 +3796,7 @@ client.on('messageCreate', async (message) => {
           `${wMeta.emoji} **${wMeta.label}** — ${wishGrant.card.series}\n` +
           (wishGrant.isDupe ? `You already owned this card — **+1 Shard** added instead.` : `**${wishGrant.card.name}** added to your collection!`)
         )
-        .setFooter({ text: 'Your wish has been reset! Pull 200 more times to receive it again.' });
+        .setFooter({ text: `Your wish pull count has been reset to 0 — your wish for ${wishGrant.card.name} is still active! Pull ${inv.WISH_THRESHOLD} more times to receive it again.` });
       if (wImg) wEmbed.setImage(wImg);
       await message.reply({ embeds: [wEmbed] });
     }
@@ -4130,7 +4169,9 @@ client.on('messageCreate', async (message) => {
       .map(id => ({ tier: config.RAID_TICKET_TIERS.find(t => t.id === id), count: userItems[id] ?? 0 }))
       .filter(e => e.count > 0);
 
-    const hasAnything = platingEntries.length > 0 || ticketEntries.length > 0;
+    const levelScrollCount = userItems['level_scroll'] ?? 0;
+
+    const hasAnything = platingEntries.length > 0 || ticketEntries.length > 0 || levelScrollCount > 0;
     if (!hasAnything) {
       return message.reply(
         `${target.id === userId ? 'You have' : `**${target.username}** has`} nothing in their inventory yet!`
@@ -4157,13 +4198,21 @@ client.on('messageCreate', async (message) => {
       embed.addFields({
         name: '🎟️ Raid Tickets',
         value: ticketEntries
-          .map(e => `${e.tier.emoji} **${e.tier.label}** — x${e.count}\n*Use: \`${e.tier.useCmd}\`*`)
+          .map(e => `${getTicketEmoji(e.tier.id)} **${e.tier.label}** — x${e.count}\n*Use: \`${e.tier.useCmd}\`*`)
           .join('\n'),
         inline: false,
       });
     }
 
-    embed.setFooter({ text: 'Platings drop at 0.1% per pull • Raid Tickets drop from pulls too!' });
+    if (levelScrollCount > 0) {
+      embed.addFields({
+        name: '📜 Level Scrolls',
+        value: `**Level Scroll** — x${levelScrollCount}\n*Use: \`ZP use level_scroll <cardId>\` to instantly raise a card's level by 1.*`,
+        inline: false,
+      });
+    }
+
+    embed.setFooter({ text: 'Platings drop at 0.1% per pull • Raid Tickets drop from pulls too! • Level Scrolls from daily rewards & raids' });
     return message.reply({ embeds: [embed] });
   }
 
@@ -4349,7 +4398,7 @@ client.on('messageCreate', async (message) => {
     if (!inv.removeItem(inventory, userId, ticketId)) {
       const chances  = config.RAID_TICKET_CHANCES;
       const pct      = ((chances[ticketId] ?? 0) * 100).toFixed(3);
-      return message.reply(`You don't have a **${tier.emoji} ${tier.label}**! They drop at **${pct}%** per pull.`);
+      return message.reply(`You don't have a **${getTicketEmoji(ticketId)} ${tier.label}**! They drop at **${pct}%** per pull.`);
     }
 
     const team = inv.getTeam(inventory, userId);
@@ -4439,7 +4488,7 @@ client.on('messageCreate', async (message) => {
     activeCollabRaids.set(userId, battleId);
 
     const dittoNote = isDittoBoss ? `\n🟣 *Ditto will **Transform** into your team's strongest card (10× Lv-100 stats) when the raid starts!*` : '';
-    const openLog = `${tier.emoji} **${tier.label}** consumed! A **${bossMeta.emoji} ${isDittoBoss ? 'Ditto' : bossCard.name}** Raid Boss appeared!${dittoNote}\n**HP:** ${bossHp.toLocaleString()} | **DMG:** ${bossDmg.toLocaleString()}–${Math.round(bossDmg * 1.2).toLocaleString()}\n\n*Use \`ZP arj\` to allow others to join, \`ZP wh @user\` to whitelist players, then click **Start Raid**!*`;
+    const openLog = `${getTicketEmoji(ticketId)} **${tier.label}** consumed! A **${bossMeta.emoji} ${isDittoBoss ? 'Ditto' : bossCard.name}** Raid Boss appeared!${dittoNote}\n**HP:** ${bossHp.toLocaleString()} | **DMG:** ${bossDmg.toLocaleString()}–${Math.round(bossDmg * 1.2).toLocaleString()}\n\n*Use \`ZP arj\` to allow others to join, \`ZP wh @user\` to whitelist players, then click **Start Raid**!*`;
     const embed      = buildCollabRaidPreEmbed(state);
     const components = buildCollabPreComponents(state);
 
@@ -4634,9 +4683,9 @@ client.on('messageCreate', async (message) => {
         { name: 'Rarity',           value: `${meta.emoji} ${meta.label}`, inline: true },
         { name: 'Stars',            value: meta.stars || '—',              inline: true },
         { name: '📊 Level',         value: levelLabel,                        inline: true },
-        { name: '❤️ Health',        value: `${stats.hp.toLocaleString()}`,   inline: true },
-        { name: card.technique ? '🔵 Technique' : '⚔️ Damage', value: `${stats.dmg.toLocaleString()}`, inline: true },
-        { name: '💨 Speed',         value: `${stats.speed.toLocaleString()}`, inline: true },
+        { name: card.dittoCard ? '❤️ Copied HP' : '❤️ Health',        value: card.dittoCard ? '[COPIED IN BATTLE]' : `${stats.hp.toLocaleString()}`,   inline: true },
+        { name: card.dittoCard ? '⚔️ Copied DMG' : (card.technique ? '🔵 Technique' : '⚔️ Damage'), value: card.dittoCard ? '[COPIED IN BATTLE]' : `${stats.dmg.toLocaleString()}`, inline: true },
+        { name: card.dittoCard ? '💨 Copied SPD' : '💨 Speed',         value: card.dittoCard ? '[COPIED IN BATTLE]' : `${stats.speed.toLocaleString()}`, inline: true },
         { name: '✨ Prestige Points', value: `${pp}`,                         inline: true },
         { name: '🔮 Shards',        value: `${shards}`,                      inline: true },
         { name: 'Plating',           value: mycardPlatings.length ? mycardPlatings.map(p => p.label).join(' + ') : 'None', inline: true },
@@ -5084,6 +5133,7 @@ client.on('messageCreate', async (message) => {
     const clan        = inv.getUserClan(inventory, target.id);
     const duo         = inv.getUserDuo(inventory, target.id);
     const team        = inv.getTeam(inventory, target.id);
+    const xpInfo      = inv.getUserLevel(inventory, target.id);
 
     // Top prestige card
     const ppObj     = inv.getPrestigePoints(inventory, target.id);
@@ -5106,11 +5156,18 @@ client.on('messageCreate', async (message) => {
       wishStr = `${wCard?.name ?? wish.cardId} (${wish.pullCount}/${inv.WISH_THRESHOLD} pulls)`;
     }
 
+    const xpBar = (() => {
+      const filled = Math.round((xpInfo.xp / xpInfo.nextLevelXP) * 10);
+      return `[${'█'.repeat(filled)}${'░'.repeat(10 - filled)}] ${xpInfo.xp.toLocaleString()} / ${xpInfo.nextLevelXP.toLocaleString()} XP`;
+    })();
+
     const embed = new EmbedBuilder()
       .setColor(0x00FFD1)
       .setTitle(`📋 ${target.username}'s Profile`)
       .setThumbnail(target.displayAvatarURL())
       .addFields(
+        { name: '⭐ Profile Level',      value: `Lv. **${xpInfo.level}**`,      inline: true },
+        { name: '✨ XP Progress',        value: xpBar,                            inline: false },
         { name: '🃏 Cards Collected',    value: `${cards.length}`,              inline: true },
         { name: '🔮 Total Shards',       value: `${totalShards}`,               inline: true },
         { name: '⚔️ Team Size',          value: `${team.length} / ${inv.TEAM_SIZE}`, inline: true },
@@ -6432,6 +6489,7 @@ client.on('messageCreate', async (message) => {
       : '\n**⚡ Maximum evolution reached!**';
 
     const img = imgCache.getImage(weapon.id) ?? weapon.image ?? null;
+    const tierMult = 1 + (tierData.statMult * (level / 100));
     const embed = new EmbedBuilder()
       .setColor(meta.color)
       .setTitle(`⚔️ ${weapon.name} — Your Weapon`)
@@ -6439,18 +6497,86 @@ client.on('messageCreate', async (message) => {
         `${meta.emoji} **${meta.label}** weapon — ${weapon.series}\n\n` +
         `${tierData.emoji} **Tier ${tier} — ${tierData.name}**\n` +
         `**Level:** ${level} / 100  |  **Weapon Prestige:** ${prestige}\n` +
-        `**Stat Bonus:** +${Math.round(tierData.statMult * (level / 100) * 100)}% (at current level)` +
+        `**Tier Multiplier:** ×${tierMult.toFixed(2)} (base stats × this value)` +
         progressToNext
       )
       .setFooter({ text: `Equip with: ZP equip <cardId> ${weapon.id}` });
     if (wStats) {
+      const actualHp    = Math.round(wStats.hp    * tierMult);
+      const actualSpd   = Math.round(wStats.speed * tierMult);
+      const actualAtkMin = Math.round(wStats.atkMin * tierMult);
+      const actualAtkMax = Math.round(wStats.atkMax * tierMult);
       embed.addFields(
-        { name: '⚡ Power',           value: `${wStats.power.toLocaleString()}`,  inline: true },
-        { name: '❤️ Health Boosted',  value: `${wStats.hp.toLocaleString()}`,     inline: true },
-        { name: '💨 Speed Boosted',   value: `${wStats.speed.toLocaleString()}`,  inline: true },
-        { name: '⚔️ Attack Boosted',  value: `${wStats.atkMin}–${wStats.atkMax}`, inline: true },
-        { name: '🃏 Signature Cards', value: sigName ?? '—',                      inline: true },
-        { name: '🏷️ Type',           value: 'Weapon',                            inline: true },
+        { name: '⚡ Power',           value: `${wStats.power.toLocaleString()}`,       inline: true },
+        { name: '❤️ HP Boost (actual)',  value: `+${actualHp.toLocaleString()} *(base: ${wStats.hp})*`,   inline: true },
+        { name: '💨 SPD Boost (actual)', value: `+${actualSpd.toLocaleString()} *(base: ${wStats.speed})*`, inline: true },
+        { name: '⚔️ ATK Boost (actual)', value: `+${actualAtkMin}–${actualAtkMax} *(base: ${wStats.atkMin}–${wStats.atkMax})*`, inline: true },
+        { name: '🃏 Signature Cards', value: sigName ?? '—',                           inline: true },
+        { name: '🏷️ Type',           value: 'Weapon',                                 inline: true },
+      );
+    }
+    if (img) embed.setThumbnail(img);
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── wmci ──────────────────────────────────────────────────
+  if (command === 'wmci') {
+    const weaponQuery = args.filter(a => !a.startsWith('<@')).join(' ');
+    if (!weaponQuery) return message.reply('Usage: `ZP wmci <weaponId>`');
+
+    const weapon = resolveCard(weaponQuery);
+    if (!weapon) return message.reply(`No weapon found matching \`${weaponQuery}\`.`);
+
+    const wDef = CARDS.find(c => c.id === weapon.id);
+    if (!wDef?.weaponCard) return message.reply(`**${weapon.name}** is not a weapon card.`);
+
+    const inventory = await inv.loadInventory();
+    if (!inv.hasCard(inventory, userId, weapon.id)) {
+      return message.reply(`You don't own **${weapon.name}**. Use \`ZP winfo ${weapon.id}\` to see its base stats.`);
+    }
+
+    const meta     = rarityMeta(weapon.rarity);
+    const wStats   = config.WEAPON_STATS[weapon.rarity];
+    const sigName  = wDef.weaponOf ? (lookupCard(wDef.weaponOf)?.name ?? wDef.weaponOf) : null;
+    const wData    = inv.getWeaponData(inventory, userId, weapon.id);
+    const tier     = wData.evolutionTier ?? 1;
+    const prestige = wData.prestige ?? 0;
+    const tierData = config.WEAPON_EVOLUTION_TIERS[tier - 1];
+    const nextTier = config.WEAPON_EVOLUTION_TIERS[tier];
+    const shards   = (inv.getCharacterShards(inventory, userId)[weapon.id] ?? 0);
+    const invCard  = inv.getCards(inventory, userId).find(c => c.id === weapon.id);
+    const level    = invCard?.level ?? 1;
+    const img      = imgCache.getImage(weapon.id) ?? weapon.image ?? null;
+
+    const wmciTierMult = 1 + (tierData.statMult * (level / 100));
+    const progressToNext = nextTier
+      ? `\n**Progress to Tier ${tier + 1}:** ${prestige}/${config.WEAPON_EVOLVE_PRESTIGE} prestige  |  ${shards}/${config.WEAPON_EVOLVE_SHARDS} shards`
+      : '\n**⚡ Maximum evolution reached!**';
+
+    const embed = new EmbedBuilder()
+      .setColor(meta.color)
+      .setTitle(`⚔️ ${weapon.name} — My Weapon Info`)
+      .setDescription(
+        `${meta.emoji} **${meta.label}** weapon — ${weapon.series}\n\n` +
+        `${tierData.emoji} **Tier ${tier} — ${tierData.name}**\n` +
+        `**Level:** ${level} / 100  |  **Weapon Prestige:** ${prestige}\n` +
+        `**Tier Multiplier:** ×${wmciTierMult.toFixed(2)} (base stats × this value)` +
+        progressToNext
+      )
+      .setFooter({ text: `Use ZP winfo ${weapon.id} for unowned view • ZP equip <cardId> ${weapon.id} to equip` });
+
+    if (wStats) {
+      const wActualHp    = Math.round(wStats.hp    * wmciTierMult);
+      const wActualSpd   = Math.round(wStats.speed * wmciTierMult);
+      const wActualAtkMin = Math.round(wStats.atkMin * wmciTierMult);
+      const wActualAtkMax = Math.round(wStats.atkMax * wmciTierMult);
+      embed.addFields(
+        { name: '⚡ Power',            value: `${wStats.power.toLocaleString()}`,         inline: true },
+        { name: '❤️ HP Boost (actual)', value: `+${wActualHp.toLocaleString()} *(base: ${wStats.hp})*`,    inline: true },
+        { name: '💨 SPD Boost (actual)', value: `+${wActualSpd.toLocaleString()} *(base: ${wStats.speed})*`,  inline: true },
+        { name: '⚔️ ATK Boost (actual)', value: `+${wActualAtkMin}–${wActualAtkMax} *(base: ${wStats.atkMin}–${wStats.atkMax})*`, inline: true },
+        { name: '🃏 Signature Cards',   value: sigName ?? '—',                             inline: true },
+        { name: '🏷️ Type',             value: 'Weapon',                                   inline: true },
       );
     }
     if (img) embed.setThumbnail(img);
@@ -6681,7 +6807,7 @@ client.on('messageCreate', async (message) => {
     const inventory = await inv.loadInventory();
     for (let i = 0; i < amount; i++) inv.addItem(inventory, target.id, ticketId);
     await inv.saveInventory(inventory);
-    return message.reply(`Gave **${amount}× ${tier.emoji} ${tier.label}** to **${target.username}**.`);
+    return message.reply(`Gave **${amount}× ${getTicketEmoji(ticketId)} ${tier.label}** to **${target.username}**.`);
   }
 
   // ── giveshards ────────────────────────────────────────────
@@ -6807,6 +6933,68 @@ client.on('messageCreate', async (message) => {
       return message.reply(`**${target.username}** already owns **${card.name}** — gave them **1 ${emoji}${card.name} Shard** instead.`);
     }
     return message.reply(`${meta.emoji} Gave **${emoji}${card.name}** (${meta.label}) to **${target.username}**!`);
+  }
+
+  // ── genraidemojis ─────────────────────────────────────────
+  if (command === 'genraidemojis') {
+    await message.reply('⏳ Generating and uploading raid ticket emojis to all emoji servers…');
+
+    const { TICKET_COLORS } = require('./ticketEmojiGen');
+    const emojiServers = emojiCache.EMOJI_SERVERS ?? [];
+    if (!emojiServers.length) {
+      return message.reply('❌ No emoji servers configured in emojiCache. Add server IDs first.');
+    }
+
+    const results = {};
+    const ticketIds = Object.keys(TICKET_COLORS);
+    const shortNames = {
+      normal_raid_ticket:   'tko_ticket_normal',
+      mythical_raid_ticket: 'tko_ticket_mythic',
+      omega_raid_ticket:    'tko_ticket_omega',
+      hellish_raid_ticket:  'tko_ticket_hell',
+    };
+
+    for (const ticketId of ticketIds) {
+      try {
+        const pngBuffer = generateTicketPNG(ticketId);
+        if (!pngBuffer) { results[ticketId] = '❌ PNG gen failed'; continue; }
+
+        const emojiName = shortNames[ticketId] ?? ticketId.replace(/_/g, '').slice(0, 32);
+        let uploaded = null;
+
+        for (const serverId of emojiServers) {
+          try {
+            const guild = client.guilds.cache.get(serverId);
+            if (!guild) continue;
+            const existingEmoji = guild.emojis.cache.find(e => e.name === emojiName);
+            if (existingEmoji) { uploaded = existingEmoji; break; }
+            const newEmoji = await guild.emojis.create({
+              attachment: pngBuffer,
+              name: emojiName,
+            });
+            uploaded = newEmoji;
+            break;
+          } catch (_) {}
+        }
+
+        if (uploaded) {
+          results[ticketId] = `✅ <:${uploaded.name}:${uploaded.id}>`;
+          const current = loadTicketEmojis();
+          current[ticketId] = { id: uploaded.id, name: uploaded.name };
+          saveTicketEmojis(current);
+        } else {
+          results[ticketId] = '❌ Upload failed (all servers full or inaccessible)';
+        }
+      } catch (err) {
+        results[ticketId] = `❌ Error: ${err.message}`;
+      }
+    }
+
+    const summary = ticketIds.map(id => {
+      const label = TICKET_COLORS[id]?.name ?? id;
+      return `**${label}**: ${results[id]}`;
+    }).join('\n');
+    return message.reply(`**Raid Ticket Emoji Upload Results:**\n${summary}`);
   }
 
   // ── createcode ────────────────────────────────────────────
