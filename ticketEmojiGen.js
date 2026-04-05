@@ -6,53 +6,55 @@ const { createCanvas } = require('canvas');
 
 /**
  * Color schemes for each raid ticket tier.
- * primary = main body color (top→bottom gradient)
- * accent  = stub section tint
- * label   = short text shown on the stub
  */
 const TICKET_COLORS = {
   normal_raid_ticket: {
-    primary1: [220, 220, 220],
-    primary2: [160, 160, 165],
-    accent:   [185, 185, 190],
-    label:    'NORMAL',
+    primary1: [230, 230, 230],
+    primary2: [175, 175, 180],
+    stubC:    [200, 200, 205],
+    outline:  [130, 130, 140],
+    textCol:  '#333333',
+    label:    'NRM',
     name:     'Normal Raid Ticket',
   },
   mythical_raid_ticket: {
-    primary1: [215,  50,  50],
-    primary2: [120,  10,  10],
-    accent:   [160,  20,  20],
-    label:    'MYTHIC',
+    primary1: [220,  55,  55],
+    primary2: [115,  10,  10],
+    stubC:    [160,  25,  25],
+    outline:  [ 80,   5,   5],
+    textCol:  '#ffffff',
+    label:    'MYT',
     name:     'Mythical Raid Ticket',
   },
   omega_raid_ticket: {
-    primary1: [100, 210, 240],
-    primary2: [20,  130, 200],
-    accent:   [40,  160, 210],
-    label:    'OMEGA',
+    primary1: [100, 215, 245],
+    primary2: [ 20, 125, 200],
+    stubC:    [ 45, 160, 215],
+    outline:  [ 10,  90, 155],
+    textCol:  '#ffffff',
+    label:    'OMG',
     name:     'Omega Raid Ticket',
   },
   hellish_raid_ticket: {
-    primary1: [255, 170, 200],
-    primary2: [210,  70, 130],
-    accent:   [230, 100, 155],
-    label:    'HELL',
+    primary1: [255, 165, 200],
+    primary2: [205,  65, 125],
+    stubC:    [230, 100, 155],
+    outline:  [155,  40,  90],
+    textCol:  '#ffffff',
+    label:    'HEL',
     name:     'Hellish Raid Ticket',
   },
 };
 
-function rgb(r, g, b) { return `rgb(${r},${g},${b})`; }
-function rgba(r, g, b, a) { return `rgba(${r},${g},${b},${a})`; }
-function mix(c1, c2, t) {
-  return c1.map((v, i) => Math.round(v * (1 - t) + c2[i] * t));
-}
+function rgb(r, g, b)       { return `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`; }
+function rgba(r, g, b, a)   { return `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${a})`; }
 
-/** Draws a 5-pointed star centred at (cx, cy) with outer radius R and inner radius r. */
-function drawStar(ctx, cx, cy, R, r, points = 5) {
+/** Draws a 5-pointed star centred at (cx, cy). */
+function drawStar(ctx, cx, cy, outerR, innerR, points = 5) {
   ctx.beginPath();
   for (let i = 0; i < points * 2; i++) {
-    const angle = (Math.PI / points) * i - Math.PI / 2;
-    const radius = i % 2 === 0 ? R : r;
+    const angle  = (Math.PI / points) * i - Math.PI / 2;
+    const radius = i % 2 === 0 ? outerR : innerR;
     const x = cx + radius * Math.cos(angle);
     const y = cy + radius * Math.sin(angle);
     i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
@@ -61,129 +63,167 @@ function drawStar(ctx, cx, cy, R, r, points = 5) {
 }
 
 /**
- * Generates a 128×128 PNG styled like a 🎟️ ticket emoji,
- * coloured according to the given ticket tier.
+ * Builds the ticket outline path.
  *
+ * Shape: rounded rectangle with a semicircular notch cut inward on
+ * both the left and right edges at the vertical centre.
+ *
+ * Drawing direction: top-left → clockwise.
+ * The notches are concave (curve INTO the ticket body).
+ *
+ *  ╭──────────────────╮
+ *  │                  │
+ * )│                  │(   ← notch inward on each side
+ *  │                  │
+ *  ╰──────────────────╯
+ */
+function ticketPath(ctx, x0, y0, w, h, r, notchR) {
+  const x1 = x0 + w;
+  const y1 = y0 + h;
+  const cy = y0 + h / 2;
+
+  ctx.beginPath();
+
+  // Top edge
+  ctx.moveTo(x0 + r, y0);
+  ctx.lineTo(x1 - r, y0);
+  ctx.quadraticCurveTo(x1, y0, x1, y0 + r);        // top-right corner
+
+  // Right edge — top segment, notch (curves INWARD = left), bottom segment
+  ctx.lineTo(x1, cy - notchR);
+  ctx.arc(x1, cy, notchR, -Math.PI / 2, Math.PI / 2, true);  // anticlockwise → curves LEFT (inward)
+  ctx.lineTo(x1, y1 - r);
+  ctx.quadraticCurveTo(x1, y1, x1 - r, y1);        // bottom-right corner
+
+  // Bottom edge
+  ctx.lineTo(x0 + r, y1);
+  ctx.quadraticCurveTo(x0, y1, x0, y1 - r);        // bottom-left corner
+
+  // Left edge — bottom segment, notch (curves INWARD = right), top segment
+  ctx.lineTo(x0, cy + notchR);
+  ctx.arc(x0, cy, notchR, Math.PI / 2, -Math.PI / 2, false); // clockwise → curves RIGHT (inward)
+  ctx.lineTo(x0, y0 + r);
+  ctx.quadraticCurveTo(x0, y0, x0 + r, y0);        // top-left corner
+
+  ctx.closePath();
+}
+
+/**
+ * Generates a 128×128 PNG styled like a 🎟️ ticket emoji.
  * @param {string} ticketId
- * @returns {Buffer|null}  PNG buffer, or null if ticketId is unknown
+ * @returns {Buffer|null}
  */
 function generateTicketPNG(ticketId) {
   const scheme = TICKET_COLORS[ticketId];
   if (!scheme) return null;
 
-  const W = 128, H = 128;
-  const canvas = createCanvas(W, H);
-  const ctx = canvas.getContext('2d');
+  const SIZE   = 128;
+  const canvas = createCanvas(SIZE, SIZE);
+  const ctx    = canvas.getContext('2d');
 
-  const { primary1: p1, primary2: p2, accent: ac, label } = scheme;
+  const { primary1: p1, primary2: p2, stubC: sc, outline: ol, textCol, label } = scheme;
 
-  // Derived colours
-  const shadow = mix(p2, [0, 0, 0], 0.35);
-  const stubC1  = mix(ac, [255, 255, 255], 0.12);
-  const stubC2  = mix(ac, [0, 0, 0],       0.20);
+  // Ticket geometry
+  const MARGIN  = 8;       // gap from canvas edge
+  const CORNER  = 10;      // rounded corner radius
+  const NOTCH_R = 12;      // radius of the side notch semicircles
+  const SPLIT   = 88;      // x-position of stub divider (from canvas left)
+  const CY      = SIZE / 2;
 
-  // Layout constants
-  const PAD    = 6;     // outer padding / corner radius
-  const NOTCH_R = 10;   // radius of the side semicircle cut-outs
-  const SPLIT  = 88;    // x-coordinate of the tear line (left of stub)
-  const CY     = H / 2; // vertical centre (where notches sit)
-
-  // ─── 1. Build the full ticket outline as a clip path ──────────────────────
-  function drawTicketPath() {
-    ctx.beginPath();
-    ctx.moveTo(PAD + PAD, PAD);                        // top-left corner start
-    ctx.lineTo(W - PAD - PAD, PAD);                    // top edge
-    ctx.quadraticCurveTo(W - PAD, PAD, W - PAD, PAD + PAD); // top-right corner
-    // right edge: top half → right notch (inward arc) → bottom half
-    ctx.lineTo(W - PAD, CY - NOTCH_R);
-    ctx.arc(W - PAD, CY, NOTCH_R, -Math.PI / 2, Math.PI / 2, false); // outward
-    ctx.lineTo(W - PAD, H - PAD - PAD);
-    ctx.quadraticCurveTo(W - PAD, H - PAD, W - PAD - PAD, H - PAD); // btm-right
-    ctx.lineTo(PAD + PAD, H - PAD);                    // bottom edge
-    ctx.quadraticCurveTo(PAD, H - PAD, PAD, H - PAD - PAD); // btm-left
-    // left edge: bottom half → left notch (outward arc) → top half
-    ctx.lineTo(PAD, CY + NOTCH_R);
-    ctx.arc(PAD, CY, NOTCH_R, Math.PI / 2, -Math.PI / 2, false);    // outward
-    ctx.lineTo(PAD, PAD + PAD);
-    ctx.quadraticCurveTo(PAD, PAD, PAD + PAD, PAD);   // top-left corner
-    ctx.closePath();
-  }
-
-  // ─── 2. Background shadow ─────────────────────────────────────────────────
-  ctx.fillStyle = rgba(...shadow, 0.55);
-  ctx.fillRect(0, 0, W, H);
-
-  // ─── 3. Main ticket body with gradient ───────────────────────────────────
+  // ── 1. Draw soft drop shadow behind ticket ────────────────────────────────
   ctx.save();
-  drawTicketPath();
-  const bodyGrad = ctx.createLinearGradient(PAD, PAD, W - PAD, H - PAD);
+  ctx.shadowColor   = 'rgba(0,0,0,0.55)';
+  ctx.shadowBlur    = 8;
+  ctx.shadowOffsetX = 2;
+  ctx.shadowOffsetY = 3;
+  ticketPath(ctx, MARGIN, MARGIN, SIZE - MARGIN * 2, SIZE - MARGIN * 2, CORNER, NOTCH_R);
+  ctx.fillStyle = rgba(...ol, 0.9);
+  ctx.fill();
+  ctx.restore();
+
+  // ── 2. Main ticket body (gradient left → right) ───────────────────────────
+  ticketPath(ctx, MARGIN, MARGIN, SIZE - MARGIN * 2, SIZE - MARGIN * 2, CORNER, NOTCH_R);
+  const bodyGrad = ctx.createLinearGradient(MARGIN, MARGIN, SIZE - MARGIN, SIZE - MARGIN);
   bodyGrad.addColorStop(0, rgb(...p1));
   bodyGrad.addColorStop(1, rgb(...p2));
   ctx.fillStyle = bodyGrad;
   ctx.fill();
-  ctx.clip(); // now everything below is clipped to the ticket outline
 
-  // ─── 4. Stub section (darker overlay on the right strip) ─────────────────
-  const stubGrad = ctx.createLinearGradient(SPLIT, 0, W, 0);
-  stubGrad.addColorStop(0, rgb(...stubC1));
-  stubGrad.addColorStop(1, rgb(...stubC2));
+  // ── 3. Clip everything inside ticket outline ───────────────────────────────
+  ctx.save();
+  ticketPath(ctx, MARGIN, MARGIN, SIZE - MARGIN * 2, SIZE - MARGIN * 2, CORNER, NOTCH_R);
+  ctx.clip();
+
+  // ── 4. Stub section overlay ────────────────────────────────────────────────
+  const stubGrad = ctx.createLinearGradient(SPLIT, 0, SIZE - MARGIN, 0);
+  stubGrad.addColorStop(0, rgba(...sc, 0.80));
+  stubGrad.addColorStop(1, rgba(...sc, 0.95));
   ctx.fillStyle = stubGrad;
-  ctx.fillRect(SPLIT, PAD, W - SPLIT, H - PAD * 2);
+  ctx.fillRect(SPLIT, MARGIN, SIZE - MARGIN - SPLIT, SIZE - MARGIN * 2);
 
-  // ─── 5. Dashed perforation line ───────────────────────────────────────────
-  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-  ctx.lineWidth   = 1.5;
-  ctx.setLineDash([4, 3]);
+  // ── 5. Dashed perforation line ─────────────────────────────────────────────
+  ctx.strokeStyle = 'rgba(255,255,255,0.60)';
+  ctx.lineWidth   = 2;
+  ctx.setLineDash([5, 4]);
   ctx.beginPath();
-  ctx.moveTo(SPLIT, PAD + 2);
-  ctx.lineTo(SPLIT, CY - NOTCH_R - 2);
-  ctx.moveTo(SPLIT, CY + NOTCH_R + 2);
-  ctx.lineTo(SPLIT, H - PAD - 2);
+  ctx.moveTo(SPLIT, MARGIN + 4);
+  ctx.lineTo(SPLIT, CY - NOTCH_R - 3);
+  ctx.moveTo(SPLIT, CY + NOTCH_R + 3);
+  ctx.lineTo(SPLIT, SIZE - MARGIN - 4);
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // ─── 6. Subtle inner glow/highlight at the top of the main body ──────────
-  const highlight = ctx.createLinearGradient(0, PAD, 0, PAD + 28);
-  highlight.addColorStop(0, 'rgba(255,255,255,0.30)');
-  highlight.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = highlight;
-  ctx.fillRect(PAD, PAD, SPLIT - PAD, 28);
+  // ── 6. Top highlight gloss on main body ───────────────────────────────────
+  const gloss = ctx.createLinearGradient(0, MARGIN, 0, MARGIN + 26);
+  gloss.addColorStop(0, 'rgba(255,255,255,0.35)');
+  gloss.addColorStop(1, 'rgba(255,255,255,0.00)');
+  ctx.fillStyle = gloss;
+  ctx.fillRect(MARGIN, MARGIN, SPLIT - MARGIN, 26);
 
-  // ─── 7. Stars on the stub ────────────────────────────────────────────────
-  const stubCX = (SPLIT + W - PAD) / 2;
-  ctx.fillStyle = 'rgba(255,255,255,0.80)';
-  drawStar(ctx, stubCX, CY - 18, 7, 3);
+  // ── 7. "RAID" label in main body ──────────────────────────────────────────
+  const bodyCX = (MARGIN + SPLIT) / 2;
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Text shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.font = 'bold 22px sans-serif';
+  ctx.fillText('RAID', bodyCX + 1, CY - 8 + 1);
+
+  ctx.fillStyle = textCol;
+  ctx.font = 'bold 22px sans-serif';
+  ctx.fillText('RAID', bodyCX, CY - 8);
+
+  // Tier label below "RAID"
+  ctx.fillStyle = (textCol === '#ffffff') ? 'rgba(255,255,255,0.80)' : 'rgba(0,0,0,0.55)';
+  ctx.font = 'bold 13px sans-serif';
+  ctx.fillText(label, bodyCX, CY + 14);
+
+  // ── 8. Stub: two stars ────────────────────────────────────────────────────
+  const stubCX = (SPLIT + SIZE - MARGIN) / 2;
+  ctx.fillStyle = textCol === '#ffffff' ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.45)';
+  drawStar(ctx, stubCX, CY - 16, 8, 4);
   ctx.fill();
-  drawStar(ctx, stubCX, CY + 18, 7, 3);
+  drawStar(ctx, stubCX, CY + 16, 8, 4);
   ctx.fill();
 
-  // ─── 8. Decorative small dots row on main body (top & bottom) ────────────
-  ctx.fillStyle = 'rgba(255,255,255,0.25)';
-  const dotCount = 5;
-  for (let i = 0; i < dotCount; i++) {
-    const dx = (PAD + 10) + ((SPLIT - PAD - 20) * i) / (dotCount - 1);
-    ctx.beginPath(); ctx.arc(dx, PAD + 10, 2, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(dx, H - PAD - 10, 2, 0, Math.PI * 2); ctx.fill();
+  // ── 9. Small dot row (top & bottom of main body) ──────────────────────────
+  const dotY1 = MARGIN + 9;
+  const dotY2 = SIZE - MARGIN - 9;
+  const dotCol = textCol === '#ffffff' ? 'rgba(255,255,255,0.30)' : 'rgba(0,0,0,0.20)';
+  ctx.fillStyle = dotCol;
+  for (let i = 0; i < 5; i++) {
+    const dx = (MARGIN + 12) + ((SPLIT - MARGIN - 24) * i) / 4;
+    ctx.beginPath(); ctx.arc(dx, dotY1, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(dx, dotY2, 2.5, 0, Math.PI * 2); ctx.fill();
   }
 
-  // ─── 9. "RAID" label on main body ─────────────────────────────────────────
-  const bodyCX = (PAD + SPLIT) / 2;
-  ctx.fillStyle  = 'rgba(255,255,255,0.92)';
-  ctx.textAlign  = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = 'bold 18px sans-serif';
-  ctx.fillText('RAID', bodyCX, CY - 7);
+  ctx.restore(); // remove clip
 
-  // ─── 10. Tier label on main body (smaller, below) ─────────────────────────
-  ctx.font = 'bold 10px sans-serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.72)';
-  ctx.fillText(label, bodyCX, CY + 11);
-
-  // ─── 11. Outline stroke ───────────────────────────────────────────────────
-  ctx.restore();
-  drawTicketPath();
-  ctx.strokeStyle = rgba(...mix(p2, [0, 0, 0], 0.4), 0.8);
-  ctx.lineWidth = 1.5;
+  // ── 10. Outline stroke ────────────────────────────────────────────────────
+  ticketPath(ctx, MARGIN, MARGIN, SIZE - MARGIN * 2, SIZE - MARGIN * 2, CORNER, NOTCH_R);
+  ctx.strokeStyle = rgb(...ol);
+  ctx.lineWidth   = 2;
   ctx.stroke();
 
   return canvas.toBuffer('image/png');
