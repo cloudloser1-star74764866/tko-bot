@@ -6937,29 +6937,28 @@ client.on('messageCreate', async (message) => {
 
   // ── genraidemojis ─────────────────────────────────────────
   if (command === 'genraidemojis') {
-    await message.reply('⏳ Generating and uploading raid ticket emojis to all emoji servers…');
+    await message.reply('⏳ Uploading raid ticket emojis to emoji servers…');
 
-    const { TICKET_COLORS } = require('./ticketEmojiGen');
     const emojiServers = emojiCache.EMOJI_SERVERS ?? [];
     if (!emojiServers.length) {
       return message.reply('❌ No emoji servers configured in emojiCache. Add server IDs first.');
     }
 
-    const results = {};
-    const ticketIds = Object.keys(TICKET_COLORS);
-    const shortNames = {
-      normal_raid_ticket:   'tko_ticket_normal',
-      mythical_raid_ticket: 'tko_ticket_mythic',
-      omega_raid_ticket:    'tko_ticket_omega',
-      hellish_raid_ticket:  'tko_ticket_hell',
+    const TICKET_IMAGES = {
+      normal_raid_ticket:   { name: 'tko_ticket_normal', label: 'Normal Raid Ticket',   file: path.join(__dirname, 'IMG_2878_1775427308635.png') },
+      mythical_raid_ticket: { name: 'tko_ticket_mythic', label: 'Mythical Raid Ticket', file: path.join(__dirname, 'IMG_2877_1775427308635.png') },
+      omega_raid_ticket:    { name: 'tko_ticket_omega',  label: 'Omega Raid Ticket',    file: path.join(__dirname, 'IMG_2876_1775427308635.png') },
+      hellish_raid_ticket:  { name: 'tko_ticket_hell',   label: 'Hellish Raid Ticket',  file: path.join(__dirname, 'IMG_2875_1775427308635.png') },
     };
 
-    for (const ticketId of ticketIds) {
-      try {
-        const pngBuffer = generateTicketPNG(ticketId);
-        if (!pngBuffer) { results[ticketId] = '❌ PNG gen failed'; continue; }
+    const results = {};
+    const ticketIds = Object.keys(TICKET_IMAGES);
 
-        const emojiName = shortNames[ticketId] ?? ticketId.replace(/_/g, '').slice(0, 32);
+    for (const ticketId of ticketIds) {
+      const { name: emojiName, label, file: imgPath } = TICKET_IMAGES[ticketId];
+      try {
+        if (!fs.existsSync(imgPath)) { results[ticketId] = `❌ Image file not found: ${imgPath}`; continue; }
+        const pngBuffer = fs.readFileSync(imgPath);
         let uploaded = null;
 
         for (const serverId of emojiServers) {
@@ -6991,7 +6990,7 @@ client.on('messageCreate', async (message) => {
     }
 
     const summary = ticketIds.map(id => {
-      const label = TICKET_COLORS[id]?.name ?? id;
+      const label = TICKET_IMAGES[id]?.label ?? id;
       return `**${label}**: ${results[id]}`;
     }).join('\n');
     return message.reply(`**Raid Ticket Emoji Upload Results:**\n${summary}`);
