@@ -2376,7 +2376,13 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
               '`ZP giveraidticket @user <tier> [amount]` – Give raid tickets (tiers: `normal` `mythical` `omega` `hellish`)',
               '`ZP giveshards @user <cardId> <amount>` – Give character shards to a player',
               '`ZP givecard @user <cardId>` – Give a card directly to a player (gives shard if they own it)',
-              '`ZP genraidemojis` – Generate & upload custom gradient emojis for each raid ticket tier',
+              '`ZP genraidemojis` – Upload custom images as raid ticket emojis',
+            ].join('\n'),
+            inline: false,
+          },
+          {
+            name: '\u200b',
+            value: [
               '`ZP givelimitbreaker [@user] <amount>` – Give Limit Breakers to a player',
               '`ZP givelevelscrolls [@user] <amount>` – Give Level Scrolls 📜 to a player',
               '`ZP createcode <name> <code> [yen:<n>] [stars:<n>] [candytokens:<n>] [plating:<tier>:<n>] [card:<rarity>]` – Create a redeemable code',
