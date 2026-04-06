@@ -6945,7 +6945,7 @@ client.on('messageCreate', async (message) => {
     }
 
     const TICKET_IMAGES = {
-      normal_raid_ticket:   { name: 'tko_ticket_normal', label: 'Normal Raid Ticket',   file: path.join(__dirname, 'IMG_2878_1775427308635.png') },
+      raid_ticket:          { name: 'tko_ticket_normal', label: 'Normal Raid Ticket',   file: path.join(__dirname, 'IMG_2878_1775427308635.png') },
       mythical_raid_ticket: { name: 'tko_ticket_mythic', label: 'Mythical Raid Ticket', file: path.join(__dirname, 'IMG_2877_1775427308635.png') },
       omega_raid_ticket:    { name: 'tko_ticket_omega',  label: 'Omega Raid Ticket',    file: path.join(__dirname, 'IMG_2876_1775427308635.png') },
       hellish_raid_ticket:  { name: 'tko_ticket_hell',   label: 'Hellish Raid Ticket',  file: path.join(__dirname, 'IMG_2875_1775427308635.png') },
