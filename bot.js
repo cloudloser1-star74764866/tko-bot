@@ -3315,9 +3315,14 @@ client.on('interactionCreate', async (interaction) => {
       return interaction.update({ components: [] });
     }
 
-    const page = parseInt(pageStr, 10);
-    const { embed, components } = buildHelpPage(authorId, page, showAdmin, expiry);
-    return interaction.update({ embeds: [embed], components });
+    try {
+      const page = parseInt(pageStr, 10);
+      const { embed, components } = buildHelpPage(authorId, page, showAdmin, expiry);
+      return interaction.update({ embeds: [embed], components });
+    } catch (err) {
+      console.error('[help button error]', err);
+      return interaction.reply({ content: `❌ Help page failed to load: ${err.message}`, ephemeral: true });
+    }
   }
 
   // ── ZP all button handler ─────────────────────────────────
@@ -3636,10 +3641,15 @@ client.on('messageCreate', async (message) => {
 
   // ── help | h ─────────────────────────────────────────────
   if (!command || command === 'help' || command === 'h') {
-    const expiry    = Date.now() + HELP_TIMEOUT_MS;
-    const showAdmin = isAdmin(userId);
-    const { embed, components } = buildHelpPage(userId, 0, showAdmin, expiry);
-    return message.reply({ embeds: [embed], components });
+    try {
+      const expiry    = Date.now() + HELP_TIMEOUT_MS;
+      const showAdmin = isAdmin(userId);
+      const { embed, components } = buildHelpPage(userId, 0, showAdmin, expiry);
+      return message.reply({ embeds: [embed], components });
+    } catch (err) {
+      console.error('[help command error]', err);
+      return message.reply(`❌ Help failed to load: ${err.message}`);
+    }
   }
 
   // ── Shared pull logic ────────────────────────────────────
