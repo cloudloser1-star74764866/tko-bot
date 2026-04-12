@@ -4742,13 +4742,16 @@ client.on('messageCreate', async (message) => {
     const img   = imgCache.getImage(card.id) ?? card.image ?? null;
 
     const dittoDesc = card.dittoCard
-      ? `\n\n🟣 **Special — Transform:** At the start of battle, Ditto copies the **strongest enemy card's** stats and technique at **80% efficiency** (+0.1% per level). At Lv 100 it copies at **89.9%**.\n🤝 **In Raids:** Ditto copies the **strongest ally** on your team instead (never the raid boss).\n💀 **As a Raid Boss (Hellish):** Ditto transforms into your team's strongest card at **10× its Lv-100 stats**!\n🛡️ **Cannot equip platings** — Ditto's power comes from copying, not armour.`
+      ? `🟣 **Special — Transform:** At the start of battle, Ditto copies the **strongest enemy card's** stats and technique at **80% efficiency** (+0.1% per level). At Lv 100 it copies at **89.9%**.\n🤝 **In Raids:** Ditto copies the **strongest ally** on your team instead (never the raid boss).\n💀 **As a Raid Boss (Hellish):** Ditto transforms into your team's strongest card at **10× its Lv-100 stats**!\n🛡️ **Cannot equip platings** — Ditto's power comes from copying, not armour.`
       : '';
+
+    const hasSpecialDesc = !!(card.specialAbility || card.dittoCard || card.weaponCard || card.supportCard);
+    const cardDescText   = hasSpecialDesc ? (card.desc || card.description || '') : '';
+    const fullDesc       = (cardDescText ? cardDescText + (dittoDesc ? '\n\n' : '') : '') + dittoDesc || null;
 
     const embed = new EmbedBuilder()
       .setColor(meta.color)
       .setTitle(`${meta.emoji} ${card.name}`)
-      .setDescription((card.desc || card.description || 'No description available.') + dittoDesc)
       .addFields(
         { name: 'Series',      value: card.series,                    inline: true },
         { name: 'Rarity',      value: `${meta.emoji} ${meta.label}`, inline: true },
@@ -4764,6 +4767,8 @@ client.on('messageCreate', async (message) => {
         },
       )
       .setFooter({ text: `Pull rate: ${config.PULL_RATES[card.rarity] != null ? config.PULL_RATES[card.rarity] + '%' : 'N/A (Limited)'}` });
+
+    if (fullDesc) embed.setDescription(fullDesc);
 
     if (img) embed.setThumbnail(img);
     return message.reply({ embeds: [embed] });
