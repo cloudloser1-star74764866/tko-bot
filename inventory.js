@@ -74,6 +74,8 @@ function ensureUser(inventory, userId) {
   if (u.duoId === undefined)            u.duoId          = null;
   if (typeof u.totalPulls   !== 'number') u.totalPulls  = 0;
   if (typeof u.totalKills   !== 'number') u.totalKills  = 0;
+  if (typeof u.totalTrades  !== 'number') u.totalTrades = 0;
+  if (!Array.isArray(u.achievements))     u.achievements = [];
   if (typeof u.xp           !== 'number') u.xp          = 0;
   if (typeof u.profileLevel !== 'number') u.profileLevel = 0;
   if (u.conquest === undefined)              u.conquest           = null;
@@ -982,6 +984,63 @@ function getWorldBoss(inventory) {
   return inventory.worldBoss ?? null;
 }
 
+// ── Achievements ──────────────────────────────────────────────────────────────
+
+const ACHIEVEMENTS = [
+  // Pulls
+  { id: 'pulls_bronze', tier: 'bronze', category: 'Pulls',        name: 'First Hundred',    desc: 'Pull 100 times',          stat: 'totalPulls',  threshold: 100   },
+  { id: 'pulls_silver', tier: 'silver', category: 'Pulls',        name: 'Pull Addict',      desc: 'Pull 1,000 times',        stat: 'totalPulls',  threshold: 1000  },
+  { id: 'pulls_gold',   tier: 'gold',   category: 'Pulls',        name: 'Card Overlord',    desc: 'Pull 10,000 times',       stat: 'totalPulls',  threshold: 10000 },
+  // Trades
+  { id: 'trades_bronze', tier: 'bronze', category: 'Trades',      name: 'Merchant',         desc: 'Complete 10 trades',      stat: 'totalTrades', threshold: 10    },
+  { id: 'trades_silver', tier: 'silver', category: 'Trades',      name: 'Dealer',           desc: 'Complete 50 trades',      stat: 'totalTrades', threshold: 50    },
+  { id: 'trades_gold',   tier: 'gold',   category: 'Trades',      name: 'Master Trader',    desc: 'Complete 100 trades',     stat: 'totalTrades', threshold: 100   },
+  // Cards collected
+  { id: 'cards_bronze', tier: 'bronze', category: 'Collection',   name: 'Collector',        desc: 'Own 10 unique cards',     stat: 'cards',       threshold: 10    },
+  { id: 'cards_silver', tier: 'silver', category: 'Collection',   name: 'Card Gallery',     desc: 'Own 50 unique cards',     stat: 'cards',       threshold: 50    },
+  { id: 'cards_gold',   tier: 'gold',   category: 'Collection',   name: 'Living Museum',    desc: 'Own 150 unique cards',    stat: 'cards',       threshold: 150   },
+  // Battle kills
+  { id: 'kills_bronze', tier: 'bronze', category: 'Battles',      name: 'Fighter',          desc: 'Win 10 battles',          stat: 'totalKills',  threshold: 10    },
+  { id: 'kills_silver', tier: 'silver', category: 'Battles',      name: 'Warrior',          desc: 'Win 100 battles',         stat: 'totalKills',  threshold: 100   },
+  { id: 'kills_gold',   tier: 'gold',   category: 'Battles',      name: 'Warlord',          desc: 'Win 500 battles',         stat: 'totalKills',  threshold: 500   },
+  // Daily streak
+  { id: 'streak_bronze', tier: 'bronze', category: 'Daily Streak', name: 'Regular',         desc: '7-day daily streak',      stat: 'dailyStreak', threshold: 7     },
+  { id: 'streak_silver', tier: 'silver', category: 'Daily Streak', name: 'Dedicated',       desc: '30-day daily streak',     stat: 'dailyStreak', threshold: 30    },
+  { id: 'streak_gold',   tier: 'gold',   category: 'Daily Streak', name: 'Unbreakable',     desc: '100-day daily streak',    stat: 'dailyStreak', threshold: 100   },
+];
+
+const TIER_EMOJI = { bronze: '🥉', silver: '🥈', gold: '🥇' };
+const TIER_LABEL = { bronze: 'Bronze', silver: 'Silver', gold: 'Gold' };
+
+function checkAchievements(inventory, userId) {
+  const user = ensureUser(inventory, userId);
+  const newlyUnlocked = [];
+  for (const ach of ACHIEVEMENTS) {
+    if (user.achievements.includes(ach.id)) continue;
+    let statVal = 0;
+    if (ach.stat === 'totalPulls')  statVal = user.totalPulls  ?? 0;
+    if (ach.stat === 'totalTrades') statVal = user.totalTrades ?? 0;
+    if (ach.stat === 'totalKills')  statVal = user.totalKills  ?? 0;
+    if (ach.stat === 'dailyStreak') statVal = user.dailyStreak ?? 0;
+    if (ach.stat === 'cards')       statVal = user.cards.length;
+    if (statVal >= ach.threshold) {
+      user.achievements.push(ach.id);
+      newlyUnlocked.push(ach);
+    }
+  }
+  return newlyUnlocked;
+}
+
+function incrementTotalTrades(inventory, userId) {
+  const user = ensureUser(inventory, userId);
+  user.totalTrades = (user.totalTrades ?? 0) + 1;
+  return user.totalTrades;
+}
+
+function getTotalTrades(inventory, userId) {
+  return inventory.users[userId]?.totalTrades ?? 0;
+}
+
 function setWorldBoss(inventory, bossData) {
   inventory.worldBoss = bossData;
 }
@@ -1036,4 +1095,6 @@ module.exports = {
   findRedeemCodeByCode, hasRedeemedCode, markCodeRedeemed,
   MAX_PLATINGS_PER_CARD,
   getWorldBoss, setWorldBoss, clearWorldBoss, recordWorldBossDamage,
+  ACHIEVEMENTS, TIER_EMOJI, TIER_LABEL,
+  checkAchievements, incrementTotalTrades, getTotalTrades,
 };

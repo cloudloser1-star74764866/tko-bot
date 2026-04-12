@@ -1693,6 +1693,18 @@ function allPullEmbed(results, charges, withReset, authorUsername, overrideNote)
     .setFooter({ text: footerParts });
 }
 
+// ── Achievement unlock embed ──────────────────────────────
+
+function buildAchievementUnlockEmbed(achs, username) {
+  const lines = achs.map(a =>
+    `${inv.TIER_EMOJI[a.tier]} **${a.name}** *(${inv.TIER_LABEL[a.tier]})*\n${a.desc}`
+  );
+  return new EmbedBuilder()
+    .setColor(achs.some(a => a.tier === 'gold') ? 0xFFD700 : achs.some(a => a.tier === 'silver') ? 0xC0C0C0 : 0xCD7F32)
+    .setTitle(`🏆 Achievement${achs.length > 1 ? 's' : ''} Unlocked!`)
+    .setDescription(`**${username}** earned ${achs.length > 1 ? 'new achievements' : 'a new achievement'}!\n\n${lines.join('\n\n')}`);
+}
+
 // ── Collection page builder ───────────────────────────────
 
 const COLLECTION_TIMEOUT_MS = 60_000;
@@ -2148,6 +2160,8 @@ function buildHelpPage(authorId, page, showAdmin, expiry) {
         { name: '`ZP use <itemId>`',                             value: 'Use a special item to claim its Limited card.', inline: false },
         { name: '`ZP profile` / `ZP pro`',                      value: 'View your player profile — total cards, kills, pulls, wish progress, and more.', inline: false },
         { name: '`ZP profile @user`',                           value: "View another player's profile (if they haven't set it to private).", inline: false },
+        { name: '`ZP achievements` / `ZP ach`',                 value: 'View your achievements — bronze, silver and gold tiers across pulls, trades, collection, battles, and streaks.', inline: false },
+        { name: '`ZP achievements @user`',                      value: "View another player's achievements.", inline: false },
         { name: '`ZP vote` / `ZP vo`',                          value: 'Get the link to vote for the bot and earn extra pull charges!', inline: false },
         { name: '`ZP privacy` / `ZP pv`',                       value: 'Toggle your profile and collection privacy on/off.', inline: false },
         { name: '`ZP conquestsend <cardId>` / `ZP cs <cardId>`', value: 'Send a card on a conquest mission (2 hrs; 1 hr with ❤️ Time Warp Compass). With 💜 Conquest Expansion, send up to 2 cards at once.', inline: false },
@@ -3732,6 +3746,7 @@ client.on('messageCreate', async (message) => {
 
     const { card, isDupe, plating, droppedTickets } = executeSinglePull(inventory, userId);
     const wishGrant                                  = checkAndGrantWish(inventory, userId);
+    const newAchs                                    = inv.checkAchievements(inventory, userId);
     await inv.saveInventory(inventory);
 
     const remaining  = charges - 1;
@@ -3741,6 +3756,8 @@ client.on('messageCreate', async (message) => {
 
     const embed = singlePullEmbed(card, isDupe, plating, chargeInfo, message.author.username, droppedTickets);
     await message.reply({ embeds: [embed] });
+
+    if (newAchs.length > 0) await message.reply({ embeds: [buildAchievementUnlockEmbed(newAchs, message.author.username)] });
 
     if (wishGrant) {
       const wMeta = rarityMeta(wishGrant.card.rarity);
@@ -3788,7 +3805,8 @@ client.on('messageCreate', async (message) => {
       results.push(executeSinglePull(inventory, userId));
     }
 
-    const wishGrant = checkAndGrantWish(inventory, userId);
+    const wishGrant  = checkAndGrantWish(inventory, userId);
+    const newAchsAll = inv.checkAchievements(inventory, userId);
     await inv.saveInventory(inventory);
 
     if (withReset) {
@@ -3800,6 +3818,8 @@ client.on('messageCreate', async (message) => {
 
     const embed = allPullEmbed(results, charges, withReset, message.author.username, overrideNote);
     await message.reply({ embeds: [embed] });
+
+    if (newAchsAll.length > 0) await message.reply({ embeds: [buildAchievementUnlockEmbed(newAchsAll, message.author.username)] });
 
     if (wishGrant) {
       const wMeta  = rarityMeta(wishGrant.card.rarity);
@@ -5149,6 +5169,8 @@ client.on('messageCreate', async (message) => {
     const stars       = inv.getStars(inventory, target.id);
     const totalPulls  = inv.getTotalPulls(inventory, target.id);
     const totalKills  = inventory.users[target.id]?.totalKills ?? 0;
+    const totalTrades = inv.getTotalTrades(inventory, target.id);
+    const achUnlocked = inventory.users[target.id]?.achievements ?? [];
     const wish        = inv.getWish(inventory, target.id);
     const isPrivate   = inv.getPrivacy(inventory, target.id);
     const clan        = inv.getUserClan(inventory, target.id);
@@ -5196,6 +5218,8 @@ client.on('messageCreate', async (message) => {
         { name: 'Stars',                value: stars.toLocaleString(),           inline: true },
         { name: '🎴 Total Pulls',        value: totalPulls.toLocaleString(),      inline: true },
         { name: '💀 Total Kills',        value: totalKills.toLocaleString(),      inline: true },
+        { name: '🤝 Total Trades',       value: totalTrades.toLocaleString(),     inline: true },
+        { name: '🏆 Achievements',       value: `${achUnlocked.length} / ${inv.ACHIEVEMENTS.length} unlocked`, inline: true },
         { name: '✨ Rarity Breakdown',   value: rarityStr,                        inline: false },
         { name: '🌠 Wish Progress',      value: wishStr,                          inline: false },
         { name: '🏛️ Clan',              value: clan ? clan.name : 'None',        inline: true },
@@ -5211,6 +5235,57 @@ client.on('messageCreate', async (message) => {
     }
 
     embed.setFooter({ text: isPrivate ? '🔒 This profile is private' : '🔓 Profile is public • Use ZP privacy to toggle' });
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ── achievements | ach ────────────────────────────────────
+  if (command === 'achievements' || command === 'ach') {
+    const target    = message.mentions.users.first() ?? message.author;
+    const inventory = await inv.loadInventory();
+
+    if (target.id !== userId) {
+      if (inv.getPrivacy(inventory, target.id)) {
+        return message.reply(`**${target.username}**'s profile is set to private.`);
+      }
+    }
+
+    const user     = inventory.users[target.id];
+    const unlocked = user?.achievements ?? [];
+
+    const categories = [...new Set(inv.ACHIEVEMENTS.map(a => a.category))];
+
+    const fields = [];
+    let totalUnlocked = 0;
+
+    for (const cat of categories) {
+      const catAchs = inv.ACHIEVEMENTS.filter(a => a.category === cat);
+      const lines = catAchs.map(a => {
+        if (unlocked.includes(a.id)) {
+          totalUnlocked++;
+          return `${inv.TIER_EMOJI[a.tier]} **${a.name}** — ${a.desc}`;
+        }
+        const statKey = a.stat;
+        let current = 0;
+        if (statKey === 'totalPulls')  current = user?.totalPulls  ?? 0;
+        if (statKey === 'totalTrades') current = user?.totalTrades ?? 0;
+        if (statKey === 'totalKills')  current = user?.totalKills  ?? 0;
+        if (statKey === 'dailyStreak') current = user?.dailyStreak ?? 0;
+        if (statKey === 'cards')       current = user?.cards?.length ?? 0;
+        const pct  = Math.min(100, Math.floor((current / a.threshold) * 100));
+        const bar  = `[${'█'.repeat(Math.floor(pct / 10))}${'░'.repeat(10 - Math.floor(pct / 10))}]`;
+        return `${inv.TIER_EMOJI[a.tier]} ~~${a.name}~~ — ${a.desc}\n${bar} ${current.toLocaleString()} / ${a.threshold.toLocaleString()}`;
+      });
+      fields.push({ name: `${cat}`, value: lines.join('\n'), inline: false });
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor(0xFFD700)
+      .setTitle(`🏆 ${target.username}'s Achievements`)
+      .setDescription(`**${totalUnlocked} / ${inv.ACHIEVEMENTS.length}** achievements unlocked`)
+      .setThumbnail(target.displayAvatarURL())
+      .addFields(fields)
+      .setFooter({ text: '🥉 Bronze  •  🥈 Silver  •  🥇 Gold' });
+
     return message.reply({ embeds: [embed] });
   }
 
@@ -5830,6 +5905,10 @@ client.on('messageCreate', async (message) => {
     removeAllItems(inventory, userId, trade.askItems);
     addAllItems(inventory, userId, trade.offerItems);
     addAllItems(inventory, trade.offerId, trade.askItems);
+    inv.incrementTotalTrades(inventory, userId);
+    inv.incrementTotalTrades(inventory, trade.offerId);
+    const newAchsAccepter = inv.checkAchievements(inventory, userId);
+    const newAchsOfferer  = inv.checkAchievements(inventory, trade.offerId);
     await inv.saveInventory(inventory);
     trades.removeTrade(tradeId);
 
@@ -5855,7 +5934,10 @@ client.on('messageCreate', async (message) => {
       .setTimestamp();
     logToChannel(TRADE_LOG_CHANNEL, tradeLogEmbed);
 
-    return message.reply({ embeds: [embed] });
+    await message.reply({ embeds: [embed] });
+    if (newAchsAccepter.length > 0) await message.reply({ embeds: [buildAchievementUnlockEmbed(newAchsAccepter, message.author.username)] });
+    if (newAchsOfferer.length > 0)  await message.reply({ content: `<@${trade.offerId}>`, embeds: [buildAchievementUnlockEmbed(newAchsOfferer, trade.offerName)] });
+    return;
   }
 
   // ── decline | dec ─────────────────────────────────────────
