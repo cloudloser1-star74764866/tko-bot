@@ -1699,8 +1699,9 @@ function buildAchievementUnlockEmbed(achs, username) {
   const lines = achs.map(a =>
     `${inv.TIER_EMOJI[a.tier]} **${a.name}** *(${inv.TIER_LABEL[a.tier]})*\n${a.desc}`
   );
+  const topTier = inv.TIER_ORDER.slice().reverse().find(t => achs.some(a => a.tier === t)) ?? 'bronze';
   return new EmbedBuilder()
-    .setColor(achs.some(a => a.tier === 'gold') ? 0xFFD700 : achs.some(a => a.tier === 'silver') ? 0xC0C0C0 : 0xCD7F32)
+    .setColor(inv.TIER_COLOR[topTier])
     .setTitle(`🏆 Achievement${achs.length > 1 ? 's' : ''} Unlocked!`)
     .setDescription(`**${username}** earned ${achs.length > 1 ? 'new achievements' : 'a new achievement'}!\n\n${lines.join('\n\n')}`);
 }
@@ -5284,7 +5285,7 @@ client.on('messageCreate', async (message) => {
       .setDescription(`**${totalUnlocked} / ${inv.ACHIEVEMENTS.length}** achievements unlocked`)
       .setThumbnail(target.displayAvatarURL())
       .addFields(fields)
-      .setFooter({ text: '🥉 Bronze  •  🥈 Silver  •  🥇 Gold' });
+      .setFooter({ text: '🥉 Bronze  •  🥈 Silver  •  🥇 Gold  •  🔹 Platinum  •  💎 Diamond  •  💚 Emerald  •  💀 Madness' });
 
     return message.reply({ embeds: [embed] });
   }

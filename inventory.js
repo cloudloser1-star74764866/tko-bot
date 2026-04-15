@@ -987,30 +987,52 @@ function getWorldBoss(inventory) {
 // ── Achievements ──────────────────────────────────────────────────────────────
 
 const ACHIEVEMENTS = [
-  // Pulls
-  { id: 'pulls_bronze', tier: 'bronze', category: 'Pulls',        name: 'First Hundred',    desc: 'Pull 100 times',          stat: 'totalPulls',  threshold: 100   },
-  { id: 'pulls_silver', tier: 'silver', category: 'Pulls',        name: 'Pull Addict',      desc: 'Pull 1,000 times',        stat: 'totalPulls',  threshold: 1000  },
-  { id: 'pulls_gold',   tier: 'gold',   category: 'Pulls',        name: 'Card Overlord',    desc: 'Pull 10,000 times',       stat: 'totalPulls',  threshold: 10000 },
-  // Trades
-  { id: 'trades_bronze', tier: 'bronze', category: 'Trades',      name: 'Merchant',         desc: 'Complete 10 trades',      stat: 'totalTrades', threshold: 10    },
-  { id: 'trades_silver', tier: 'silver', category: 'Trades',      name: 'Dealer',           desc: 'Complete 50 trades',      stat: 'totalTrades', threshold: 50    },
-  { id: 'trades_gold',   tier: 'gold',   category: 'Trades',      name: 'Master Trader',    desc: 'Complete 100 trades',     stat: 'totalTrades', threshold: 100   },
-  // Cards collected
-  { id: 'cards_bronze', tier: 'bronze', category: 'Collection',   name: 'Collector',        desc: 'Own 10 unique cards',     stat: 'cards',       threshold: 10    },
-  { id: 'cards_silver', tier: 'silver', category: 'Collection',   name: 'Card Gallery',     desc: 'Own 50 unique cards',     stat: 'cards',       threshold: 50    },
-  { id: 'cards_gold',   tier: 'gold',   category: 'Collection',   name: 'Living Museum',    desc: 'Own 150 unique cards',    stat: 'cards',       threshold: 150   },
-  // Battle kills
-  { id: 'kills_bronze', tier: 'bronze', category: 'Battles',      name: 'Fighter',          desc: 'Win 10 battles',          stat: 'totalKills',  threshold: 10    },
-  { id: 'kills_silver', tier: 'silver', category: 'Battles',      name: 'Warrior',          desc: 'Win 100 battles',         stat: 'totalKills',  threshold: 100   },
-  { id: 'kills_gold',   tier: 'gold',   category: 'Battles',      name: 'Warlord',          desc: 'Win 500 battles',         stat: 'totalKills',  threshold: 500   },
-  // Daily streak
-  { id: 'streak_bronze', tier: 'bronze', category: 'Daily Streak', name: 'Regular',         desc: '7-day daily streak',      stat: 'dailyStreak', threshold: 7     },
-  { id: 'streak_silver', tier: 'silver', category: 'Daily Streak', name: 'Dedicated',       desc: '30-day daily streak',     stat: 'dailyStreak', threshold: 30    },
-  { id: 'streak_gold',   tier: 'gold',   category: 'Daily Streak', name: 'Unbreakable',     desc: '100-day daily streak',    stat: 'dailyStreak', threshold: 100   },
+  // ── Pulls ──────────────────────────────────────────────────────
+  { id: 'pulls_bronze',   tier: 'bronze',   category: 'Pulls',        name: 'First Hundred',      desc: 'Pull 100 times',           stat: 'totalPulls',  threshold: 100    },
+  { id: 'pulls_silver',   tier: 'silver',   category: 'Pulls',        name: 'Pull Addict',        desc: 'Pull 1,000 times',         stat: 'totalPulls',  threshold: 1000   },
+  { id: 'pulls_gold',     tier: 'gold',     category: 'Pulls',        name: 'Card Overlord',      desc: 'Pull 10,000 times',        stat: 'totalPulls',  threshold: 10000  },
+  { id: 'pulls_plat',     tier: 'platinum', category: 'Pulls',        name: 'Infinite Pulls',     desc: 'Pull 25,000 times',        stat: 'totalPulls',  threshold: 25000  },
+  { id: 'pulls_diamond',  tier: 'diamond',  category: 'Pulls',        name: 'Beyond Obsession',   desc: 'Pull 50,000 times',        stat: 'totalPulls',  threshold: 50000  },
+  { id: 'pulls_emerald',  tier: 'emerald',  category: 'Pulls',        name: 'The Eternal Puller', desc: 'Pull 100,000 times',       stat: 'totalPulls',  threshold: 100000 },
+  { id: 'pulls_madness',  tier: 'madness',  category: 'Pulls',        name: 'WHAT IS WRONG WITH YOU', desc: 'Pull 250,000 times',   stat: 'totalPulls',  threshold: 250000 },
+  // ── Trades ─────────────────────────────────────────────────────
+  { id: 'trades_bronze',  tier: 'bronze',   category: 'Trades',       name: 'Merchant',           desc: 'Complete 10 trades',       stat: 'totalTrades', threshold: 10     },
+  { id: 'trades_silver',  tier: 'silver',   category: 'Trades',       name: 'Dealer',             desc: 'Complete 50 trades',       stat: 'totalTrades', threshold: 50     },
+  { id: 'trades_gold',    tier: 'gold',     category: 'Trades',       name: 'Master Trader',      desc: 'Complete 100 trades',      stat: 'totalTrades', threshold: 100    },
+  { id: 'trades_plat',    tier: 'platinum', category: 'Trades',       name: 'Trade Baron',        desc: 'Complete 250 trades',      stat: 'totalTrades', threshold: 250    },
+  { id: 'trades_diamond', tier: 'diamond',  category: 'Trades',       name: 'Market Mogul',       desc: 'Complete 500 trades',      stat: 'totalTrades', threshold: 500    },
+  { id: 'trades_emerald', tier: 'emerald',  category: 'Trades',       name: 'The Exchange',       desc: 'Complete 1,000 trades',    stat: 'totalTrades', threshold: 1000   },
+  { id: 'trades_madness', tier: 'madness',  category: 'Trades',       name: 'Trade Demon',        desc: 'Complete 2,500 trades',    stat: 'totalTrades', threshold: 2500   },
+  // ── Collection ─────────────────────────────────────────────────
+  { id: 'cards_bronze',   tier: 'bronze',   category: 'Collection',   name: 'Collector',          desc: 'Own 10 unique cards',      stat: 'cards',       threshold: 10     },
+  { id: 'cards_silver',   tier: 'silver',   category: 'Collection',   name: 'Card Gallery',       desc: 'Own 50 unique cards',      stat: 'cards',       threshold: 50     },
+  { id: 'cards_gold',     tier: 'gold',     category: 'Collection',   name: 'Living Museum',      desc: 'Own 150 unique cards',     stat: 'cards',       threshold: 150    },
+  { id: 'cards_plat',     tier: 'platinum', category: 'Collection',   name: 'Card Vault',         desc: 'Own 250 unique cards',     stat: 'cards',       threshold: 250    },
+  { id: 'cards_diamond',  tier: 'diamond',  category: 'Collection',   name: 'Infinite Archive',   desc: 'Own 350 unique cards',     stat: 'cards',       threshold: 350    },
+  { id: 'cards_emerald',  tier: 'emerald',  category: 'Collection',   name: 'Nearly Complete',    desc: 'Own 420 unique cards',     stat: 'cards',       threshold: 420    },
+  { id: 'cards_madness',  tier: 'madness',  category: 'Collection',   name: 'The Complete One',   desc: 'Own every single card',    stat: 'cards',       threshold: 447    },
+  // ── Battles ────────────────────────────────────────────────────
+  { id: 'kills_bronze',   tier: 'bronze',   category: 'Battles',      name: 'Fighter',            desc: 'Win 10 battles',           stat: 'totalKills',  threshold: 10     },
+  { id: 'kills_silver',   tier: 'silver',   category: 'Battles',      name: 'Warrior',            desc: 'Win 100 battles',          stat: 'totalKills',  threshold: 100    },
+  { id: 'kills_gold',     tier: 'gold',     category: 'Battles',      name: 'Warlord',            desc: 'Win 500 battles',          stat: 'totalKills',  threshold: 500    },
+  { id: 'kills_plat',     tier: 'platinum', category: 'Battles',      name: 'Conqueror',          desc: 'Win 1,000 battles',        stat: 'totalKills',  threshold: 1000   },
+  { id: 'kills_diamond',  tier: 'diamond',  category: 'Battles',      name: 'Apex Predator',      desc: 'Win 2,500 battles',        stat: 'totalKills',  threshold: 2500   },
+  { id: 'kills_emerald',  tier: 'emerald',  category: 'Battles',      name: 'God of War',         desc: 'Win 5,000 battles',        stat: 'totalKills',  threshold: 5000   },
+  { id: 'kills_madness',  tier: 'madness',  category: 'Battles',      name: 'The Slaughterer',    desc: 'Win 10,000 battles',       stat: 'totalKills',  threshold: 10000  },
+  // ── Daily Streak ───────────────────────────────────────────────
+  { id: 'streak_bronze',  tier: 'bronze',   category: 'Daily Streak', name: 'Regular',            desc: '7-day daily streak',       stat: 'dailyStreak', threshold: 7      },
+  { id: 'streak_silver',  tier: 'silver',   category: 'Daily Streak', name: 'Dedicated',          desc: '30-day daily streak',      stat: 'dailyStreak', threshold: 30     },
+  { id: 'streak_gold',    tier: 'gold',     category: 'Daily Streak', name: 'Unbreakable',        desc: '100-day daily streak',     stat: 'dailyStreak', threshold: 100    },
+  { id: 'streak_plat',    tier: 'platinum', category: 'Daily Streak', name: 'Ironclad',           desc: '200-day daily streak',     stat: 'dailyStreak', threshold: 200    },
+  { id: 'streak_diamond', tier: 'diamond',  category: 'Daily Streak', name: 'Full Year',          desc: '365-day daily streak',     stat: 'dailyStreak', threshold: 365    },
+  { id: 'streak_emerald', tier: 'emerald',  category: 'Daily Streak', name: 'Timeless',           desc: '500-day daily streak',     stat: 'dailyStreak', threshold: 500    },
+  { id: 'streak_madness', tier: 'madness',  category: 'Daily Streak', name: 'No Life Detected',   desc: '1,000-day daily streak',   stat: 'dailyStreak', threshold: 1000   },
 ];
 
-const TIER_EMOJI = { bronze: '🥉', silver: '🥈', gold: '🥇' };
-const TIER_LABEL = { bronze: 'Bronze', silver: 'Silver', gold: 'Gold' };
+const TIER_ORDER = ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'emerald', 'madness'];
+const TIER_EMOJI = { bronze: '🥉', silver: '🥈', gold: '🥇', platinum: '🔹', diamond: '💎', emerald: '💚', madness: '💀' };
+const TIER_LABEL = { bronze: 'Bronze', silver: 'Silver', gold: 'Gold', platinum: 'Platinum', diamond: 'Diamond', emerald: 'Emerald', madness: 'Madness' };
+const TIER_COLOR = { bronze: 0xCD7F32, silver: 0xC0C0C0, gold: 0xFFD700, platinum: 0xE5E4E2, diamond: 0xB9F2FF, emerald: 0x50C878, madness: 0xFF0000 };
 
 function checkAchievements(inventory, userId) {
   const user = ensureUser(inventory, userId);
@@ -1095,6 +1117,6 @@ module.exports = {
   findRedeemCodeByCode, hasRedeemedCode, markCodeRedeemed,
   MAX_PLATINGS_PER_CARD,
   getWorldBoss, setWorldBoss, clearWorldBoss, recordWorldBossDamage,
-  ACHIEVEMENTS, TIER_EMOJI, TIER_LABEL,
+  ACHIEVEMENTS, TIER_ORDER, TIER_EMOJI, TIER_LABEL, TIER_COLOR,
   checkAchievements, incrementTotalTrades, getTotalTrades,
 };
