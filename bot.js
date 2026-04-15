@@ -703,7 +703,7 @@ function applyDittoTransform(myCards, opponentCards, { copyAllies = false } = {}
  */
 function generateBotTeam() {
   const RARITY_WEIGHTS = { R: 40, E: 30, L: 20, MY: 7, UR: 3 };
-  const pool = CARDS.filter(c => c.rarity !== 'LT' && c.rarity !== 'MD' && !c.dittoCard && !c.supportCard && !c.weaponCard);
+  const pool = CARDS.filter(c => c.rarity !== 'LT' && c.rarity !== 'MD' && c.rarity !== 'SP' && !c.dittoCard && !c.supportCard && !c.weaponCard);
 
   const picked = [];
   const used   = new Set();
@@ -1455,6 +1455,7 @@ const RARITY_ALIASES = {
   'ultrarare': 'UR', 'ultra-rare': 'UR', 'ultra rare': 'UR', 'ur': 'UR',
   'limited': 'LT', 'lt': 'LT',
   'madness': 'MD', 'md': 'MD',
+  'special': 'SP', 'sp': 'SP',
 };
 
 function normalizeRarity(input) {
@@ -1710,7 +1711,7 @@ function buildAchievementUnlockEmbed(achs, username) {
 
 const COLLECTION_TIMEOUT_MS = 60_000;
 
-const RARITY_ORDER = ['R', 'E', 'L', 'MY', 'UR', 'LT', 'MD'];
+const RARITY_ORDER = ['R', 'E', 'L', 'MY', 'UR', 'LT', 'MD', 'SP'];
 
 function getSortedAllCards() {
   return [...CARDS].sort((a, b) => {
@@ -1884,8 +1885,7 @@ function buildImageReviewEmbed(authorId, filteredCards, index, filter, expiry) {
     new ButtonBuilder()
       .setCustomId(`${base}|next`)
       .setLabel('✅ Looks Good')
-      .setStyle(ButtonStyle.Success)
-      .setDisabled(index >= filteredCards.length - 1),
+      .setStyle(ButtonStyle.Success),
     new ButtonBuilder()
       .setCustomId(`${base}|find`)
       .setLabel('🔄 Find Another')
@@ -1895,33 +1895,43 @@ function buildImageReviewEmbed(authorId, filteredCards, index, filter, expiry) {
       .setLabel('✏️ Enter URL')
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
-      .setCustomId(`${base}|skip`)
-      .setLabel('⏭️ Skip')
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(index >= filteredCards.length - 1),
+      .setCustomId(`${base}|attach`)
+      .setLabel('📎 Attach Image')
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId(`${base}|done`)
       .setLabel('❌ Done')
       .setStyle(ButtonStyle.Danger),
   );
 
-  const components = [row1];
-
+  const row2Parts = [];
+  row2Parts.push(
+    new ButtonBuilder()
+      .setCustomId(`${base}|skip`)
+      .setLabel('⏭️ Skip')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(index >= filteredCards.length - 1),
+  );
   if (imageUrl) {
-    const row2 = new ActionRowBuilder().addComponents(
+    row2Parts.push(
       new ButtonBuilder()
         .setCustomId(`${base}|upload`)
         .setLabel(hasEmoji ? '🔄 Re-upload Emoji' : '📤 Upload Emoji')
         .setStyle(ButtonStyle.Secondary),
     );
-    components.push(row2);
   }
+  const components = [row1, new ActionRowBuilder().addComponents(...row2Parts)];
 
   return { embed, components };
 }
 
 function buildCollectionPage(authorId, targetUser, cards, page, filter, inventory, expiry) {
-  const enriched = cards.map(enrichCard).filter(c => !lookupCard(c.id)?.weaponCard);
+  const enriched = cards.map(enrichCard).filter(c => {
+    const live = lookupCard(c.id);
+    if (live?.weaponCard) return false;
+    if (live?.rarity === 'SP' && authorId !== targetUser.id) return false;
+    return true;
+  });
   const filtered = applyFilter(enriched, filter);
 
   filtered.sort((a, b) => {
@@ -3369,7 +3379,7 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     const page     = parseInt(pageStr, 10);
-    const allCards = getSortedAllCards();
+    const allCards = getSortedAllCards().filter(c => c.rarity !== 'SP');
     const { embed, components } = buildAllCardsPage(authorId, allCards, page, filter, expiry);
     return interaction.update({ embeds: [embed], components });
   }
@@ -3464,6 +3474,37 @@ client.on('interactionCreate', async (interaction) => {
       if (!emojiOk) embed.setDescription('🔍 **Admin Image Review** — ⚠️ Emoji upload failed (no image or no server space).');
       else embed.setDescription('🔍 **Admin Image Review** — ✅ Emoji updated!');
       return interaction.editReply({ embeds: [embed], components });
+    }
+
+    if (action === 'attach') {
+      const card = filteredCards[index];
+      await interaction.reply({ content: `📎 Send your image as a message in this channel within **60 seconds** for **${card.name}**.`, ephemeral: true });
+
+      let collected;
+      try {
+        collected = await interaction.channel.awaitMessages({
+          filter: m => m.author.id === authorId && m.attachments.size > 0,
+          max: 1,
+          time: 60_000,
+          errors: ['time'],
+        });
+      } catch {
+        return interaction.editReply({ content: '⏱️ No image received within 60 seconds. Try again.' });
+      }
+
+      const msg        = collected.first();
+      const attachment = msg.attachments.first();
+      imgCache.setImage(card.id, attachment.url);
+      await msg.delete().catch(() => {});
+
+      const emojiOk   = await emojiCache.forceUploadEmoji(client, card, imgCache).catch(() => false);
+      const newExpiry = Date.now() + 30 * 60_000;
+      const { embed: attachEmbed, components: attachComps } = buildImageReviewEmbed(authorId, filteredCards, index, filter, newExpiry);
+      attachEmbed.setDescription(emojiOk
+        ? '🔍 **Admin Image Review** — ✅ Image & emoji updated!'
+        : '🔍 **Admin Image Review** — ⚠️ Image saved but emoji upload failed. Try the Upload Emoji button.');
+      await interaction.message.edit({ embeds: [attachEmbed], components: attachComps });
+      return interaction.editReply({ content: '✅ Image saved!' });
     }
 
     return;
@@ -4025,7 +4066,7 @@ client.on('messageCreate', async (message) => {
   // ── all ──────────────────────────────────────────────────
   if (command === 'all') {
     const filter   = args.join(' ').trim();
-    const allCards = getSortedAllCards();
+    const allCards = getSortedAllCards().filter(c => c.rarity !== 'SP');
     const expiry   = Date.now() + COLLECTION_TIMEOUT_MS;
     const { embed, components } = buildAllCardsPage(userId, allCards, 0, filter, expiry);
     return message.reply({ embeds: [embed], components });
@@ -4757,6 +4798,13 @@ client.on('messageCreate', async (message) => {
 
     const card = resolveCard(cardQuery);
     if (!card) return message.reply(`No card found matching \`${cardQuery}\`. Use \`ZP all\` to browse cards.`);
+
+    if (card.rarity === 'SP') {
+      const spInv = await inv.loadInventory();
+      if (!inv.hasCard(spInv, userId, card.id)) {
+        return message.reply(`No card found matching \`${cardQuery}\`. Use \`ZP all\` to browse cards.`);
+      }
+    }
 
     const meta  = rarityMeta(card.rarity);
     const stats = getCardStats(card, 1);

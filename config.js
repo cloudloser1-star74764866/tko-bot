@@ -124,6 +124,7 @@ module.exports = {
     UR: { label: 'Ultra-Rare', emoji: '🩵',  color: 0x00FFF0, stars: '*****'    },
     LT: { label: 'Limited',    emoji: '🩷',  color: 0xFF69B4, stars: 'LIMITED'  },
     MD: { label: 'Madness',    emoji: '💚',  color: 0x00FF41, stars: 'MADNESS'  },
+    SP: { label: 'Special',    emoji: '🌟',  color: 0xFFFFFF, stars: 'SPECIAL'  },
   },
 
 };

@@ -656,14 +656,17 @@ const CARDS = [
   { id: 'gojo_weapon',        name: 'Infinite Void',               series: 'Jujutsu Kaisen',                   rarity: 'LT', weaponCard: true, weaponOf: 'gojo',        desc: "Gojo's domain expansion — an infinite realm of stimulation that incapacitates all who enter it permanently." },
   { id: 'kaiser_impact_weapon',name: 'World-Class Shot',           series: 'Blue Lock',                        rarity: 'LT', weaponCard: true, weaponOf: 'kaiser_impact',desc: "The Kaiser Impact taken to its absolute limit — a shot that doesn't just score, it redefines football entirely." },
 
+  // ── Special (SP) ──────────────────────────────────────────
+  { id: 'bilal_mia', name: 'Bilal Mia', series: 'Special', rarity: 'SP', desc: 'One of a kind.' },
+
 ];
 
 /**
- * Base pool filter — excludes Limited, weapon, support, and ditto cards.
+ * Base pool filter — excludes Limited, weapon, support, ditto, and special cards.
  * These are never obtainable through regular pulls.
  */
 function isNormalPullable(c) {
-  return c.rarity !== 'LT' && !c.weaponCard && !c.supportCard && !c.dittoCard;
+  return c.rarity !== 'LT' && c.rarity !== 'SP' && !c.weaponCard && !c.supportCard && !c.dittoCard;
 }
 
 /**
