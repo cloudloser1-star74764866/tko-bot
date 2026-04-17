@@ -48,8 +48,8 @@ const SEED = {
 
   // ── Dragon Ball ───────────────────────────────────────────────
   goku_r:          'https://s4.anilist.co/file/anilistcdn/character/large/b246-wsRRr6z1kii8.png',
-  goku_ssj4_l:     'https://s4.anilist.co/file/anilistcdn/character/large/b246-wsRRr6z1kii8.png',
-  goku_ssj4:       'https://s4.anilist.co/file/anilistcdn/character/large/b246-wsRRr6z1kii8.png',
+  goku_ssj4_l:     'https://static.wikia.nocookie.net/dragonball/images/9/98/Goku_SSJ4.png/revision/latest',
+  goku_ssj4:       'https://static.wikia.nocookie.net/dragonball/images/9/98/Goku_SSJ4.png/revision/latest',
   ultra_goku_lt:   'https://static.wikia.nocookie.net/dragonball/images/b/b9/Ultra_Instinct_Goku.png/revision/latest?cb=20180930060236',
   vegeta_e:        'https://s4.anilist.co/file/anilistcdn/character/large/b913-NIFkKazWM8VO.png',
   beerus_my:       'https://s4.anilist.co/file/anilistcdn/character/large/b76348-pGWrznfxgPIV.png',
@@ -77,9 +77,9 @@ const SEED = {
 
   // ── Bleach ────────────────────────────────────────────────────
   ichigo_r:        'https://s4.anilist.co/file/anilistcdn/character/large/b5-a7bkJgjhhigE.png',
-  ichigo_bankai_ur:'https://s4.anilist.co/file/anilistcdn/character/large/b5-a7bkJgjhhigE.png',
-  ichigo_bankai:   'https://s4.anilist.co/file/anilistcdn/character/large/b5-a7bkJgjhhigE.png',
-  uryu_r:          'https://s4.anilist.co/file/anilistcdn/character/large/b7-wlGHiMpTJyOe.png',
+  ichigo_bankai_ur:'https://static.wikia.nocookie.net/bleach/images/6/6f/Ichigo%27s_new_Bankai.png/revision/latest',
+  ichigo_bankai:   'https://static.wikia.nocookie.net/bleach/images/6/6f/Ichigo%27s_new_Bankai.png/revision/latest',
+  uryu_r:          'https://s4.anilist.co/file/anilistcdn/character/large/b564-a6LJitrjSfKC.jpg',
   aizen_my:        'https://s4.anilist.co/file/anilistcdn/character/large/b59-P4IUZA4bE5SL.png',
   aizen_l:         'https://s4.anilist.co/file/anilistcdn/character/large/b59-P4IUZA4bE5SL.png',
   yhwach_ur:       'https://s4.anilist.co/file/anilistcdn/character/large/b68537-1bRB5OdseCp0.jpg',
@@ -122,12 +122,12 @@ const SEED = {
   // ── Hunter x Hunter ───────────────────────────────────────────
   gon_e:           'https://s4.anilist.co/file/anilistcdn/character/large/b30-EjpivFaAlsWM.png',
   gon_r:           'https://s4.anilist.co/file/anilistcdn/character/large/b30-EjpivFaAlsWM.png',
-  kurapika_e:      'https://s4.anilist.co/file/anilistcdn/character/large/b34-cCzjvqYijIgj.png',
-  kurapika_r:      'https://s4.anilist.co/file/anilistcdn/character/large/b34-cCzjvqYijIgj.png',
-  killua_e:        'https://s4.anilist.co/file/anilistcdn/character/large/b41322-vQYmU7pnPqNe.png',
-  hisoka_l:        'https://s4.anilist.co/file/anilistcdn/character/large/b41832-OFMkuSb3uxNE.png',
-  netero_my:       'https://s4.anilist.co/file/anilistcdn/character/large/b41829-NiNjGHJbniJI.png',
-  netero_l:        'https://s4.anilist.co/file/anilistcdn/character/large/b41829-NiNjGHJbniJI.png',
+  kurapika_e:      'https://s4.anilist.co/file/anilistcdn/character/large/b28-ivA7UGnfE40a.png',
+  kurapika_r:      'https://s4.anilist.co/file/anilistcdn/character/large/b28-ivA7UGnfE40a.png',
+  killua_e:        'https://s4.anilist.co/file/anilistcdn/character/large/b27-Z5O02kQUydpT.jpg',
+  hisoka_l:        'https://s4.anilist.co/file/anilistcdn/character/large/b31-FZckOuu7L1un.png',
+  netero_my:       'https://s4.anilist.co/file/anilistcdn/character/large/b14489-WgGsdlQJka65.jpg',
+  netero_l:        'https://s4.anilist.co/file/anilistcdn/character/large/b14489-WgGsdlQJka65.jpg',
 
   // ── Fairy Tail ────────────────────────────────────────────────
   acnologia_my:    'https://s4.anilist.co/file/anilistcdn/character/large/b63920-Qb8LuRJvTuPb.png',
@@ -247,10 +247,10 @@ const SEED = {
   joyboy_weapon:        'https://s4.anilist.co/file/anilistcdn/character/large/b341936-l61bq77sTJBM.png',
   gear5_luffy_weapon:   'https://static.wikia.nocookie.net/onepiece/images/0/06/Nika_Anime_Infobox.png/revision/latest?cb=20240407020958',
   aizen_weapon:         'https://s4.anilist.co/file/anilistcdn/character/large/b59-P4IUZA4bE5SL.png',
-  ichigo_bankai_weapon: 'https://s4.anilist.co/file/anilistcdn/character/large/b5-a7bkJgjhhigE.png',
+  ichigo_bankai_weapon: 'https://static.wikia.nocookie.net/bleach/images/6/6f/Ichigo%27s_new_Bankai.png/revision/latest',
   yhwach_weapon:        'https://s4.anilist.co/file/anilistcdn/character/large/b68537-1bRB5OdseCp0.jpg',
   father_weapon:        'https://s4.anilist.co/file/anilistcdn/character/large/b2764-Z39q5lf5LgJi.png',
-  netero_weapon:        'https://s4.anilist.co/file/anilistcdn/character/large/b41829-NiNjGHJbniJI.png',
+  netero_weapon:        'https://s4.anilist.co/file/anilistcdn/character/large/b14489-WgGsdlQJka65.jpg',
   kratos_weapon:        'https://static.wikia.nocookie.net/godofwar/images/e/e9/Kratos-_GOW_Ragnarok.png/revision/latest',
   kira_weapon:          'https://s4.anilist.co/file/anilistcdn/character/large/b12055-eCEkIVV4qoCu.png',
   giorno_weapon:        'https://s4.anilist.co/file/anilistcdn/character/large/b10529-AloL8jjZwjsg.png',
@@ -321,8 +321,8 @@ const SEED = {
   gear5_luffy:     'https://static.wikia.nocookie.net/onepiece/images/0/06/Nika_Anime_Infobox.png/revision/latest?cb=20240407020958',
   // Bleach
   ichigo:          'https://s4.anilist.co/file/anilistcdn/character/large/b5-a7bkJgjhhigE.png',
-  ichigo_bankai:   'https://s4.anilist.co/file/anilistcdn/character/large/b5-a7bkJgjhhigE.png',
-  uryu:            'https://s4.anilist.co/file/anilistcdn/character/large/b7-wlGHiMpTJyOe.png',
+  ichigo_bankai:   'https://static.wikia.nocookie.net/bleach/images/6/6f/Ichigo%27s_new_Bankai.png/revision/latest',
+  uryu:            'https://s4.anilist.co/file/anilistcdn/character/large/b564-a6LJitrjSfKC.jpg',
   aizen:           'https://s4.anilist.co/file/anilistcdn/character/large/b59-P4IUZA4bE5SL.png',
   yhwach:          'https://s4.anilist.co/file/anilistcdn/character/large/b68537-1bRB5OdseCp0.jpg',
   // Attack on Titan
@@ -374,11 +374,11 @@ const SEED = {
   // The Legend of Zelda
   link:            'https://static.wikia.nocookie.net/zelda_gamepedia_en/images/4/47/TLoZ_Series_Link_Render.png/revision/latest',
   // Hunter x Hunter
-  killua:          'https://s4.anilist.co/file/anilistcdn/character/large/b41322-vQYmU7pnPqNe.png',
+  killua:          'https://s4.anilist.co/file/anilistcdn/character/large/b27-Z5O02kQUydpT.jpg',
   gon:             'https://s4.anilist.co/file/anilistcdn/character/large/b30-EjpivFaAlsWM.png',
-  kurapika:        'https://s4.anilist.co/file/anilistcdn/character/large/b34-cCzjvqYijIgj.png',
-  hisoka:          'https://s4.anilist.co/file/anilistcdn/character/large/b41832-OFMkuSb3uxNE.png',
-  netero:          'https://s4.anilist.co/file/anilistcdn/character/large/b41829-NiNjGHJbniJI.png',
+  kurapika:        'https://s4.anilist.co/file/anilistcdn/character/large/b28-ivA7UGnfE40a.png',
+  hisoka:          'https://s4.anilist.co/file/anilistcdn/character/large/b31-FZckOuu7L1un.png',
+  netero:          'https://s4.anilist.co/file/anilistcdn/character/large/b14489-WgGsdlQJka65.jpg',
   // Gurren Lagann
   simon:           'https://s4.anilist.co/file/anilistcdn/character/large/b2257-jnalsdnIX1vN.jpg',
   // Lookism
@@ -427,21 +427,21 @@ const SEED = {
 const SEARCH_TERMS = {
   // ── Bleach secondary cast (direct AniList character IDs) ──────
   rukia_r:      6,    rukia:        6,    // Rukia Kuchiki
-  byakuya_e:    4,    byakuya:      4,    // Byakuya Kuchiki
-  renji_r:      8,    renji:        8,    // Renji Abarai
-  gin_l:        9,    gin:          9,    // Gin Ichimaru
-  orihime_r:    10,   orihime:      10,   // Orihime Inoue
-  chad_r:       11,   chad:         11,   // Yasutora Sado
-  grimmjow_e:   20,   grimmjow:     20,   // Grimmjow Jaegerjaquez
-  ulquiorra_e:  22,   ulquiorra:    22,   // Ulquiorra Cifer
+  byakuya_e:    907,  byakuya:      907,  // Byakuya Kuchiki
+  renji_r:      906,  renji:        906,  // Renji Abarai
+  gin_l:        1087, gin:          1087, // Gin Ichimaru
+  orihime_r:    7,    orihime:      7,    // Orihime Inoue
+  chad_r:       575,  chad:         575,  // Yasutora Sado
+  grimmjow_e:   1080, grimmjow:     1080, // Grimmjow Jaegerjaquez
+  ulquiorra_e:  1081, ulquiorra:    1081, // Ulquiorra Cifer
   yhwach_my:    68537, yhwach_ur:   68537, // Yhwach (already in seed too)
 
   // ── JoJo's Bizarre Adventure (direct AniList IDs) ─────────────
-  jotaro_e:    10755,  jotaro:     10755,  // Jotaro Kujo
-  joseph_r:    13041,  joseph:     13041,  // Joseph Joestar
-  noriaki_r:   12053,  noriaki:    12053,  // Noriaki Kakyoin
-  josuke_e:    10766,  josuke:     10766,  // Josuke Higashikata (Part 4)
-  caesar_r:    12052,  caesar:     12052,  // Caesar Zeppeli
+  jotaro_e:    4003,   jotaro:     4003,   // Jotaro Kujo
+  joseph_r:    6356,   joseph:     6356,   // Joseph Joestar
+  noriaki_r:   8945,   noriaki:    8945,   // Noriaki Kakyoin
+  josuke_e:    13085,  josuke:     13085,  // Josuke Higashikata (Part 4)
+  caesar_r:    21959,  caesar:     21959,  // Caesar Zeppeli
   dio_l:       4004,   dio:        4004,   // DIO (shared with dio_wr)
 
   // ── My Hero Academia (direct AniList IDs) ─────────────────────
@@ -457,15 +457,15 @@ const SEARCH_TERMS = {
   nezuko_r:    127217, nezuko:     127217, // Nezuko Kamado
   zenitsu_r:   127218, zenitsu:   127218, // Zenitsu Agatsuma
   inosuke_r:   127219, inosuke:   127219, // Inosuke Hashibira
-  tengen_e:    127220, tengen:    127220,  // Tengen Uzui
+  tengen_e:    136071, tengen:    136071,  // Tengen Uzui
 
   // ── Fullmetal Alchemist: Brotherhood (direct AniList IDs) ─────
   edward_e:    11,     edward:     11,     // Edward Elric
   edward_r:    11,
   alphonse_r:  12,     alphonse:   12,     // Alphonse Elric
-  winry_r:     13,     winry:      13,     // Winry Rockbell
-  roy_e:       37,     roy:        37,     // Roy Mustang
-  armstrong_e: 39,     armstrong:  39,     // Alex Louis Armstrong
+  winry_r:     63,     winry:      63,     // Winry Rockbell
+  roy_e:       68,     roy:        68,     // Roy Mustang
+  armstrong_e: 2079,   armstrong:  2079,   // Alex Louis Armstrong
   father:      'Father Fullmetal Alchemist', // Father (Homunculus)
 
   // ── Jujutsu Kaisen ────────────────────────────────────────────
@@ -567,11 +567,11 @@ const SEARCH_TERMS = {
   shibukawa_l: 117089, shibukawa:117089,  // Goki Shibukawa
 
   // ── Naruto additional cast ────────────────────────────────────
-  rock_lee:         19,     hinata:          'Hinata Hyuga Naruto',
+  rock_lee:         306,    hinata:          'Hinata Hyuga Naruto',
   kakashi:          'Kakashi Hatake Naruto',
-  shikamaru:        18,     gaara:           21,
-  neji:             20,     temari:          22,
-  might_guy:        24,     kiba:            'Kiba Inuzuka Naruto',
+  shikamaru:        2007,   gaara:           1662,
+  neji:             1694,   temari:          2174,
+  might_guy:        307,    kiba:            'Kiba Inuzuka Naruto',
   tenten:           'Tenten Naruto',   ino:         'Ino Yamanaka Naruto',
   minato:           'Minato Namikaze Naruto',
   jiraiya:          'Jiraiya Naruto',  tsunade:     'Tsunade Naruto',
@@ -784,7 +784,7 @@ const SEARCH_TERMS = {
   ymir_fritz:       'Ymir Fritz Attack on Titan',
 
   // ── Hunter x Hunter additional cast ──────────────────────────
-  leorio:           32,     chrollo:         'Chrollo Lucilfer Hunter x Hunter',
+  leorio:           29,     chrollo:         'Chrollo Lucilfer Hunter x Hunter',
   illumi:           'Illumi Zoldyck Hunter x Hunter',
   neferpitou:       'Neferpitou Hunter x Hunter',
   feitan:           'Feitan Portor Hunter x Hunter',
@@ -816,7 +816,7 @@ const SEARCH_TERMS = {
   august_ft:        'August Fairy Tail',
 
   // ── FMA: Brotherhood additional cast ─────────────────────────
-  riza_hawkeye:     38,     maes_hughes:     'Maes Hughes Fullmetal Alchemist',
+  riza_hawkeye:     70,     maes_hughes:     'Maes Hughes Fullmetal Alchemist',
   lust_fma:         'Lust Fullmetal Alchemist',
   wrath_fma:        'Wrath Fullmetal Alchemist',
   envy_fma:         'Envy Fullmetal Alchemist',
@@ -1146,8 +1146,8 @@ const SEARCH_TERMS = {
   musica_tpn:       'Musica Promised Neverland',
 
   // ── Haikyuu!! ─────────────────────────────────────────────────
-  shoyo_hinata:     140798, tobio_kageyama: 140799,
-  hinata_hq:        140798, kageyama_hq:    140799,
+  shoyo_hinata:     64769,  tobio_kageyama: 64771,
+  hinata_hq:        64769,  kageyama_hq:    64771,
   kuroo_hq:         'Kuroo Haikyuu',    ushijima_hq:  'Ushijima Haikyuu',
   tsukishima_hq:    'Kei Tsukishima Haikyuu',
   yamaguchi_hq:     'Tadashi Yamaguchi Haikyuu',
@@ -1486,7 +1486,7 @@ const SEARCH_TERMS = {
   // ── Weapon card AniList ID fallbacks ─────────────────────────
   madara_weapon:    53901,  itachi_weapon:    14,
   shanks_weapon:    727,    aizen_weapon:     59,
-  netero_weapon:    41829,  kira_weapon:      12055,
+  netero_weapon:    14489,  kira_weapon:      12055,
   kaido_weapon:     63935,  muzan_weapon:     127221,
   sukuna_weapon:    127213, acnologia_weapon: 63920,
   escanor_weapon:   107815, daniel_weapon:    194055,
