@@ -1855,7 +1855,7 @@ function getConfirmedCards(filter) {
   );
 }
 
-function buildImageReviewEmbed(authorId, filteredCards, index, filter, expiry) {
+function buildImageReviewEmbed(authorId, filteredCards, index, filter, expiry, mode = 'rev') {
   const card     = filteredCards[index];
   const meta     = rarityMeta(card.rarity);
   const emojiStr = emojiCache.getEmoji(card.id);
@@ -1879,7 +1879,7 @@ function buildImageReviewEmbed(authorId, filteredCards, index, filter, expiry) {
 
   if (imageUrl) embed.setImage(imageUrl);
 
-  const base = `imgrev|${authorId}|${expiry}|${index}|${filter || '_'}`;
+  const base = `imgrev|${authorId}|${expiry}|${mode}|${index}|${filter || '_'}`;
 
   const row1 = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
@@ -2602,17 +2602,20 @@ client.on('interactionCreate', async (interaction) => {
     const mParts  = interaction.customId.split('|');
 
     if (mParts[0] === 'imgrev_url') {
-      const [, authorId, expiryStr, indexStr, ...filterRest] = mParts;
+      const [, authorId, expiryStr, modeStr, indexStr, ...filterRest] = mParts;
       const filter  = filterRest.join('|');
       const expiry  = parseInt(expiryStr, 10);
       const index   = parseInt(indexStr, 10);
+      const mode    = modeStr === 'ver' ? 'ver' : 'rev';
       const url     = interaction.fields.getTextInputValue('url').trim();
 
       if (interaction.user.id !== authorId) {
         return interaction.reply({ content: 'This review is not for you.', ephemeral: true });
       }
 
-      const filteredCards = getImageReviewCards(filter === '_' ? '' : filter);
+      const filteredCards = mode === 'ver'
+        ? getConfirmedCards(filter === '_' ? '' : filter)
+        : getImageReviewCards(filter === '_' ? '' : filter);
       const card = filteredCards[index];
 
       if (!url.startsWith('http')) {
@@ -2622,11 +2625,10 @@ client.on('interactionCreate', async (interaction) => {
       await interaction.deferUpdate();
       imgCache.setImage(card.id, url);
 
-      // Auto-update the Discord emoji to match the new image
       const emojiOk = await emojiCache.forceUploadEmoji(client, card, imgCache).catch(() => false);
 
       const newExpiry = Date.now() + 30 * 60_000;
-      const { embed, components } = buildImageReviewEmbed(authorId, filteredCards, index, filter, newExpiry);
+      const { embed, components } = buildImageReviewEmbed(authorId, filteredCards, index, filter, newExpiry, mode);
       if (!emojiOk) {
         embed.setDescription('🔍 **Admin Image Review** — ⚠️ Image saved but emoji upload failed. Try the Upload Emoji button.');
       } else {
@@ -3386,11 +3388,12 @@ client.on('interactionCreate', async (interaction) => {
 
   // ── Image review button handler (admin) ──────────────────
   if (parts[0] === 'imgrev') {
-    const [, authorId, expiryStr, indexStr, ...rest] = parts;
+    const [, authorId, expiryStr, modeStr, indexStr, ...rest] = parts;
     const action = rest.pop();
     const filter = rest.join('|');
     const expiry = parseInt(expiryStr, 10);
     const index  = parseInt(indexStr, 10);
+    const mode   = modeStr === 'ver' ? 'ver' : 'rev';
 
     if (interaction.user.id !== authorId) {
       return interaction.reply({ content: 'This review is not for you.', ephemeral: true });
@@ -3399,7 +3402,9 @@ client.on('interactionCreate', async (interaction) => {
       return interaction.update({ content: '⏱️ This review session has expired.', components: [], embeds: [] });
     }
 
-    const filteredCards = getImageReviewCards(filter === '_' ? '' : filter);
+    const filteredCards = mode === 'ver'
+      ? getConfirmedCards(filter === '_' ? '' : filter)
+      : getImageReviewCards(filter === '_' ? '' : filter);
     if (filteredCards.length === 0) {
       return interaction.update({ content: 'No cards to review.', components: [], embeds: [] });
     }
@@ -3411,19 +3416,28 @@ client.on('interactionCreate', async (interaction) => {
     if (action === 'next' || action === 'skip') {
       if (action === 'next') {
         const card = filteredCards[index];
-        confirmImage(card.id);
-        const remaining = filteredCards.filter(c => !confirmedImages.has(c.id));
-        if (remaining.length === 0) {
-          return interaction.update({ content: '🎉 All cards reviewed and confirmed!', components: [], embeds: [] });
+        if (mode === 'rev') {
+          confirmImage(card.id);
+          const remaining = filteredCards.filter(c => !confirmedImages.has(c.id));
+          if (remaining.length === 0) {
+            return interaction.update({ content: '🎉 All cards reviewed and confirmed!', components: [], embeds: [] });
+          }
+          const { embed, components } = buildImageReviewEmbed(authorId, remaining, 0, filter, expiry, mode);
+          return interaction.update({ embeds: [embed], components });
         }
-        const { embed, components } = buildImageReviewEmbed(authorId, remaining, 0, filter, expiry);
+        // In verified mode "Looks Good" just advances to next
+        const nextIdx = index + 1;
+        if (nextIdx >= filteredCards.length) {
+          return interaction.update({ content: '✅ Reached end of verified cards.', components: [], embeds: [] });
+        }
+        const { embed, components } = buildImageReviewEmbed(authorId, filteredCards, nextIdx, filter, expiry, mode);
         return interaction.update({ embeds: [embed], components });
       }
       const nextIndex = index + 1;
       if (nextIndex >= filteredCards.length) {
         return interaction.update({ content: '🎉 All cards reviewed!', components: [], embeds: [] });
       }
-      const { embed, components } = buildImageReviewEmbed(authorId, filteredCards, nextIndex, filter, expiry);
+      const { embed, components } = buildImageReviewEmbed(authorId, filteredCards, nextIndex, filter, expiry, mode);
       return interaction.update({ embeds: [embed], components });
     }
 
@@ -3432,12 +3446,11 @@ client.on('interactionCreate', async (interaction) => {
       const card     = filteredCards[index];
       const freshUrl = await imgCache.fetchJikanUrl(card.id, card.name).catch(() => null);
       const newExpiry = Date.now() + 30 * 60_000;
-      const { embed, components } = buildImageReviewEmbed(authorId, filteredCards, index, filter, newExpiry);
+      const { embed, components } = buildImageReviewEmbed(authorId, filteredCards, index, filter, newExpiry, mode);
 
       if (!freshUrl) {
         embed.setDescription('🔍 **Admin Image Review** — ⚠️ No image found on MyAnimeList. Use ✏️ Enter URL to paste one manually.');
       } else {
-        // New image was fetched — auto-update the emoji too
         const emojiOk = await emojiCache.forceUploadEmoji(client, card, imgCache).catch(() => false);
         embed.setDescription(emojiOk
           ? '🔍 **Admin Image Review** — ✅ Image & emoji updated!'
@@ -3450,7 +3463,7 @@ client.on('interactionCreate', async (interaction) => {
     if (action === 'typeurl') {
       const card  = filteredCards[index];
       const modal = new ModalBuilder()
-        .setCustomId(`imgrev_url|${authorId}|${expiry}|${index}|${filter}`)
+        .setCustomId(`imgrev_url|${authorId}|${expiry}|${mode}|${index}|${filter}`)
         .setTitle(`Set image for ${card.name}`);
       const input = new TextInputBuilder()
         .setCustomId('url')
@@ -3470,7 +3483,7 @@ client.on('interactionCreate', async (interaction) => {
         return false;
       });
       const newExpiry = Date.now() + 30 * 60_000;
-      const { embed, components } = buildImageReviewEmbed(authorId, filteredCards, index, filter, newExpiry);
+      const { embed, components } = buildImageReviewEmbed(authorId, filteredCards, index, filter, newExpiry, mode);
       if (!emojiOk) embed.setDescription('🔍 **Admin Image Review** — ⚠️ Emoji upload failed (no image or no server space).');
       else embed.setDescription('🔍 **Admin Image Review** — ✅ Emoji updated!');
       return interaction.editReply({ embeds: [embed], components });
@@ -3499,7 +3512,7 @@ client.on('interactionCreate', async (interaction) => {
 
       const emojiOk   = await emojiCache.forceUploadEmoji(client, card, imgCache).catch(() => false);
       const newExpiry = Date.now() + 30 * 60_000;
-      const { embed: attachEmbed, components: attachComps } = buildImageReviewEmbed(authorId, filteredCards, index, filter, newExpiry);
+      const { embed: attachEmbed, components: attachComps } = buildImageReviewEmbed(authorId, filteredCards, index, filter, newExpiry, mode);
       attachEmbed.setDescription(emojiOk
         ? '🔍 **Admin Image Review** — ✅ Image & emoji updated!'
         : '🔍 **Admin Image Review** — ⚠️ Image saved but emoji upload failed. Try the Upload Emoji button.');
@@ -6882,11 +6895,63 @@ client.on('messageCreate', async (message) => {
       return message.reply(`No confirmed cards found${filter ? ` matching "${filter}"` : ''}.`);
     }
     const expiry = Date.now() + 30 * 60_000;
-    const { embed, components } = buildImageReviewEmbed(userId, confirmedCards, 0, filter || '_', expiry);
+    const { embed, components } = buildImageReviewEmbed(userId, confirmedCards, 0, filter || '_', expiry, 'ver');
     return message.reply({ embeds: [embed], components });
   }
 
   // ── refresh ───────────────────────────────────────────────
+  if (command === 'check') {
+    if (!isAdmin(userId)) return;
+    const TARGET_CHANNEL = '1479549118094512284';
+    await message.reply('🔍 Running emoji & image check — results will be posted in the target channel...');
+
+    const checkChannel = await client.channels.fetch(TARGET_CHANNEL).catch(() => null);
+    if (!checkChannel) return message.reply('❌ Could not fetch the target channel.');
+
+    const checkCards = CARDS.filter(c => !c.weaponCard && !c.supportCard && c.rarity !== 'SP' && c.rarity !== 'MD');
+    const ec = emojiCache.load();
+
+    const missingEmoji  = [];
+    const missingImage  = [];
+
+    for (const card of checkCards) {
+      const hasEmoji = !!ec[card.id];
+      const hasImage = !!(imgCache.getImage(card.id) ?? card.image);
+      if (!hasEmoji) missingEmoji.push(card);
+      if (!hasImage) missingImage.push(card);
+    }
+
+    const sendChunked = async (header, cards) => {
+      if (cards.length === 0) {
+        await checkChannel.send(`✅ **${header}** — none missing!`);
+        return;
+      }
+      let lines = [`❌ **${header}** (${cards.length} cards):`];
+      for (const c of cards) {
+        const line = `• \`${c.id}\` — ${c.name} [${c.rarity}] (${c.series})`;
+        if ((lines.join('\n') + '\n' + line).length > 1900) {
+          await checkChannel.send(lines.join('\n'));
+          lines = [line];
+        } else {
+          lines.push(line);
+        }
+      }
+      if (lines.length) await checkChannel.send(lines.join('\n'));
+    };
+
+    await sendChunked('Missing Emojis', missingEmoji);
+    await sendChunked('Missing Images', missingImage);
+
+    const both = checkCards.filter(c => !ec[c.id] && !(imgCache.getImage(c.id) ?? c.image));
+    await checkChannel.send(
+      `📊 **Check complete** — ${checkCards.length} cards scanned.\n` +
+      `• Missing emoji: **${missingEmoji.length}**\n` +
+      `• Missing image: **${missingImage.length}**\n` +
+      `• Missing both:  **${both.length}**`
+    );
+    return;
+  }
+
   if (command === 'refresh') {
     await message.reply('Starting emoji refresh: deleting all emojis and re-syncing...');
     await emojiCache.deleteAllEmojis(client);
