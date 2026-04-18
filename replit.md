@@ -9,7 +9,7 @@ A Discord card-collecting and RPG bot. Pull anime and game character cards, buil
 - **config.js** — Pull rates, plating tiers, rarity display metadata, command prefix (`ZP`).
 - **inventory.js** — JSON file persistence for user data (`data/inventory.json`). Handles cards, shards, platings, clans, duos, wish, prestige, level caps, guild settings.
 - **trades.js** — In-memory trade manager with 5-minute expiry.
-- **imageCache.js** — Fetches and caches card artwork from AniList.
+- **imageCache.js** — Manages card artwork. The SEED block contains hardcoded Fandom/Wikia URLs for all main characters. The SEARCH_TERMS block uses direct AniList character IDs for secondary characters only. **POLICY: NEVER use AniList (s4.anilist.co) image URLs — they are often wrong. Always source images from Fandom/Wikia wikis or official art pages via web search (e.g., "[Character Name] [Series] official art"). This applies to all future image additions or corrections.**
 - **emojiCache.js** — Uploads card art as custom Discord emojis.
 
 ## Running
